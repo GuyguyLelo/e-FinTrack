@@ -1,0 +1,18 @@
+CODE DEPENSE	MOIS	ANNEE	DATE	ARTICLE LITTERA	LIBELLE DEPENSES	BANQUE	MONTANT EN Fc	MONTANT EN 	OBSERVATION
+99	2010	2008	16/11/2008	22-10	Frais bancaires	BIC	15 088,46	569,06	
+100	11	2008	16/11/2008	34-10	Indemnités permanentes	BIC	5 973 000,00	94 650,00	
+101	11	2008	16/11/2008	34-40	Indemnités non permanentes	BIC	0,00	60 708,00	
+102	11	2008	16/11/2008	22-10	Frais bancaires	TMB	5 353,84	9,00	
+103	11	2008	16/11/2008	34-40	Indemnités non permanente	TMB	6 000 000,00	17 369,00	
+104	11	2008	16/11/2008	22-10	Frais bancaires	CITI BANK	0,00	10,00	
+105	11	2008	16/11/2008	34-40	Indemnités non permanentes	CITI BANK	38 803 541,00	0,00	
+106	11	2008	16/11/2008	22-00	Facilitations des opérations financières	BCDC	874 634,60	3 665,03	
+107	11	2008	16/11/2008	34-10	Indemnités permanentes	BCDC	9 162 826,50	47 150,00	
+108	11	2008	16/11/2008	34-40	Indemnités non permanentes	BCDC	0,00	2 509,00	
+109	11	2008	16/11/2008	41-20	Livres et abonnement de presse	BCDC	0,00	600,00	
+111	11	2008	16/11/2008	43-20	Carburants	BCDC	3 693 500,00	270,00	
+112	11	2008	16/11/2008	51-30	Eau	BCDC	0,00	814,76	
+113	11	2008	16/11/2008	55-20	Entretien et réparation de mobiliers et matériels de bureau	BCDC	0,00	1 790,00	
+114	11	2008	16/11/2008	62-10	Rétrocession aux régies financières	BCDC	190 837 173,50	0,00	
+115	11	2008	16/11/2008	62-10	Rétrocessions aux services d'assiettes	BCDC	0,00	229 732,00	
+116	11	2008	16/11/2008	63-30	Interventions scientifiques et culturelles	BCDC	5 896 100,00	10 806,24	

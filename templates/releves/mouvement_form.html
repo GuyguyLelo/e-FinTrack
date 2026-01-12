@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Ajouter un Mouvement - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-plus-circle"></i> Ajouter un Mouvement Bancaire</h4>
+            </div>
+            <div class="card-body">
+                {% crispy form %}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'releves:detail' releve.pk %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour au relevé
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

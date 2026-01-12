@@ -1,0 +1,69 @@
+[
+    {
+        "model": "banques.banque",
+        "pk": 1,
+        "fields": {
+            "nom_banque": "Bank of Kinshasa",
+            "code_swift": "BKNSCDXXX",
+            "adresse": "Avenue de la République, Kinshasa",
+            "email": "contact@bankofkinshasa.cd",
+            "telephone": "+243900000001",
+            "active": true
+        }
+    },
+    {
+        "model": "banques.banque",
+        "pk": 2,
+        "fields": {
+            "nom_banque": "Trust Bank DRC",
+            "code_swift": "TBDCDCDXXX",
+            "adresse": "Boulevard 30 Juin, Kinshasa",
+            "email": "info@trustbank.cd",
+            "telephone": "+243900000002",
+            "active": true
+        }
+    },
+    {
+        "model": "banques.comptebancaire",
+        "pk": 1,
+        "fields": {
+            "banque": 1,
+            "intitule_compte": "Compte Principal USD",
+            "numero_compte": "USD-001-2024",
+            "devise": "USD",
+            "solde_initial": "100000.00",
+            "solde_courant": "100000.00",
+            "date_ouverture": "2024-01-01",
+            "actif": true
+        }
+    },
+    {
+        "model": "banques.comptebancaire",
+        "pk": 2,
+        "fields": {
+            "banque": 1,
+            "intitule_compte": "Compte Principal CDF",
+            "numero_compte": "CDF-001-2024",
+            "devise": "CDF",
+            "solde_initial": "50000000.00",
+            "solde_courant": "50000000.00",
+            "date_ouverture": "2024-01-01",
+            "actif": true
+        }
+    },
+    {
+        "model": "banques.comptebancaire",
+        "pk": 3,
+        "fields": {
+            "banque": 2,
+            "intitule_compte": "Compte Principal USD",
+            "numero_compte": "USD-002-2024",
+            "devise": "USD",
+            "solde_initial": "50000.00",
+            "solde_courant": "50000.00",
+            "date_ouverture": "2024-01-01",
+            "actif": true
+        }
+    }
+]
+

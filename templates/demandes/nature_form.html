@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} une Nature Économique - e-Finance DAF{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nature-form-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .nature-form-card .card-header {
+        background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-bottom: none;
+    }
+    
+    .nature-form-card .card-body {
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #1a3a5f;
+        box-shadow: 0 0 0 0.2rem rgba(26, 58, 95, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        font-size: 0.9rem;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card nature-form-card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-diagram-3"></i> 
+                    {% if object %}Modifier{% else %}Créer{% endif %} une Nature Économique
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% crispy form %}
+                </form>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'demandes:nature_liste' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Détails de la Nature Économique - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-diagram-3"></i> Détails de la Nature Économique
+                </h4>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Code:</dt>
+                    <dd class="col-sm-9"><strong>{{ nature.code }}</strong></dd>
+                    
+                    <dt class="col-sm-3">Titre:</dt>
+                    <dd class="col-sm-9">{{ nature.titre }}</dd>
+                    
+                    <dt class="col-sm-3">Description:</dt>
+                    <dd class="col-sm-9">
+                        {% if nature.description %}
+                        {{ nature.description }}
+                        {% else %}
+                        <span class="text-muted">Aucune description</span>
+                        {% endif %}
+                    </dd>
+                    
+                    <dt class="col-sm-3">Nature parente:</dt>
+                    <dd class="col-sm-9">
+                        {% if nature.parent %}
+                        <span class="badge bg-info">
+                            {{ nature.parent.code }} - {{ nature.parent.titre }}
+                        </span>
+                        {% else %}
+                        <span class="badge bg-secondary">Nature racine (pas de parent)</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+                
+                {% if nature.children.exists %}
+                <div class="mt-4">
+                    <h5>Natures économiques enfants</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Titre</th>
+                                    <th>Description</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for child in nature.children.all %}
+                                <tr>
+                                    <td><strong>{{ child.code }}</strong></td>
+                                    <td>{{ child.titre }}</td>
+                                    <td>
+                                        {% if child.description %}
+                                        <span title="{{ child.description }}">{{ child.description|truncatewords:10 }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'demandes:nature_detail' child.pk %}" class="btn btn-sm btn-info">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'demandes:nature_modifier' nature.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <a href="{% url 'demandes:nature_liste' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

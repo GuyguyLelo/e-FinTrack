@@ -1,0 +1,39 @@
+[
+    {
+        "model": "accounts.service",
+        "pk": 1,
+        "fields": {
+            "nom_service": "Direction Générale",
+            "description": "Direction Générale de la DGRAD",
+            "actif": true
+        }
+    },
+    {
+        "model": "accounts.service",
+        "pk": 2,
+        "fields": {
+            "nom_service": "Service Financier",
+            "description": "Service de gestion financière",
+            "actif": true
+        }
+    },
+    {
+        "model": "accounts.service",
+        "pk": 3,
+        "fields": {
+            "nom_service": "Service Comptable",
+            "description": "Service de comptabilité",
+            "actif": true
+        }
+    },
+    {
+        "model": "accounts.service",
+        "pk": 4,
+        "fields": {
+            "nom_service": "Service Audit",
+            "description": "Service d'audit interne",
+            "actif": true
+        }
+    }
+]
+

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load format_filters %}
+
+{% block title %}Générer un Relevé de Dépense - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="bi bi-magic"></i> Générer un Relevé de Dépense Automatiquement</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Information :</strong> Cette fonctionnalité génère automatiquement un relevé de dépense 
+                    à partir de toutes les demandes validées (Validée par le DG, Validée par le DF, ou Payée) 
+                    pour la période sélectionnée. Le relevé inclura automatiquement les montants en CDF et USD, 
+                    calculera l'IPR (3%) pour chaque devise, et affichera le net à payer ainsi que le total général.
+                </div>
+                
+                {% if demandes_validees_usd > 0 or demandes_validees_cdf > 0 %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>Demandes disponibles :</strong>
+                    <ul class="mb-0 mt-2">
+                        {% if demandes_validees_usd > 0 %}
+                        <li><strong>{{ demandes_validees_usd }}</strong> demande(s) validée(s) en USD</li>
+                        {% endif %}
+                        {% if demandes_validees_cdf > 0 %}
+                        <li><strong>{{ demandes_validees_cdf }}</strong> demande(s) validée(s) en CDF</li>
+                        {% endif %}
+                        <li><strong>Total : {{ demandes_validees_usd|add:demandes_validees_cdf }}</strong> demande(s) validée(s)</li>
+                    </ul>
+                    <p class="mb-0 mt-2"><small>Le relevé inclura automatiquement toutes les demandes validées (USD et CDF) pour la période sélectionnée.</small></p>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Aucune demande validée disponible</strong> pour générer un relevé.
+                </div>
+                {% endif %}
+                
+                {% crispy form %}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'demandes:releves_liste' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

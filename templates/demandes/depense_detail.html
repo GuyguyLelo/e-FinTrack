@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Détail Dépense {{ depense.code_depense }} - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-list-ul"></i> Dépense {{ depense.code_depense }}</h2>
+    <div>
+        <a href="{% url 'demandes:depense_modifier' depense.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> Modifier
+        </a>
+        <a href="{% url 'demandes:depenses_liste' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Détails de la dépense</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Code Dépense</th>
+                        <td><strong>{{ depense.code_depense }}</strong></td>
+                    </tr>
+                    {% if depense.date_depense %}
+                    <tr>
+                        <th>Date</th>
+                        <td>{{ depense.date_depense|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% elif depense.annee and depense.mois %}
+                    <tr>
+                        <th>Période</th>
+                        <td>{{ depense.mois|mois_en_lettres }} {{ depense.annee }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if depense.nomenclature %}
+                    <tr>
+                        <th>Nomenclature</th>
+                        <td>
+                            <span class="badge bg-info ms-2">{{ depense.nomenclature.annee }}</span>
+                            <span class="badge bg-secondary ms-2">{{ depense.nomenclature.get_statut_display }}</span>
+                            <br><small class="text-muted">
+                                Date de publication: {{ depense.nomenclature.date_publication|date:"d/m/Y" }}
+                            </small>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Libellé</th>
+                        <td>{{ depense.libelle_depenses }}</td>
+                    </tr>
+                    {% if depense.banque %}
+                    <tr>
+                        <th>Banque</th>
+                        <td><span class="badge bg-info">{{ depense.banque.nom_banque }}</span></td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Montant CDF</th>
+                        <td>
+                            {% if depense.montant_fc > 0 %}
+                            <strong class="text-success">{{ depense.montant_fc|format_montant:"CDF" }}</strong>
+                            {% else %}
+                            <span class="text-muted">0,00 CDF</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Montant USD</th>
+                        <td>
+                            {% if depense.montant_usd > 0 %}
+                            <strong class="text-primary">{{ depense.montant_usd|format_montant:"USD" }}</strong>
+                            {% else %}
+                            <span class="text-muted">0,00 USD</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if depense.observation %}
+                    <tr>
+                        <th>Observation</th>
+                        <td>{{ depense.observation }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if depense.piece_jointe %}
+                    <tr>
+                        <th>Pièce jointe</th>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ depense.piece_jointe.url }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-download"></i> Télécharger
+                                </a>
+                                <a href="{{ depense.piece_jointe.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-eye"></i> Voir
+                                </a>
+                                <span class="text-muted">
+                                    <i class="bi bi-file-earmark"></i> {{ depense.piece_jointe.name|slice:"30:" }}
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Date de création</th>
+                        <td>{{ depense.date_creation|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dernière modification</th>
+                        <td>{{ depense.date_modification|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Résumé</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Total CDF</h6>
+                    <div class="h4 text-success">
+                        {% if depense.montant_fc > 0 %}
+                        {{ depense.montant_fc|format_montant:"CDF" }}
+                        {% else %}
+                        <span class="text-muted">0,00 CDF</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Total USD</h6>
+                    <div class="h4 text-primary">
+                        {% if depense.montant_usd > 0 %}
+                        {{ depense.montant_usd|format_montant:"USD" }}
+                        {% else %}
+                        <span class="text-muted">0,00 USD</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if depense.piece_jointe %}
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-paperclip"></i> Pièce jointe</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-file-earmark fs-4 text-primary"></i>
+                        <div class="flex-grow-1">
+                            <strong>{{ depense.piece_jointe.name|slice:"30:" }}</strong>
+                            <br>
+                            <small class="text-muted">Fichier joint</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2 mt-2">
+                        <a href="{{ depense.piece_jointe.url }}" target="_blank" class="btn btn-primary">
+                            <i class="bi bi-download"></i> Télécharger le fichier
+                        </a>
+                        <a href="{{ depense.piece_jointe.url }}" target="_blank" class="btn btn-outline-secondary">
+                            <i class="bi bi-eye"></i> Ouvrir dans un nouvel onglet
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

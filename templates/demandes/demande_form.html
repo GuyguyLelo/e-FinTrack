@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} une Demande - e-Finance DAF{% endblock %}
+
+{% block extra_css %}
+<style>
+    .demande-form-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    body {
+        overflow-y: auto;
+    }
+    
+    .demande-form-card .card-header {
+        background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%);
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-bottom: none;
+    }
+    
+    .demande-form-card .card-header h4 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+    
+    .demande-form-card .card-body {
+        padding: 0.75rem 1rem;
+        background-color: #ffffff;
+    }
+    
+    .form-section-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        margin-top: 0.75rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid #e9ecef;
+        color: #1a3a5f;
+        font-size: 1.05rem;
+    }
+    
+    .form-section-title:first-child {
+        margin-top: 0;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 3px;
+        border: 1px solid #ced4da;
+        padding: 0.5rem 0.7rem;
+        font-size: 1rem;
+        transition: all 0.3s;
+        height: calc(1.5em + 1rem + 2px);
+    }
+    
+    textarea.form-control {
+        height: auto;
+        min-height: 70px;
+        max-height: 120px;
+        padding: 0.5rem 0.7rem;
+        resize: vertical;
+        font-size: 1rem;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #1a3a5f;
+        box-shadow: 0 0 0 0.15rem rgba(26, 58, 95, 0.25);
+    }
+    
+    .form-label {
+        font-weight: 500;
+        font-size: 1rem;
+        color: #495057;
+        margin-bottom: 0.3rem;
+    }
+    
+    .required-field::after {
+        content: " *";
+        color: #dc3545;
+    }
+    
+    .info-box {
+        background-color: #e7f3ff;
+        border-left: 3px solid #1a3a5f;
+        padding: 0.6rem 0.8rem;
+        border-radius: 3px;
+        margin-bottom: 0.75rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+    
+    .info-box i {
+        color: #1a3a5f;
+        margin-right: 0.4rem;
+    }
+    
+    .file-upload-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .btn-submit {
+        padding: 0.6rem 1.75rem;
+        font-weight: 600;
+        border-radius: 3px;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    
+    .form-row-spacing {
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-text {
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+        line-height: 1.4;
+    }
+    
+    .text-danger.small {
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+    
+    .mb-4 {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .mt-3 {
+        margin-top: 0.5rem !important;
+    }
+    
+    .pt-2 {
+        padding-top: 0.5rem !important;
+    }
+    
+    @media (max-width: 768px) {
+        .demande-form-card .card-body {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h2 style="font-size: 1.6rem; margin: 0;">
+                <i class="bi bi-file-earmark-text text-primary"></i> 
+                {% if object %}Modifier{% else %}Créer{% endif %} une Demande de Paiement
+            </h2>
+            <a href="{% url 'demandes:liste' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+        
+        <div class="card demande-form-card">
+            <div class="card-header">
+                <h4>
+                    <i class="bi bi-{% if object %}pencil-square{% else %}plus-circle{% endif %}"></i> 
+                    Formulaire de {% if object %}modification{% else %}création{% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                
+                
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Section Informations générales -->
+                    <div class="form-section-title">
+                        <i class="bi bi-info-circle text-primary"></i> Informations générales
+                    </div>
+                    
+                    <div class="form-row-spacing">
+                        <label for="{{ form.service_demandeur.id_for_label }}" class="form-label required-field">
+                            Service demandeur
+                        </label>
+                        {{ form.service_demandeur }}
+                        {% if form.service_demandeur.errors %}
+                            <div class="text-danger small mt-1">{{ form.service_demandeur.errors }}</div>
+                        {% endif %}
+                        {% if user.is_chef_service and user.service %}
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> Votre service est automatiquement sélectionné
+                            </small>
+                        {% else %}
+                            <small class="form-text text-muted">Sélectionnez le service qui fait la demande</small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-row-spacing">
+                        <label for="{{ form.nature_economique.id_for_label }}" class="form-label">
+                            Nature économique
+                        </label>
+                        {{ form.nature_economique }}
+                        {% if form.nature_economique.errors %}
+                            <div class="text-danger small mt-1">{{ form.nature_economique.errors }}</div>
+                        {% endif %}
+                        <small class="form-text text-muted">Sélectionnez la nature économique correspondante (optionnel)</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-row-spacing">
+                            <label for="{{ form.date_demande.id_for_label }}" class="form-label">
+                                Date de demande
+                            </label>
+                            {{ form.date_demande }}
+                            {% if form.date_demande.errors %}
+                                <div class="text-danger small mt-1">{{ form.date_demande.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Date de la demande de paiement</small>
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <!-- Section Montant -->
+                    <div class="form-section-title">
+                        <i class="bi bi-cash-stack text-success"></i> Montant
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 form-row-spacing">
+                            <label for="{{ form.montant.id_for_label }}" class="form-label required-field">
+                                Montant
+                            </label>
+                            <div class="input-group">
+                                {{ form.montant }}
+                            </div>
+                            {% if form.montant.errors %}
+                                <div class="text-danger small mt-1">{{ form.montant.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Montant de la dépense</small>
+                        </div>
+                        
+                        <div class="col-md-6 form-row-spacing">
+                            <label for="{{ form.devise.id_for_label }}" class="form-label required-field">
+                                Devise
+                            </label>
+                            {{ form.devise }}
+                            {% if form.devise.errors %}
+                                <div class="text-danger small mt-1">{{ form.devise.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Sélectionnez la devise (USD ou CDF)</small>
+                        </div>
+
+                        <div class="form-row-spacing">
+                            <label for="{{ form.description.id_for_label }}" class="form-label required-field">
+                                Description
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Décrivez en détail la nature de la dépense</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Section Pièces justificatives -->
+                    <div class="form-section-title">
+                        <i class="bi bi-paperclip text-secondary"></i> Pièces justificatives
+                    </div>
+                    
+                    <div class="form-row-spacing">
+                        <label for="{{ form.pieces_justificatives.id_for_label }}" class="form-label">
+                            Fichier joint
+                        </label>
+                        {{ form.pieces_justificatives }}
+                        {% if form.pieces_justificatives.errors %}
+                            <div class="text-danger small mt-1">{{ form.pieces_justificatives.errors }}</div>
+                        {% endif %}
+                        {% if object and object.pieces_justificatives %}
+                            <div class="mt-2">
+                                <a href="{{ object.pieces_justificatives.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-file-pdf"></i> Voir le fichier actuel
+                                </a>
+                            </div>
+                        {% endif %}
+                        <div class="file-upload-info">
+                            <i class="bi bi-info-circle"></i> Formats acceptés : PDF, JPG, JPEG, PNG (optionnel)
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons d'action -->
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                        <a href="{% url 'demandes:liste' %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-submit">
+                            <i class="bi bi-check-circle"></i> 
+                            {% if object %}Modifier{% else %}Soumettre{% endif %} la demande
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if object %}
+        <div class="card mt-2" style="font-size: 1rem;">
+            <div class="card-body" style="padding: 0.75rem;">
+                <h6 class="card-title" style="font-size: 1.05rem; margin-bottom: 0.5rem;"><i class="bi bi-info-circle text-info"></i> Informations sur la demande</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-0" style="margin-bottom: 0.3rem !important;"><strong>Référence :</strong> {{ object.reference }}</p>
+                        <p class="mb-0" style="margin-bottom: 0.3rem !important;"><strong>Statut :</strong> 
+                            {% if object.statut == 'EN_ATTENTE' %}
+                                <span class="badge bg-warning">En attente</span>
+                            {% elif object.statut == 'VALIDEE_DG' %}
+                                <span class="badge bg-info">Validée par le DG</span>
+                            {% elif object.statut == 'VALIDEE_DF' %}
+                                <span class="badge bg-primary">Validée par le DF</span>
+                            {% elif object.statut == 'PAYEE' %}
+                                <span class="badge bg-success">Payée</span>
+                            {% elif object.statut == 'REJETEE' %}
+                                <span class="badge bg-danger">Rejetée</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-0" style="margin-bottom: 0.3rem !important;"><strong>Créée le :</strong> {{ object.date_soumission|date:"d/m/Y à H:i" }}</p>
+                        <p class="mb-0"><strong>Par :</strong> {{ object.cree_par.get_full_name|default:object.cree_par.username }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Ajouter les classes Bootstrap aux champs du formulaire
+    document.addEventListener('DOMContentLoaded', function() {
+        const formControls = document.querySelectorAll('input, select, textarea');
+        formControls.forEach(control => {
+            if (!control.classList.contains('form-control') && !control.classList.contains('form-select')) {
+                if (control.tagName === 'SELECT') {
+                    control.classList.add('form-select');
+                } else if (control.tagName === 'TEXTAREA' || control.type === 'text' || control.type === 'number' || control.type === 'date') {
+                    control.classList.add('form-control');
+                } else if (control.type === 'file') {
+                    control.classList.add('form-control');
+                }
+            }
+        });
+        
+        // Validation du montant
+        const montantInput = document.querySelector('#id_montant');
+        if (montantInput) {
+            montantInput.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (value < 0) {
+                    this.setCustomValidity('Le montant doit être positif');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        }
+        
+        // S'assurer que le champ date_demande affiche bien la valeur existante lors de la modification
+        {% if object and object.date_demande %}
+        const dateDemandeInput = document.querySelector('#id_date_demande');
+        if (dateDemandeInput && !dateDemandeInput.value) {
+            // Si le champ est vide mais que l'objet a une date_demande, la pré-remplir
+            const dateDemandeStr = '{{ object.date_demande|date:"Y-m-d" }}';
+            if (dateDemandeStr) {
+                dateDemandeInput.value = dateDemandeStr;
+            }
+        }
+        {% endif %}
+    });
+</script>
+{% endblock %}
+

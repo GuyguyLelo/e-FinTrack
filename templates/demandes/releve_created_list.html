@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Liste des Relevés de Dépense - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-file-earmark-spreadsheet"></i> Liste des Relevés de Dépense</h2>
+        <p class="mb-0 text-muted">Tous les relevés créés</p>
+    </div>
+    <div>
+        <a href="{% url 'demandes:releves_liste' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5>Relevés créés{% if page_obj %} ({{ page_obj.paginator.count }}){% else %} ({{ releves|length }}){% endif %}</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Numéro</th>
+                        <th>Période</th>
+                        <th>Nombre de demandes</th>
+                        <th class="text-end">Montant CDF</th>
+                        <th class="text-end">Montant USD</th>
+                        <th>Validé par</th>
+                        <th>Date de création</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for releve in releves %}
+                    <tr>
+                        <td>
+                            <strong class="text-primary">{{ releve.numero|default:"-" }}</strong>
+                        </td>
+                        <td>{{ releve.periode|date:"d/m/Y" }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ releve.demandes.count }} demande{{ releve.demandes.count|pluralize }}</span>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-success">{{ releve.montant_cdf|format_montant:"CDF" }}</strong>
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-primary">{{ releve.montant_usd|format_montant:"USD" }}</strong>
+                        </td>
+                        <td>
+                            {% if releve.valide_par %}
+                            <small>{{ releve.valide_par.get_full_name|default:releve.valide_par.username }}</small>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ releve.date_creation|date:"d/m/Y H:i" }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'demandes:releve_detail' releve.pk %}" class="btn btn-sm btn-info" title="Voir les détails">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'demandes:cheque_pdf' %}?releve_id={{ releve.pk }}" class="btn btn-sm btn-warning" target="_blank" title="Générer chèque">
+                                    <i class="bi bi-receipt-cutoff"></i>
+                                </a>
+                                <a href="{% url 'demandes:releve_reprint_pdf' %}?numero={{ releve.numero }}" class="btn btn-sm btn-primary" target="_blank" title="Réimprimer PDF">
+                                    <i class="bi bi-printer"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="mt-3 mb-0">Aucun relevé créé</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer">
+        <nav aria-label="Pagination des relevés">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

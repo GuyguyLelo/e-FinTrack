@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Recettes - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-cash-coin"></i> Recettes</h2>
+    <div class="d-flex align-items-center gap-3">
+        <a href="{% url 'recettes:creer' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Enregistrer une recette
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-info fs-5 px-3 py-2">
+                <strong>Total CDF:</strong> {{ total_cdf|format_montant }} CDF
+            </span>
+            <span class="badge bg-primary fs-5 px-3 py-2">
+                <strong>Total USD:</strong> {{ total_usd|format_montant }} USD
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label for="annee" class="form-label">Année</label>
+                <select name="annee" id="annee" class="form-select">
+                    <option value="">Toutes</option>
+                    {% for a in annees %}
+                    <option value="{{ a }}" {% if filtres.annee == a|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="mois" class="form-label">Mois</label>
+                <select name="mois" id="mois" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="1" {% if filtres.mois == "1" %}selected{% endif %}>Janvier</option>
+                    <option value="2" {% if filtres.mois == "2" %}selected{% endif %}>Février</option>
+                    <option value="3" {% if filtres.mois == "3" %}selected{% endif %}>Mars</option>
+                    <option value="4" {% if filtres.mois == "4" %}selected{% endif %}>Avril</option>
+                    <option value="5" {% if filtres.mois == "5" %}selected{% endif %}>Mai</option>
+                    <option value="6" {% if filtres.mois == "6" %}selected{% endif %}>Juin</option>
+                    <option value="7" {% if filtres.mois == "7" %}selected{% endif %}>Juillet</option>
+                    <option value="8" {% if filtres.mois == "8" %}selected{% endif %}>Août</option>
+                    <option value="9" {% if filtres.mois == "9" %}selected{% endif %}>Septembre</option>
+                    <option value="10" {% if filtres.mois == "10" %}selected{% endif %}>Octobre</option>
+                    <option value="11" {% if filtres.mois == "11" %}selected{% endif %}>Novembre</option>
+                    <option value="12" {% if filtres.mois == "12" %}selected{% endif %}>Décembre</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="banque" class="form-label">Banque</label>
+                <select name="banque" id="banque" class="form-select">
+                    <option value="">Toutes</option>
+                    {% for banque in banques %}
+                    <option value="{{ banque.pk }}" {% if filtres.banque == banque.pk|stringformat:"s" %}selected{% endif %}>{{ banque.nom_banque }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="valide" class="form-label">Statut</label>
+                <select name="valide" id="valide" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="true" {% if filtres.valide == "true" %}selected{% endif %}>Validées</option>
+                    <option value="false" {% if filtres.valide == "false" %}selected{% endif %}>En attente</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="devise" class="form-label">Devise</label>
+                <select name="devise" id="devise" class="form-select">
+                    <option value="">Toutes</option>
+                    <option value="CDF" {% if filtres.devise == "CDF" %}selected{% endif %}>CDF</option>
+                    <option value="USD" {% if filtres.devise == "USD" %}selected{% endif %}>USD</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" name="search" id="search" class="form-control" placeholder="Référence, description..." value="{{ filtres.search }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Filtrer
+                </button>
+                <a href="{% url 'recettes:liste' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau des recettes -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Référence</th>
+                        <th>Date encaissement</th>
+                        <th>Banque</th>
+                        <th>Source</th>
+                        <th>Description</th>
+                        <th class="text-end">Montant CDF</th>
+                        <th class="text-end">Montant USD</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recette in recettes %}
+                    <tr>
+                        <td><strong>{{ recette.reference }}</strong></td>
+                        <td>{{ recette.date_encaissement|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if recette.banque %}
+                            <span class="badge bg-info">{{ recette.banque.nom_banque }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ recette.get_source_recette_display }}</td>
+                        <td>{{ recette.description|truncatewords:15 }}</td>
+                        <td class="text-end">
+                            {% if recette.montant_cdf > 0 %}
+                            <strong class="text-success">{{ recette.montant_cdf|format_montant:"CDF" }}</strong>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if recette.montant_usd > 0 %}
+                            <strong class="text-primary">{{ recette.montant_usd|format_montant:"USD" }}</strong>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if recette.valide %}
+                            <span class="badge bg-success">Validée</span>
+                            {% else %}
+                            <span class="badge bg-warning">En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'recettes:detail' recette.pk %}" class="btn btn-sm btn-info" title="Voir les détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if user.is_comptable and not recette.valide %}
+                            <a href="{% url 'recettes:valider' recette.pk %}" class="btn btn-sm btn-success" title="Valider">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Aucune recette trouvée</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if recettes %}
+                <tfoot class="table-secondary">
+                    <tr>
+                        <th colspan="5" class="text-end">Total:</th>
+                        <th class="text-end text-success">{{ total_cdf|format_montant:"CDF" }}</th>
+                        <th class="text-end text-primary">{{ total_usd|format_montant:"USD" }}</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Pagination des recettes">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.banque %}&banque={{ filtres.banque }}{% endif %}{% if filtres.valide %}&valide={{ filtres.valide }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.banque %}&banque={{ filtres.banque }}{% endif %}{% if filtres.valide %}&valide={{ filtres.valide }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.banque %}&banque={{ filtres.banque }}{% endif %}{% if filtres.valide %}&valide={{ filtres.valide }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.banque %}&banque={{ filtres.banque }}{% endif %}{% if filtres.valide %}&valide={{ filtres.valide }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

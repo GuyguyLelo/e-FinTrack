@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Sélectionner la banque - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%);">
+                <h5 class="mb-0">
+                    <i class="bi bi-bank"></i> Sélectionner la banque pour le chèque
+                </h5>
+            </div>
+            <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <strong>Relevé :</strong> <span class="badge bg-primary">{{ releve.numero }}</span><br><br>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Montant CDF :</strong><br>
+                                <span class="text-success fw-bold fs-5">{{ releve.net_a_payer_cdf|format_montant:"CDF" }}</span><br>
+                                <small class="text-muted fst-italic">{{ releve.net_a_payer_cdf|montant_en_lettres }}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Montant USD :</strong><br>
+                                <span class="text-primary fw-bold fs-5">{{ releve.net_a_payer_usd|format_montant:"USD" }}</span><br>
+                                <small class="text-muted fst-italic">{{ releve.net_a_payer_usd|montant_en_lettres }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-4">
+                        Veuillez sélectionner la banque pour laquelle le chèque sera généré.
+                    </p>
+                    <form method="get" action="{% url 'demandes:cheque_pdf' %}" id="banqueForm">
+                        <input type="hidden" name="releve_id" value="{{ releve.pk }}">
+                        <div class="mb-3">
+                            <label for="banque_id" class="form-label">
+                                <strong>Banque <span class="text-danger">*</span></strong>
+                            </label>
+                            <select name="banque_id" id="banque_id" class="form-select" required>
+                                <option value="">-- Sélectionnez une banque --</option>
+                                {% for banque in banques %}
+                                <option value="{{ banque.pk }}">{{ banque.nom_banque }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-text text-muted">
+                                Sélectionnez la banque pour laquelle le chèque sera généré
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'demandes:releve_detail' releve.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-printer"></i> Générer le chèque
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

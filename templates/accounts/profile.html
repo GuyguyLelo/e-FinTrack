@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon Profil - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-person-circle"></i> Mon Profil</h4>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="30%">Nom d'utilisateur</th>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email</th>
+                        <td>{{ user.email|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Nom complet</th>
+                        <td>{{ user.get_full_name|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Rôle</th>
+                        <td><span class="badge badge-dgrad">{{ user.get_role_display }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Service</th>
+                        <td>{{ user.service|default:"Non assigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Téléphone</th>
+                        <td>{{ user.telephone|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date de création</th>
+                        <td>{{ user.date_joined|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

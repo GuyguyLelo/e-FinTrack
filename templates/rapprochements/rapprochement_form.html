@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} un Rapprochement - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-arrow-left-right"></i> {% if object %}Modifier{% else %}Créer{% endif %} un Rapprochement</h4>
+            </div>
+            <div class="card-body">
+                {% crispy form %}
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'rapprochements:liste' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('id_banque').addEventListener('change', function() {
+    const banqueId = this.value;
+    const compteSelect = document.getElementById('id_compte_bancaire');
+    
+    if (banqueId) {
+        fetch(`{% url 'rapprochements:load_comptes' %}?banque_id=${banqueId}`)
+            .then(response => response.json())
+            .then(data => {
+                compteSelect.innerHTML = '<option value="">---------</option>';
+                data.forEach(compte => {
+                    const option = document.createElement('option');
+                    option.value = compte.id;
+                    option.textContent = compte.intitule;
+                    compteSelect.appendChild(option);
+                });
+            });
+    } else {
+        compteSelect.innerHTML = '<option value="">---------</option>';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Connexion - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header text-center">
+                <h4><i class="bi bi-box-arrow-in-right"></i> Connexion</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <strong>Erreur de connexion.</strong> Veuillez vérifier vos identifiants.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.username.id_for_label }}" class="form-label">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" name="{{ form.username.name }}" id="{{ form.username.id_for_label }}" required autofocus>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.password.id_for_label }}" class="form-label">Mot de passe</label>
+                        <input type="password" class="form-control" name="{{ form.password.name }}" id="{{ form.password.id_for_label }}" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Se connecter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <p class="text-muted">
+                <i class="bi bi-shield-check"></i> Système de gestion financière DGRAD
+            </p>
+            <a href="{% url 'accounts:identifiants' %}" class="btn btn-link btn-sm text-muted">
+                <i class="bi bi-key"></i> Identifiants d'accès
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

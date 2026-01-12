@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Rapprochements Bancaires - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-arrow-left-right"></i> Rapprochements Bancaires</h2>
+    {% if user.is_auditeur %}
+    <a href="{% url 'rapprochements:creer' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Créer un rapprochement
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Banque</th>
+                        <th>Compte</th>
+                        <th>Période</th>
+                        <th>Solde Banque</th>
+                        <th>Solde Interne</th>
+                        <th>Écart</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rapprochement in rapprochements %}
+                    <tr>
+                        <td>{{ rapprochement.banque.nom_banque }}</td>
+                        <td>{{ rapprochement.compte_bancaire.intitule_compte }}</td>
+                        <td>{{ rapprochement.periode_mois }}/{{ rapprochement.periode_annee }}</td>
+                        <td><strong>{{ rapprochement.solde_banque|floatformat:2 }} {{ rapprochement.devise }}</strong></td>
+                        <td><strong>{{ rapprochement.solde_interne|floatformat:2 }} {{ rapprochement.devise }}</strong></td>
+                        <td>
+                            {% if rapprochement.ecart == 0 %}
+                            <span class="badge bg-success">0.00</span>
+                            {% else %}
+                            <span class="badge {% if rapprochement.ecart > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ rapprochement.ecart|floatformat:2 }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if rapprochement.valide %}
+                            <span class="badge bg-success">Validé</span>
+                            {% else %}
+                            <span class="badge bg-warning">En attente</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'rapprochements:detail' rapprochement.pk %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if not rapprochement.valide %}
+                            <a href="{% url 'rapprochements:calculer' rapprochement.pk %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-calculator"></i>
+                            </a>
+                            {% endif %}
+                            {% if user.peut_valider_rapprochement and not rapprochement.valide %}
+                            <a href="{% url 'rapprochements:valider' rapprochement.pk %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">Aucun rapprochement</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

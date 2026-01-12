@@ -1,0 +1,28 @@
+
+A FAIRE
+FONCTIONNALITES
+
+DEMANDE DE PAIEMENT
+-------------------
+1. les demandes de paiements validées, ne doivent s'afficher dans la liste de demande s de paiement
+
+
+RELEVE DE PAIEMENT
+------------------
+1. Apres avoir generé un relevé de depenses avec un numéro, toutes les demandes relatives ou associé au relevé, ne doivent plus s'afficher
+
+
+
+
+
+DEPENSE
+-------
+Cycle de vie d'une depense
+
+
+1. creation de la demande (en attente par defaut)
+2. validation de la demande DF ou DG
+3. Creation revele des demandes validées
+4. Validation depenses : paiement effective
+
+

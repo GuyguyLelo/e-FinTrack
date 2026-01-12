@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Valider Relevé - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-check-circle"></i> Valider le Relevé Bancaire</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Détails du relevé :</strong><br>
+                    Banque : {{ releve.banque.nom_banque }}<br>
+                    Compte : {{ releve.compte_bancaire.intitule_compte }}<br>
+                    Période : {{ releve.periode_debut|date:"d/m/Y" }} - {{ releve.periode_fin|date:"d/m/Y" }}<br>
+                    <strong>Solde : {{ releve.solde_banque|format_montant:releve.devise }}</strong>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> Valider ce relevé
+                        </button>
+                        <a href="{% url 'releves:detail' releve.pk %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Retour
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

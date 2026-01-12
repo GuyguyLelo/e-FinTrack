@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Détail Demande {{ demande.reference }} - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-text"></i> Demande {{ demande.reference }}</h2>
+    <div>
+        {% if user.peut_valider_depense and demande.statut == 'EN_ATTENTE' %}
+        <a href="{% url 'demandes:valider' demande.pk %}" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> Valider
+        </a>
+        {% endif %}
+        <a href="{% url 'demandes:liste' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Détails de la demande</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Référence</th>
+                        <td><strong>{{ demande.reference }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Service demandeur</th>
+                        <td>{{ demande.service_demandeur }}</td>
+                    </tr>
+                    {% if demande.nomenclature %}
+                    <tr>
+                        <th>Nomenclature</th>
+                        <td>
+                            <span class="badge bg-info ms-2">{{ demande.nomenclature.annee }}</span>
+                            <span class="badge bg-secondary ms-2">{{ demande.nomenclature.get_statut_display }}</span>
+                            <br><small class="text-muted">
+                                Date de publication: {{ demande.nomenclature.date_publication|date:"d/m/Y" }}
+                            </small>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if demande.nature_economique %}
+                    <tr>
+                        <th>Nature économique</th>
+                        <td>
+                            <span class="badge bg-success">{{ demande.nature_economique.code }}</span>
+                            <strong>{{ demande.nature_economique.titre }}</strong>
+                            {% if demande.nature_economique.parent %}
+                            <br><small class="text-muted">
+                                Parent: {{ demande.nature_economique.parent.code }} - {{ demande.nature_economique.parent.titre }}
+                            </small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Description</th>
+                        <td>{{ demande.description }}</td>
+                    </tr>
+                    <tr>
+                        <th>Montant</th>
+                        <td><strong class="text-primary">{{ demande.montant|format_montant:demande.devise }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Statut</th>
+                        <td>
+                            {% if demande.statut == 'EN_ATTENTE' %}
+                            <span class="badge bg-warning">En attente</span>
+                            {% elif demande.statut == 'VALIDEE_DG' %}
+                            <span class="badge bg-info">Validée par le DG</span>
+                            {% elif demande.statut == 'VALIDEE_DF' %}
+                            <span class="badge bg-primary">Validée par le DF</span>
+                            {% elif demande.statut == 'PAYEE' %}
+                            <span class="badge bg-success">Payée</span>
+                            {% elif demande.statut == 'REJETEE' %}
+                            <span class="badge bg-danger">Rejetée</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if demande.releves_depense.exists %}
+                    <tr>
+                        <th>Relevé de dépense</th>
+                        <td>
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-file-earmark-check"></i> 
+                                <strong>Cette demande est incluse dans le(s) relevé(s) suivant(s) :</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% for releve in demande.releves_depense.all %}
+                                    <li>
+                                        <a href="{% url 'demandes:releve_detail' releve.pk %}" class="text-decoration-none">
+                                            <span class="badge bg-primary">{{ releve.numero }}</span>
+                                        </a>
+                                        - Période : {{ releve.periode|date:"F Y" }}
+                                        {% if releve.depenses_validees %}
+                                        <span class="badge bg-success ms-2">
+                                            <i class="bi bi-check-circle"></i> Dépenses validées
+                                        </span>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <th>Relevé de dépense</th>
+                        <td>
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-file-earmark"></i> Non incluse dans un relevé
+                            </span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Créée par</th>
+                        <td>{{ demande.cree_par.get_full_name|default:demande.cree_par.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date de soumission</th>
+                        <td>{{ demande.date_soumission|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% if demande.approuve_par %}
+                    <tr>
+                        <th>Approuvée par</th>
+                        <td>{{ demande.approuve_par.get_full_name|default:demande.approuve_par.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date d'approbation</th>
+                        <td>{{ demande.date_approbation|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if demande.commentaire_rejet %}
+                    <tr>
+                        <th>Commentaire de rejet</th>
+                        <td class="text-danger">{{ demande.commentaire_rejet }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Colonne latérale pour les actions et fichiers -->
+    <div class="col-md-4">
+        <!-- Actions -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-gear"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if demande.statut == 'EN_ATTENTE' and demande.cree_par == user %}
+                    <a href="{% url 'demandes:modifier' demande.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    {% endif %}
+                    {% if user.peut_valider_depense and demande.statut == 'EN_ATTENTE' %}
+                    <a href="{% url 'demandes:valider' demande.pk %}" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Valider
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'demandes:liste' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pièce justificative -->
+        {% if demande.pieces_justificatives %}
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-paperclip"></i> Pièce justificative</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if demande.pieces_justificatives.name|slice:"-4:" == ".pdf" %}
+                            <i class="bi bi-file-pdf fs-1 text-danger"></i>
+                        {% elif demande.pieces_justificatives.name|slice:"-4:" == ".jpg" or demande.pieces_justificatives.name|slice:"-5:" == ".jpeg" %}
+                            <i class="bi bi-file-image fs-1 text-primary"></i>
+                        {% elif demande.pieces_justificatives.name|slice:"-4:" == ".png" %}
+                            <i class="bi bi-file-image fs-1 text-info"></i>
+                        {% else %}
+                            <i class="bi bi-file-earmark fs-1 text-secondary"></i>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <strong>{{ demande.pieces_justificatives.name }}</strong>
+                            <br>
+                            <small class="text-muted">Fichier joint</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2 mt-2">
+                        {% if demande.pieces_justificatives.url %}
+                        <a href="{{ demande.pieces_justificatives.url }}" target="_blank" class="btn btn-primary">
+                            <i class="bi bi-download"></i> Télécharger le fichier
+                        </a>
+                        <a href="{{ demande.pieces_justificatives.url }}" target="_blank" class="btn btn-outline-secondary">
+                            <i class="bi bi-eye"></i> Ouvrir dans un nouvel onglet
+                        </a>
+                        {% else %}
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> Le fichier n'est pas disponible
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-paperclip"></i> Pièce justificative</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle"></i> Aucune pièce justificative jointe
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

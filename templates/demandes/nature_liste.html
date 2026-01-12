@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Natures Économiques - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-diagram-3"></i> Natures Économiques</h2>
+    <a href="{% url 'demandes:nature_creer' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Créer une nature économique
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="parent" class="form-label">Nature parente</label>
+                <select name="parent" id="parent" class="form-select">
+                    <option value="">Toutes</option>
+                    {% for parent in parents %}
+                    <option value="{{ parent.pk }}" {% if filtres.parent == parent.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ parent.code }} - {{ parent.titre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" name="search" id="search" class="form-control" placeholder="Code, titre ou description..." value="{{ filtres.search }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> Filtrer
+                </button>
+            </div>
+            <div class="col-12">
+                <a href="{% url 'demandes:nature_liste' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau des natures économiques -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Code</th>
+                        <th>Titre</th>
+                        <th>Description</th>
+                        <th>Parent</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nature in natures %}
+                    <tr>
+                        <td><strong>{{ nature.code }}</strong></td>
+                        <td>{{ nature.titre }}</td>
+                        <td>
+                            {% if nature.description %}
+                            <span title="{{ nature.description }}">{{ nature.description|truncatewords:10 }}</span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if nature.parent %}
+                            <span class="badge bg-info">
+                                {{ nature.parent.code }} - {{ nature.parent.titre|truncatewords:3 }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Racine</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'demandes:nature_detail' nature.pk %}" class="btn btn-sm btn-info" title="Voir les détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'demandes:nature_modifier' nature.pk %}" class="btn btn-sm btn-warning" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Aucune nature économique trouvée</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Pagination des natures économiques">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if filtres.parent %}&parent={{ filtres.parent }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres.parent %}&parent={{ filtres.parent }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres.parent %}&parent={{ filtres.parent }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtres.parent %}&parent={{ filtres.parent }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+

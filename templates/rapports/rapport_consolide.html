@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Rapport Consolidé - e-Finance DAF{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-graph-up"></i> Rapport Consolidé</h2>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Filtres</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="annee" class="form-label">Année</label>
+                <input type="number" class="form-control" id="annee" name="annee" value="{{ annee }}" min="2020" max="2030">
+            </div>
+            <div class="col-md-4">
+                <label for="mois" class="form-label">Mois (optionnel)</label>
+                <input type="number" class="form-control" id="mois" name="mois" value="{{ mois|default:'' }}" min="1" max="12">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary d-block">
+                    <i class="bi bi-search"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card stat-card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Recettes USD</h6>
+                <div class="stat-value">{{ total_recettes_usd|format_montant:"USD" }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Recettes CDF</h6>
+                <div class="stat-value">{{ total_recettes_cdf|format_montant:"CDF" }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Dépenses USD</h6>
+                <div class="stat-value">{{ total_depenses_usd|format_montant:"USD" }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card stat-card">
+            <div class="card-body">
+                <h6 class="text-muted">Total Dépenses CDF</h6>
+                <div class="stat-value">{{ total_depenses_cdf|format_montant:"CDF" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5>Détails par Banque</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Banque</th>
+                        <th>Recettes USD</th>
+                        <th>Recettes CDF</th>
+                        <th>Dépenses USD</th>
+                        <th>Dépenses CDF</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detail in banques_details %}
+                    <tr>
+                        <td><strong>{{ detail.banque.nom_banque }}</strong></td>
+                        <td class="text-success">{{ detail.recettes_usd|format_montant:"USD" }}</td>
+                        <td class="text-success">{{ detail.recettes_cdf|format_montant:"CDF" }}</td>
+                        <td class="text-danger">{{ detail.depenses_usd|format_montant:"USD" }}</td>
+                        <td class="text-danger">{{ detail.depenses_cdf|format_montant:"CDF" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Aucune donnée disponible</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

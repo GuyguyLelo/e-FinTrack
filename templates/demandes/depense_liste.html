@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Dépenses Validées - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-list-ul"></i> Dépenses Validées</h2>
+        {% if releve_actuel %}
+        <div class="mt-2">
+            <span class="badge bg-success fs-6">
+                <i class="bi bi-file-earmark-spreadsheet-fill"></i> Relevé: {{ releve_actuel.numero }}
+                {% if releve_actuel.depenses_validees_par %}
+                - Validé par {{ releve_actuel.depenses_validees_par.get_full_name|default:releve_actuel.depenses_validees_par.username }}
+                {% endif %}
+                {% if releve_actuel.date_validation_depenses %}
+                le {{ releve_actuel.date_validation_depenses|date:"d/m/Y à H:i" }}
+                {% endif %}
+            </span>
+            <a href="{% url 'demandes:depenses_liste' %}" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="bi bi-x-circle"></i> Voir toutes les dépenses
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-info fs-5 px-3 py-2">
+            <strong>Total CDF:</strong> {{ total_fc|format_montant }} CDF
+        </span>
+        <span class="badge bg-primary fs-5 px-3 py-2">
+            <strong>Total USD:</strong> {{ total_usd|format_montant }} USD
+        </span>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            {% if filtres.releve %}
+            <input type="hidden" name="releve" value="{{ filtres.releve }}">
+            {% endif %}
+            <div class="col-md-2">
+                <label for="date_debut" class="form-label">Date de début</label>
+                <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ filtres.date_debut }}">
+            </div>
+            <div class="col-md-2">
+                <label for="date_fin" class="form-label">Date de fin</label>
+                <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ filtres.date_fin }}">
+            </div>
+            <div class="col-md-2">
+                <label for="annee" class="form-label">Année</label>
+                <select name="annee" id="annee" class="form-select">
+                    <option value="">Toutes</option>
+                    {% for a in annees %}
+                    <option value="{{ a }}" {% if filtres.annee == a|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="mois" class="form-label">Mois</label>
+                <select name="mois" id="mois" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="1" {% if filtres.mois == "1" %}selected{% endif %}>Janvier</option>
+                    <option value="2" {% if filtres.mois == "2" %}selected{% endif %}>Février</option>
+                    <option value="3" {% if filtres.mois == "3" %}selected{% endif %}>Mars</option>
+                    <option value="4" {% if filtres.mois == "4" %}selected{% endif %}>Avril</option>
+                    <option value="5" {% if filtres.mois == "5" %}selected{% endif %}>Mai</option>
+                    <option value="6" {% if filtres.mois == "6" %}selected{% endif %}>Juin</option>
+                    <option value="7" {% if filtres.mois == "7" %}selected{% endif %}>Juillet</option>
+                    <option value="8" {% if filtres.mois == "8" %}selected{% endif %}>Août</option>
+                    <option value="9" {% if filtres.mois == "9" %}selected{% endif %}>Septembre</option>
+                    <option value="10" {% if filtres.mois == "10" %}selected{% endif %}>Octobre</option>
+                    <option value="11" {% if filtres.mois == "11" %}selected{% endif %}>Novembre</option>
+                    <option value="12" {% if filtres.mois == "12" %}selected{% endif %}>Décembre</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="nature_economique" class="form-label">Nature économique</label>
+                <select name="nature_economique" id="nature_economique" class="form-select">
+                    <option value="">Toutes</option>
+                    {% for nature in natures_economiques %}
+                    <option value="{{ nature.pk }}" {% if filtres.nature_economique == nature.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ nature.code }} - {{ nature.titre|truncatewords:3 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="service" class="form-label">Service</label>
+                <select name="service" id="service" class="form-select">
+                    <option value="">Tous</option>
+                    {% for service in services %}
+                    <option value="{{ service.pk }}" {% if filtres.service == service.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ service.nom_service }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="devise" class="form-label">Devise</label>
+                <select name="devise" id="devise" class="form-select">
+                    <option value="">Toutes</option>
+                    <option value="CDF" {% if filtres.devise == "CDF" %}selected{% endif %}>CDF</option>
+                    <option value="USD" {% if filtres.devise == "USD" %}selected{% endif %}>USD</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" name="search" id="search" class="form-control" placeholder="Libellé, code..." value="{{ filtres.search }}">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Filtrer
+                </button>
+                <a href="{% url 'demandes:depenses_liste' %}{% if filtres.releve %}?releve={{ filtres.releve }}{% endif %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Réinitialiser les filtres
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau des dépenses -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Référence</th>
+                        <th>Date</th>
+                        <th>Nature économique</th>
+                        <th>Description</th>
+                        <th>Service</th>
+                        <th class="text-end">Montant CDF</th>
+                        <th class="text-end">Montant USD</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for demande in depenses %}
+                    <tr>
+                        <td>
+                            <strong>{{ demande.reference }}</strong>
+                            <br>
+                            <span class="badge bg-success">Dépense validée</span>
+                        </td>
+                        <td>
+                            {% if demande.date_demande %}
+                            {{ demande.date_demande|date:"d/m/Y" }}
+                            {% else %}
+                            {{ demande.date_soumission|date:"d/m/Y" }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if demande.nature_economique %}
+                            <span class="badge bg-secondary" title="{{ demande.nature_economique.titre }}">
+                                {{ demande.nature_economique.code }} - {{ demande.nature_economique.titre|truncatewords:3 }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ demande.description|truncatewords:15 }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ demande.service_demandeur.nom }}</span>
+                        </td>
+                        <td class="text-end">
+                            {% if demande.devise == 'CDF' %}
+                            <strong class="text-success">{{ demande.montant|format_montant:"CDF" }}</strong>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if demande.devise == 'USD' %}
+                            <strong class="text-primary">{{ demande.montant|format_montant:"USD" }}</strong>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ demande.get_statut_display }}</span>
+                            <br>
+                            <small class="text-muted">
+                                {% for releve in demande.releves_depense.all %}
+                                    {% if releve.depenses_validees %}
+                                    Relevé: {{ releve.numero }}
+                                    {% endif %}
+                                {% endfor %}
+                            </small>
+                        </td>
+                        <td>
+                            <a href="{% url 'demandes:detail' demande.pk %}" class="btn btn-sm btn-info" title="Voir les détails">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2">Aucune dépense validée trouvée</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if depenses %}
+                <tfoot class="table-secondary">
+                    <tr>
+                        <th colspan="5" class="text-end">Total:</th>
+                        <th class="text-end text-success">{{ total_fc|format_montant:"CDF" }}</th>
+                        <th class="text-end text-primary">{{ total_usd|format_montant:"USD" }}</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Pagination des dépenses">
+            <ul class="pagination justify-content-center mt-4">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if filtres.releve %}&releve={{ filtres.releve }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.nature_economique %}&nature_economique={{ filtres.nature_economique }}{% endif %}{% if filtres.service %}&service={{ filtres.service }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres.releve %}&releve={{ filtres.releve }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.nature_economique %}&nature_economique={{ filtres.nature_economique }}{% endif %}{% if filtres.service %}&service={{ filtres.service }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres.releve %}&releve={{ filtres.releve }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.nature_economique %}&nature_economique={{ filtres.nature_economique }}{% endif %}{% if filtres.service %}&service={{ filtres.service }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtres.releve %}&releve={{ filtres.releve }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.nature_economique %}&nature_economique={{ filtres.nature_economique }}{% endif %}{% if filtres.service %}&service={{ filtres.service }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}{% if filtres.search %}&search={{ filtres.search }}{% endif %}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Relevé de Dépense - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-file-earmark-text"></i> Relevé de Dépense</h2>
+        <p class="mb-0 text-muted">Demandes validées uniquement</p>
+    </div>
+    <div>
+        <a href="{% url 'demandes:releve_pdf' %}" class="btn btn-primary" target="_blank">
+            <i class="bi bi-printer"></i> Imprimer (PDF)
+        </a>
+        <a href="{% url 'demandes:releve_excel' %}" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Exporter (Excel)
+        </a>
+    </div>
+</div>
+
+<!-- Bouton pour ouvrir le modal de réimpression -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reimprimerModal">
+                <i class="bi bi-printer"></i> Réimprimer un relevé
+            </button>
+            <a href="{% url 'demandes:releves_crees_liste' %}" class="btn btn-info">
+                <i class="bi bi-list-ul"></i> Voir la liste des relevés
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour réimprimer un relevé -->
+<div class="modal fade" id="reimprimerModal" tabindex="-1" aria-labelledby="reimprimerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%); color: white;">
+                <h5 class="modal-title" id="reimprimerModalLabel">
+                    <i class="bi bi-printer"></i> Réimprimer un relevé de dépense
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="get" action="{% url 'demandes:releve_reprint_pdf' %}" id="reprintForm">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">
+                        Veuillez saisir le numéro du relevé que vous souhaitez réimprimer.
+                    </p>
+                    <div class="mb-3">
+                        <label for="numero" class="form-label">
+                            <strong>Numéro de relevé <span class="text-danger">*</span></strong>
+                        </label>
+                        <input type="text" class="form-control" id="numero" name="numero" 
+                               placeholder="Ex: REL-000001" required autofocus>
+                        <small class="form-text text-muted">
+                            Format attendu : REL-000001, REL-000002, etc.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Annuler
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-printer"></i> Réimprimer PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Résumé des montants -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5>Résumé des montants</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Désignation</th>
+                        <th class="text-end">CDF</th>
+                        <th class="text-end">USD</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Montant</strong></td>
+                        <td class="text-end"><strong class="text-success">{{ montant_cdf|format_montant:"CDF" }}</strong></td>
+                        <td class="text-end"><strong class="text-primary">{{ montant_usd|format_montant:"USD" }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>IPR (3%)</strong></td>
+                        <td class="text-end"><strong class="text-warning">{{ ipr_cdf|format_montant:"CDF" }}</strong></td>
+                        <td class="text-end"><strong class="text-warning">{{ ipr_usd|format_montant:"USD" }}</strong></td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Net à payer</strong></td>
+                        <td class="text-end"><strong>{{ net_a_payer_cdf|format_montant:"CDF" }}</strong></td>
+                        <td class="text-end"><strong>{{ net_a_payer_usd|format_montant:"USD" }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des demandes validées -->
+<div class="card">
+    <div class="card-header">
+        <h5>Demandes validées ({{ demandes|length }})</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Numéro</th>
+                        <th>Code</th>
+                        <th>Nature économique</th>
+                        <th class="text-end">Montant USD</th>
+                        <th class="text-end">IPR (3%)</th>
+                        <th class="text-end"> Montant CDF</th>
+                        <th class="text-end">IPR (3%)</th>
+                        <th class="text-end">Net à payer USD</th>
+                        <th class="text-end">Net à payer CDF</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% regroup demandes by nature_economique.code|default:"Sans code" as demandes_par_code %}
+                    {% for groupe in demandes_par_code %}
+                        {% for demande in groupe.list %}
+                        <tr>
+                            <td>
+                                <strong class="text-primary">{{ demande_numero|get_item:demande.pk }}</strong>
+                            </td>
+                            <td>
+                                {% if demande.nature_economique %}
+                                <span class="badge bg-info" title="{{ demande.nature_economique.titre }}">
+                                    {{ demande.nature_economique.code }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if demande.nature_economique %}
+                                <span class="badge bg-success" title="{{ demande.nature_economique.titre }}">
+                                    {{ demande.nature_economique.titre }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if demande.devise == 'USD' %}
+                                <strong class="text-primary">{{ demande.montant|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if demande.devise == 'USD' %}
+                                <strong class="text-warning">{{ demande.montant|mul:0.03|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if demande.devise == 'CDF' %}
+                                <strong class="text-success">{{ demande.montant|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if demande.devise == 'CDF' %}
+                                <strong class="text-warning">{{ demande.montant|mul:0.03|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if demande.devise == 'USD' %}
+                                {% with montant_usd=demande.montant ipr_usd=demande.montant|mul:0.03 %}
+                                <strong class="text-info">{{ montant_usd|add:ipr_usd|format_montant:"USD" }}</strong>
+                                {% endwith %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if demande.devise == 'CDF' %}
+                                {% with montant_cdf=demande.montant ipr_cdf=demande.montant|mul:0.03 %}
+                                <strong class="text-info">{{ montant_cdf|add:ipr_cdf|format_montant:"CDF" }}</strong>
+                                {% endwith %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        </tr>
+                        {% endfor %}
+                        {% if sous_totaux|get_item:groupe.grouper %}
+                        {% with total=sous_totaux|get_item:groupe.grouper %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3" class="text-end">
+                                <strong>Sous-total (Code: {{ groupe.grouper }})</strong>
+                            </td>
+                            <td class="text-end">
+                                {% if total.montant_usd > 0 %}
+                                <strong class="text-primary">{{ total.montant_usd|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if total.ipr_usd > 0 %}
+                                <strong class="text-warning">{{ total.ipr_usd|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if total.montant_cdf > 0 %}
+                                <strong class="text-success">{{ total.montant_cdf|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if total.ipr_cdf > 0 %}
+                                <strong class="text-warning">{{ total.ipr_cdf|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if total.net_usd > 0 %}
+                                <strong class="text-info">{{ total.net_usd|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if total.net_cdf > 0 %}
+                                <strong class="text-info">{{ total.net_cdf|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endif %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="mt-3 mb-0">Aucune demande validée</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="card-footer">
+        <nav aria-label="Pagination des demandes">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

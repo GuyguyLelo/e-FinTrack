@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}{{ compte.intitule_compte }} - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-wallet2"></i> {{ compte.intitule_compte }}</h2>
+    <div>
+        <a href="{% url 'banques:compte_modifier' compte.pk %}" class="btn btn-warning">
+            <i class="bi bi-pencil"></i> Modifier
+        </a>
+        <a href="{% url 'banques:comptes_liste' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Informations du compte</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Banque</th>
+                        <td>{{ compte.banque.nom_banque }}</td>
+                    </tr>
+                    <tr>
+                        <th>Intitulé</th>
+                        <td>{{ compte.intitule_compte }}</td>
+                    </tr>
+                    <tr>
+                        <th>Numéro de compte</th>
+                        <td>{{ compte.numero_compte }}</td>
+                    </tr>
+                    <tr>
+                        <th>Devise</th>
+                        <td><span class="badge bg-info">{{ compte.devise }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Solde initial</th>
+                        <td><strong>{{ compte.solde_initial|format_montant:compte.devise }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Solde courant</th>
+                        <td><strong class="text-primary">{{ compte.solde_courant|format_montant:compte.devise }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Date d'ouverture</th>
+                        <td>{{ compte.date_ouverture|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Statut</th>
+                        <td>
+                            {% if compte.actif %}
+                            <span class="badge bg-success">Actif</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactif</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

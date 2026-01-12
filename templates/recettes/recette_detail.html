@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Détail Recette {{ recette.reference }} - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-cash-coin"></i> Recette {{ recette.reference }}</h2>
+    <div>
+        {% if user.is_comptable and not recette.valide %}
+        <form method="post" action="{% url 'recettes:valider' recette.pk %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Valider
+            </button>
+        </form>
+        {% endif %}
+        <a href="{% url 'recettes:liste' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Détails de la recette</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <th>Référence</th>
+                        <td><strong>{{ recette.reference }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Banque</th>
+                        <td>{{ recette.banque.nom_banque }}</td>
+                    </tr>
+                    <tr>
+                        <th>Compte bancaire</th>
+                        <td>{{ recette.compte_bancaire.intitule_compte }} ({{ recette.compte_bancaire.numero_compte }})</td>
+                    </tr>
+                    <tr>
+                        <th>Source</th>
+                        <td>{{ recette.get_source_recette_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Description</th>
+                        <td>{{ recette.description }}</td>
+                    </tr>
+                    <tr>
+                        <th>Montant USD</th>
+                        <td>
+                            {% if recette.montant_usd > 0 %}
+                            <strong class="text-primary">{{ recette.montant_usd|format_montant:"USD" }}</strong>
+                            {% else %}
+                            <span class="text-muted">0,00 USD</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Montant CDF</th>
+                        <td>
+                            {% if recette.montant_cdf > 0 %}
+                            <strong class="text-success">{{ recette.montant_cdf|format_montant:"CDF" }}</strong>
+                            {% else %}
+                            <span class="text-muted">0.00 CDF</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Date d'encaissement</th>
+                        <td>{{ recette.date_encaissement|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Statut</th>
+                        <td>
+                            {% if recette.valide %}
+                            <span class="badge bg-success">Validée</span>
+                            {% else %}
+                            <span class="badge bg-warning">En attente de validation</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Enregistrée par</th>
+                        <td>{{ recette.enregistre_par.get_full_name|default:recette.enregistre_par.username }}</td>
+                    </tr>
+                    {% if recette.valide_par %}
+                    <tr>
+                        <th>Validée par</th>
+                        <td>{{ recette.valide_par.get_full_name|default:recette.valide_par.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date de validation</th>
+                        <td>{{ recette.date_validation|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if recette.piece_jointe %}
+                    <tr>
+                        <th>Pièce jointe</th>
+                        <td>
+                            <a href="{{ recette.piece_jointe.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-file-pdf"></i> Voir le fichier
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
