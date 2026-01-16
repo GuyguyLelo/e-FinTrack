@@ -198,6 +198,9 @@
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'liste' %}active{% endif %}" href="{% url 'demandes:liste' %}">
                         <i class="bi bi-file-earmark-text"></i> Demandes de paiement
                     </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'paiement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:paiement_liste' %}">
+                        <i class="bi bi-credit-card"></i> Paiements
+                    </a>
 
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'releves_liste' %}active{% endif %}" href="{% url 'demandes:releves_liste' %}">
                         <i class="bi bi-file-earmark-spreadsheet-fill"></i> Relevés de dépenses

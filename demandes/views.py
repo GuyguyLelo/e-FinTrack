@@ -20,8 +20,11 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
-from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense, NatureEconomique, Cheque
-from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm
+from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense, NatureEconomique, Cheque, Paiement
+from accounts.models import Service
+from banques.models import Banque
+from releves.models import ReleveBancaire
+from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
 
 
 class DemandePaiementListView(LoginRequiredMixin, ListView):
@@ -1963,4 +1966,314 @@ class NatureEconomiqueDetailView(LoginRequiredMixin, DetailView):
     model = NatureEconomique
     template_name = 'demandes/nature_detail.html'
     context_object_name = 'nature'
+
+
+# ==================== VUES DE PAIEMENT ====================
+
+class PaiementCreateView(LoginRequiredMixin, CreateView):
+    """Vue pour créer un paiement pour une demande"""
+    model = Paiement
+    form_class = PaiementForm
+    template_name = 'demandes/paiement_form.html'
+    success_url = reverse_lazy('demandes:paiement_liste')
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        
+        # Passer le paramètre GET 'releve' au formulaire
+        releve_id = self.request.GET.get('releve')
+        if releve_id:
+            kwargs['initial'] = kwargs.get('initial', {})
+            kwargs['initial']['releve_depense'] = releve_id
+            
+            # Pré-remplir le queryset des demandes et mettre à jour les montants
+            try:
+                releve = ReleveDepense.objects.get(pk=releve_id)
+                demandes = releve.demandes.all()
+                
+                # Mettre à jour les montants pour les demandes qui ne sont pas payées
+                for demande in demandes:
+                    if demande.reste_a_payer == 0 and demande.statut != 'PAYEE':
+                        demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                        demande.save()
+                
+                kwargs['releve_queryset'] = demandes
+            except ReleveDepense.DoesNotExist:
+                kwargs['releve_queryset'] = DemandePaiement.objects.none()
+        else:
+            kwargs['releve_queryset'] = DemandePaiement.objects.none()
+        
+        return kwargs
+    
+    def form_valid(self, form):
+        form.instance.paiement_par = self.request.user
+        messages.success(self.request, 'Paiement effectué avec succès!')
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Effectuer un paiement'
+        return context
+
+
+class PaiementListView(LoginRequiredMixin, ListView):
+    """Vue pour lister les paiements"""
+    model = Paiement
+    template_name = 'demandes/paiement_liste.html'
+    context_object_name = 'paiements'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = Paiement.objects.select_related(
+            'demande', 'releve_depense', 'paiement_par'
+        ).prefetch_related('demande__service_demandeur')
+        
+        # Filtrage par relevé de dépenses
+        releve_id = self.request.GET.get('releve')
+        if releve_id:
+            queryset = queryset.filter(releve_depense_id=releve_id)
+        
+        # Filtrage par devise
+        devise = self.request.GET.get('devise')
+        if devise:
+            queryset = queryset.filter(devise=devise)
+        
+        return queryset.order_by('-date_paiement')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Historique des paiements'
+        
+        # Récupérer les relevés pour le filtre
+        context['releves'] = self.get_queryset().values_list(
+            'releve_depense_id', 'releve_depense__periode'
+        ).distinct()
+        
+        return context
+
+
+class PaiementParReleveView(LoginRequiredMixin, FormView):
+    """Vue pour payer les demandes d'un relevé de dépenses"""
+    template_name = 'demandes/paiement_releve.html'
+    form_class = PaiementMultipleForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_form(self, form_class=None):
+        return super().get_form(form_class)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Paiement par relevé de dépenses'
+        return context
+    
+    def form_valid(self, form):
+        releve_depense = form.cleaned_data['releve_depense']
+        return redirect('demandes:paiement_releve_detail', pk=releve_depense.pk)
+
+
+class PaiementReleveDetailView(LoginRequiredMixin, View):
+    """Vue pour afficher et payer les demandes d'un relevé de dépenses spécifique"""
+    
+    def get(self, request, pk):
+        releve_depense = get_object_or_404(
+            ReleveDepense.objects,
+            pk=pk
+        )
+        
+        # Récupérer les demandes de ce relevé (toutes, pas seulement non payées)
+        toutes_demandes = releve_depense.demandes.all().select_related('service_demandeur')
+        
+        # Forcer le recalcul des montants pour chaque demande
+        for demande in toutes_demandes:
+            print(f"  - {demande.reference}: montant={demande.montant}, deja_paye={demande.montant_deja_paye}, reste={demande.reste_a_payer}, statut={demande.statut}")
+            # Recalculer si nécessaire
+            if demande.reste_a_payer == 0 and demande.statut != 'PAYEE':
+                demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                demande.save()
+                print(f"    -> Recalculé: nouveau reste_a_payer={demande.reste_a_payer}")
+        
+        # Maintenant filtrer les demandes non entièrement payées
+        demandes = toutes_demandes.filter(
+            reste_a_payer__gt=0
+        )
+        
+        context = {
+            'title': f'Paiement des demandes - {releve_depense.periode}',
+            'releve_depense': releve_depense,
+            'demandes': demandes,
+            'total_demandes': demandes.count(),
+            'total_a_payer': sum(demande.reste_a_payer for demande in demandes),
+        }
+        
+        return render(request, 'demandes/paiement_releve_detail.html', context)
+    
+    def post(self, request, pk):
+        releve_depense = get_object_or_404(
+            ReleveDepense.objects,
+            pk=pk
+        )
+        
+        # Récupérer les montants à payer pour chaque demande
+        paiements_data = {}
+        total_paye = Decimal('0.00')
+        
+        for demande in releve_depense.demandes.all():
+            montant_key = f'montant_{demande.pk}'
+            if montant_key in request.POST:
+                try:
+                    montant = Decimal(request.POST.get(montant_key, '0.00'))
+                    if montant > 0:
+                        paiements_data[demande.pk] = {
+                            'montant': montant,
+                            'demande': demande
+                        }
+                        total_paye += montant
+                except (ValueError, TypeError):
+                    continue
+        
+        if not paiements_data:
+            messages.error(request, "Veuillez saisir au moins un montant à payer.")
+            return self.get(request, pk)
+        
+        # Créer les paiements
+        with transaction.atomic():
+            for demande_pk, paiement_data in paiements_data.items():
+                demande = paiement_data['demande']
+                montant = paiement_data['montant']
+                
+                # Créer le paiement
+                paiement = Paiement.objects.create(
+                    demande=demande,
+                    releve_bancaire=None,  # Pas de relevé bancaire direct
+                    paiement_par=request.user,
+                    montant_paye=montant,
+                    devise=demande.devise,
+                    observations=f"Paiement par rapport au relevé {releve_depense.periode}"
+                )
+                
+                # Mettre à jour la demande
+                demande.montant_deja_paye += montant
+                demande.reste_a_payer -= montant
+                
+                if demande.reste_a_payer <= 0:
+                    demande.statut = 'PAYEE'
+                    demande.reste_a_payer = Decimal('0.00')
+                
+                demande.save()
+        
+        messages.success(request, f"{len(paiements_data)} paiement(s) effectué(s) avec succès pour un total de {total_paye} {paiements_data[next(iter(paiements_data))]['demande'].devise}.")
+        return redirect('demandes:paiement_liste')
+        
+        # Récupérer les demandes validées non entièrement payées
+        demandes = DemandePaiement.objects.filter(
+            statut__in=['VALIDEE_DG', 'VALIDEE_DF'],
+            reste_a_payer__gt=0,
+            devise=releve_bancaire.devise
+        ).select_related('service_demandeur', 'cree_par')
+        
+        # Calculer les totaux
+        total_reste_a_payer = sum(demande.reste_a_payer for demande in demandes)
+        total_deja_paye = sum(demande.montant_deja_paye for demande in demandes)
+        total_initial = sum(demande.montant for demande in demandes)
+        
+        context = {
+            'title': f'Paiement des demandes - {releve_bancaire}',
+            'releve_bancaire': releve_bancaire,
+            'demandes': demandes,
+            'total_reste_a_payer': total_reste_a_payer,
+            'total_deja_paye': total_deja_paye,
+            'total_initial': total_initial,
+            'forms': {demande.pk: PaiementForm(user=request.user, initial={
+                'releve_bancaire': releve_bancaire,
+                'demande': demande,
+                'montant_paye': demande.reste_a_payer
+            }) for demande in demandes}
+        }
+        
+        return render(request, 'demandes/paiement_releve_detail.html', context)
+    
+    def post(self, request, pk):
+        releve_bancaire = get_object_or_404(ReleveBancaire, pk=pk)
+        
+        # Traiter chaque paiement
+        paiements_effectues = 0
+        for key, value in request.POST.items():
+            if key.startswith('montant_paye_'):
+                demande_id = key.split('_')[2]
+                montant = value
+                
+                if montant and Decimal(montant) > 0:
+                    demande = get_object_or_404(DemandePaiement, pk=demande_id)
+                    observations = request.POST.get(f'observations_{demande_id}', '')
+                    
+                    # Vérifier que le montant ne dépasse pas le reste à payer
+                    if Decimal(montant) <= demande.reste_a_payer:
+                        Paiement.objects.create(
+                            releve_bancaire=releve_bancaire,
+                            demande=demande,
+                            montant_paye=Decimal(montant),
+                            observations=observations,
+                            paiement_par=request.user
+                        )
+                        paiements_effectues += 1
+        
+        if paiements_effectues > 0:
+            messages.success(request, f'{paiements_effectues} paiement(s) effectué(s) avec succès!')
+        else:
+            messages.warning(request, 'Aucun paiement n\'a été effectué.')
+        
+        return redirect('demandes:paiement_releve_detail', pk=pk)
+
+
+class PaiementDetailView(LoginRequiredMixin, DetailView):
+    """Vue pour afficher les détails d'un paiement"""
+    model = Paiement
+    template_name = 'demandes/paiement_detail.html'
+    context_object_name = 'paiement'
+    
+    def get_queryset(self):
+        return Paiement.objects.select_related(
+            'demande', 'releve_depense', 'paiement_par'
+        ).prefetch_related('demande__service_demandeur')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Détails du paiement {self.object.reference}'
+        
+        # Calculer le pourcentage de paiement
+        if self.object.demande.montant > 0:
+            pourcentage = (self.object.demande.montant_deja_paye / self.object.demande.montant) * 100
+        else:
+            pourcentage = 0
+        context['pourcentage_paiement'] = pourcentage
+        
+        return context
+
+
+# ==================== VUES API ====================
+
+class DemandeResteAPayerView(LoginRequiredMixin, View):
+    """Vue API pour obtenir le reste à payer d'une demande"""
+    
+    def get(self, request, pk):
+        try:
+            demande = DemandePaiement.objects.get(pk=pk)
+            data = {
+                'success': True,
+                'montant_deja_paye': str(demande.montant_deja_paye),
+                'reste_a_payer': str(demande.reste_a_payer),
+                'montant_total': str(demande.montant),
+                'devise': demande.devise
+            }
+            return JsonResponse(data)
+        except DemandePaiement.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Demande non trouvée'
+            }, status=404)
 

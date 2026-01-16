@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ title }} - e-Finance DAF{% endblock %}
+
+{% block extra_css %}
+<style>
+    .paiement-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border-radius: 10px 10px 0 0;
+        padding: 2rem;
+    }
+    
+    .paiement-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .info-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .info-title {
+        font-weight: 600;
+        color: #1a3a5f;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 500;
+        color: #6c757d;
+    }
+    
+    .info-value {
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .montant-paye {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #28a745;
+    }
+    
+    .badge-reference {
+        background-color: #28a745;
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .demande-link {
+        text-decoration: none;
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    .demande-link:hover {
+        text-decoration: underline;
+    }
+    
+    .releve-info {
+        background-color: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 1rem;
+        border-radius: 0 5px 5px 0;
+    }
+    
+    .observations-box {
+        background-color: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        padding: 1rem;
+        min-height: 80px;
+        white-space: pre-wrap;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-action {
+        border-radius: 5px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: transform 0.2s;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="h3 text-dark">
+                    <i class="fas fa-receipt text-success me-2"></i>
+                    {{ title }}
+                </h2>
+                <div class="action-buttons">
+                    <a href="{% url 'demandes:paiement_liste' %}" class="btn btn-secondary btn-action">
+                        <i class="fas fa-arrow-left me-1"></i> Retour aux paiements
+                    </a>
+                    <a href="{% url 'demandes:detail' paiement.demande.pk %}" class="btn btn-info btn-action">
+                        <i class="fas fa-file-invoice me-1"></i> Voir la demande
+                    </a>
+                    {% if request.user.role in 'DG,DAF,DF,COMPTABLE' %}
+                    <button class="btn btn-warning btn-action" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Imprimer
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Carte principale du paiement -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="paiement-card">
+                <div class="paiement-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <span class="badge badge-reference">{{ paiement.reference }}</span>
+                            <h3 class="mt-2 mb-1">Paiement effectué</h3>
+                            <p class="mb-0">
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ paiement.date_paiement|date:"d F Y à H:i" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <div class="montant-paye">
+                                {{ paiement.montant_paye|floatformat:2 }} {{ paiement.devise }}
+                            </div>
+                            <p class="mb-0">Montant payé</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Informations sur la demande -->
+                    <div class="info-section">
+                        <h5 class="info-title">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>
+                            Informations sur la demande
+                        </h5>
+                        <div class="info-row">
+                            <span class="info-label">Référence:</span>
+                            <span class="info-value">
+                                <a href="{% url 'demandes:detail' paiement.demande.pk %}" class="demande-link">
+                                    {{ paiement.demande.reference }}
+                                </a>
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Service demandeur:</span>
+                            <span class="info-value">{{ paiement.demande.service_demandeur.nom_service }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Description:</span>
+                            <span class="info-value">{{ paiement.demande.description|truncatechars:100 }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Montant total de la demande:</span>
+                            <span class="info-value">{{ paiement.demande.montant|floatformat:2 }} {{ paiement.demande.devise }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Montant déjà payé avant:</span>
+                            <span class="info-value text-success">
+                                {% with montant_avant=paiement.demande.montant_deja_paye|add:paiement.montant_paye %}
+                                    {{ montant_avant|floatformat:2 }} {{ paiement.demande.devise }}
+                                {% endwith %}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Reste à payer après:</span>
+                            <span class="info-value {% if paiement.demande.reste_a_payer > 0 %}text-warning{% else %}text-success{% endif %}">
+                                {{ paiement.demande.reste_a_payer|floatformat:2 }} {{ paiement.demande.devise }}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Statut actuel:</span>
+                            <span class="info-value">
+                                <span class="badge bg-{% if paiement.demande.statut == 'PAYEE' %}success{% else %}warning{% endif %}">
+                                    {{ paiement.demande.get_statut_display }}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Informations sur le relevé bancaire -->
+                    <div class="releve-info">
+                        <h6 class="mb-3">
+                            <i class="fas fa-file-invoice-dollar me-1"></i>
+                            Relevé de dépenses associé
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Période:</strong> {{ paiement.releve_depense.periode }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Total des dépenses:</strong> 
+                                <span class="text-primary">
+                                    {{ paiement.releve_depense.total_depenses|floatformat:2 }} {{ paiement.devise }}
+                                </span>
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <strong>Nombre de demandes:</strong> {{ paiement.releve_depense.demandes.count }}
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <strong>Statut:</strong> 
+                                {% if paiement.releve_depense.archive %}
+                                    <span class="badge bg-secondary">Archivé</span>
+                                {% else %}
+                                    <span class="badge bg-success">Actif</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Observations -->
+                    {% if paiement.observations %}
+                    <div class="info-section">
+                        <h5 class="info-title">
+                            <i class="fas fa-comment me-2"></i>
+                            Observations sur le paiement
+                        </h5>
+                        <div class="observations-box">{{ paiement.observations }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Colonne latérale -->
+        <div class="col-lg-4">
+            <!-- Informations sur le paiement -->
+            <div class="info-section">
+                <h5 class="info-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Détails du paiement
+                </h5>
+                <div class="info-row">
+                    <span class="info-label">Référence:</span>
+                    <span class="info-value">{{ paiement.reference }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date:</span>
+                    <span class="info-value">{{ paiement.date_paiement|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Montant payé:</span>
+                    <span class="info-value montant-paye">{{ paiement.montant_paye|floatformat:2 }} {{ paiement.devise }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Devise:</span>
+                    <span class="info-value">{{ paiement.devise }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Effectué par:</span>
+                    <span class="info-value">{{ paiement.paiement_par.get_full_name|default:paiement.paiement_par.username }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Rôle:</span>
+                    <span class="info-value">{{ paiement.paiement_par.get_role_display }}</span>
+                </div>
+            </div>
+            
+            <!-- Statistiques -->
+            <div class="info-section">
+                <h5 class="info-title">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Statut de la demande
+                </h5>
+                <div class="text-center">
+                    {% if paiement.demande.reste_a_payer <= 0 %}
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h6 class="text-success">Demande entièrement payée</h6>
+                    {% else %}
+                    <i class="fas fa-hourglass-half fa-4x text-warning mb-3"></i>
+                    <h6 class="text-warning">Demande partiellement payée</h6>
+                    {% endif %}
+                    <p class="mb-0">
+                        {{ paiement.demande.montant_deja_paye|floatformat:2 }} / {{ paiement.demande.montant|floatformat:2 }} {{ paiement.demande.devise }}
+                    </p>
+                    <div class="progress mt-2" style="height: 20px;">
+                        <div class="progress-bar bg-{% if paiement.demande.reste_a_payer <= 0 %}success{% else %}warning{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ pourcentage_paiement|floatformat:0 }}%">
+                            {{ pourcentage_paiement|floatformat:1 }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Ajouter des fonctionnalités JavaScript si nécessaire
+document.addEventListener('DOMContentLoaded', function() {
+    // Animation des cartes au chargement
+    const cards = document.querySelectorAll('.info-section');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+</script>
+{% endblock %}

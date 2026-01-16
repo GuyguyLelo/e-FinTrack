@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% load format_filters %}
 
 {% block title %}Détail Rapprochement - e-Finance DAF{% endblock %}
 
@@ -7,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-arrow-left-right"></i> Rapprochement Bancaire</h2>
     <div>
-        {% if not rapprochement.valide %}
+        {% if rapprochement and not rapprochement.valide %}
         <form method="post" action="{% url 'rapprochements:calculer' rapprochement.pk %}" style="display: inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-primary">
@@ -15,7 +14,7 @@
             </button>
         </form>
         {% endif %}
-        {% if user.peut_valider_rapprochement and not rapprochement.valide %}
+        {% if user.peut_valider_rapprochement and rapprochement and not rapprochement.valide %}
         <form method="post" action="{% url 'rapprochements:valider' rapprochement.pk %}" style="display: inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-success">
@@ -51,20 +50,20 @@
                     </tr>
                     <tr>
                         <th>Solde Banque</th>
-                        <td><strong class="text-primary">{{ rapprochement.solde_banque|format_montant:rapprochement.devise }}</strong></td>
+                        <td><strong class="text-primary">{{ rapprochement.solde_banque|floatformat:2 }} {{ rapprochement.devise }}</strong></td>
                     </tr>
                     <tr>
                         <th>Solde Interne</th>
-                        <td><strong class="text-info">{{ rapprochement.solde_interne|format_montant:rapprochement.devise }}</strong></td>
+                        <td><strong class="text-info">{{ rapprochement.solde_interne|floatformat:2 }} {{ rapprochement.devise }}</strong></td>
                     </tr>
                     <tr>
                         <th>Écart</th>
                         <td>
                             {% if rapprochement.ecart == 0 %}
-                            <span class="badge bg-success">{{ rapprochement.ecart|format_montant:rapprochement.devise }}</span>
+                            <span class="badge bg-success">{{ rapprochement.ecart|floatformat:2 }} {{ rapprochement.devise }}</span>
                             {% else %}
                             <span class="badge {% if rapprochement.ecart > 0 %}bg-warning{% else %}bg-danger{% endif %}">
-                                {{ rapprochement.ecart|format_montant:rapprochement.devise }}
+                                {{ rapprochement.ecart|floatformat:2 }} {{ rapprochement.devise }}
                             </span>
                             {% endif %}
                         </td>

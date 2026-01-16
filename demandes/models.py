@@ -5,6 +5,7 @@ from django.db import models, transaction
 from django.db.models import Max
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+from django.utils import timezone
 from accounts.models import User, Service
 from banques.models import Banque
 
@@ -80,6 +81,20 @@ class DemandePaiement(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.01'))]
     )
+    montant_deja_paye = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=Decimal('0.00'),
+        verbose_name="Montant déjà payé",
+        help_text="Montant déjà payé pour cette demande"
+    )
+    reste_a_payer = models.DecimalField(
+        max_digits=15, 
+        decimal_places=2, 
+        default=Decimal('0.00'),
+        verbose_name="Reste à payer",
+        help_text="Montant restant à payer pour cette demande"
+    )
     devise = models.CharField(max_length=3, choices=DEVISE_CHOICES)
     date_demande = models.DateField(verbose_name="Date de demande", null=True, blank=True)
     date_soumission = models.DateTimeField(auto_now_add=True)
@@ -110,6 +125,20 @@ class DemandePaiement(models.Model):
             # Génération automatique de la référence
             count = DemandePaiement.objects.count() + 1
             self.reference = f"DEM-{count:06d}"
+        
+        # Correction automatique des montants incohérents
+        if self.montant_deja_paye > self.montant:
+            self.montant_deja_paye = self.montant
+        
+        # Calcul automatique du reste à payer
+        self.reste_a_payer = self.montant - self.montant_deja_paye
+        
+        # Mise à jour du statut si la demande est entièrement payée
+        if self.reste_a_payer <= 0 and self.montant_deja_paye > 0:
+            self.statut = 'PAYEE'
+            self.montant_deja_paye = self.montant
+            self.reste_a_payer = Decimal('0.00')
+        
         super().save(*args, **kwargs)
 
 
@@ -452,3 +481,107 @@ class Cheque(models.Model):
     def get_montant_total(self):
         """Calcule le montant total du chèque"""
         return self.montant_cdf + self.montant_usd
+
+
+class Paiement(models.Model):
+    """Modèle pour gérer les paiements des demandes"""
+    DEVISE_CHOICES = [
+        ('USD', 'Dollar US (USD)'),
+        ('CDF', 'Franc Congolais (CDF)'),
+    ]
+    
+    reference = models.CharField(
+        max_length=50, 
+        unique=True, 
+        editable=False,
+        verbose_name="Référence du paiement"
+    )
+    releve_depense = models.ForeignKey(
+        ReleveDepense,
+        on_delete=models.PROTECT,
+        related_name='paiements',
+        verbose_name="Relevé de dépenses",
+        null=True,
+        blank=True
+    )
+    demande = models.ForeignKey(
+        DemandePaiement,
+        on_delete=models.PROTECT,
+        related_name='paiements',
+        verbose_name="Demande de paiement"
+    )
+    montant_paye = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        verbose_name="Montant payé"
+    )
+    devise = models.CharField(max_length=3, choices=DEVISE_CHOICES)
+    date_paiement = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Date de paiement"
+    )
+    paiement_par = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='paiements_effectues',
+        limit_choices_to={'role__in': ['COMPTABLE', 'DAF', 'DG']},
+        verbose_name="Effectué par"
+    )
+    observations = models.TextField(
+        blank=True,
+        verbose_name="Observations"
+    )
+    
+    class Meta:
+        verbose_name = "Paiement"
+        verbose_name_plural = "Paiements"
+        ordering = ['-date_paiement']
+        indexes = [
+            models.Index(fields=['releve_depense']),
+            models.Index(fields=['demande']),
+            models.Index(fields=['date_paiement']),
+        ]
+    
+    def __str__(self):
+        return f"{self.reference} - {self.montant_paye} {self.devise} - {self.demande.reference}"
+    
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            # Génération automatique de la référence
+            count = Paiement.objects.count() + 1
+            self.reference = f"PAY-{count:06d}"
+        
+        # Synchroniser la devise avec la demande
+        if self.demande:
+            self.devise = self.demande.devise
+        
+        super().save(*args, **kwargs)
+        
+        # Mettre à jour la demande après le paiement
+        if self.demande:
+            self.demande.montant_deja_paye += self.montant_paye
+            self.demande.save()
+        
+        # Vérifier si toutes les demandes du relevé sont payées
+        self.verifier_et_archiver_releve()
+    
+    def verifier_et_archiver_releve(self):
+        """Vérifie si toutes les demandes liées à ce relevé sont payées et archive le relevé si c'est le cas"""
+        if not self.releve_depense:
+            return
+            
+        releve = self.releve_depense
+        
+        # Récupérer toutes les demandes de ce relevé
+        demandes_liees = releve.demandes.all()
+        
+        # Vérifier si toutes les demandes sont entièrement payées
+        toutes_payees = all(
+            demande.reste_a_payer <= 0 
+            for demande in demandes_liees
+        )
+        
+        if toutes_payees:
+            # Archiver le relevé de dépenses (ajouter un champ archive si nécessaire)
+            print(f"Toutes les demandes du relevé {releve.periode} sont payées")

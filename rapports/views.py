@@ -253,27 +253,69 @@ class RapportConsolideView(LoginRequiredMixin, TemplateView):
             total=Sum('montant_cdf')
         )['total'] or Decimal('0.00')
         
-        # Dépenses (uniquement les dépenses validées via les relevés)
-        depenses_qs = Depense.objects.filter(annee=annee)
+        # Dépenses (uniquement les demandes de paiement validées)
+        depenses_qs = DemandePaiement.objects.filter(
+            statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE'],
+            date_soumission__year=annee
+        )
         if mois:
-            depenses_qs = depenses_qs.filter(mois=mois)
+            depenses_qs = depenses_qs.filter(date_soumission__month=mois)
         
-        context['total_depenses_usd'] = depenses_qs.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
-        context['total_depenses_cdf'] = depenses_qs.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+        context['total_depenses_usd'] = depenses_qs.filter(
+            devise='USD'
+        ).aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
+        
+        context['total_depenses_cdf'] = depenses_qs.filter(
+            devise='CDF'
+        ).aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
+        
+        # Évolution des 12 derniers mois
+        evolution_data = []
+        for i in range(12):
+            date_mois = timezone.now() - timedelta(days=30*i)
+            mois_evol = date_mois.month
+            annee_evol = date_mois.year
+            
+            recettes_mois = Recette.objects.filter(
+                valide=True,
+                date_encaissement__year=annee_evol,
+                date_encaissement__month=mois_evol
+            )
+            
+            depenses_mois = DemandePaiement.objects.filter(
+                statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE'],
+                date_soumission__year=annee_evol,
+                date_soumission__month=mois_evol
+            )
+            
+            evolution_data.append({
+                'mois': date_mois.strftime('%Y-%m'),
+                'libelle': date_mois.strftime('%b %Y'),
+                'recettes_usd': recettes_mois.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00'),
+                'recettes_cdf': recettes_mois.aggregate(total=Sum('montant_cdf'))['total'] or Decimal('0.00'),
+                'depenses_usd': depenses_mois.filter(devise='USD').aggregate(total=Sum('montant'))['total'] or Decimal('0.00'),
+                'depenses_cdf': depenses_mois.filter(devise='CDF').aggregate(total=Sum('montant'))['total'] or Decimal('0.00'),
+            })
+        
+        context['evolution_data'] = evolution_data
         
         # Détails par banque
         banques_details = []
         for banque in Banque.objects.filter(active=True):
             comptes = banque.comptes.filter(actif=True)
             recettes_banque = recettes_qs.filter(banque=banque)
-            depenses_banque = depenses_qs.filter(banque=banque)
+            
+            # Pour les dépenses, on utilise les demandes validées (sans lien direct avec banque)
+            # On affiche les totaux généraux pour toutes les banques
+            depenses_usd_total = depenses_qs.filter(devise='USD').aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
+            depenses_cdf_total = depenses_qs.filter(devise='CDF').aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
             
             banques_details.append({
                 'banque': banque,
                 'recettes_usd': sum(r.montant_usd for r in recettes_banque),
                 'recettes_cdf': sum(r.montant_cdf for r in recettes_banque),
-                'depenses_usd': depenses_banque.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00'),
-                'depenses_cdf': depenses_banque.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00'),
+                'depenses_usd': depenses_usd_total / len(Banque.objects.filter(active=True)) if len(Banque.objects.filter(active=True)) > 0 else Decimal('0.00'),
+                'depenses_cdf': depenses_cdf_total / len(Banque.objects.filter(active=True)) if len(Banque.objects.filter(active=True)) > 0 else Decimal('0.00'),
             })
         
         context['banques_details'] = banques_details

@@ -1,0 +1,390 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ title }} - e-Finance DAF{% endblock %}
+
+{% block extra_css %}
+<style>
+    .releve-header {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+        border-radius: 10px 10px 0 0;
+        padding: 1.5rem;
+    }
+    
+    .releve-info-card {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .demande-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        transition: transform 0.2s;
+    }
+    
+    .demande-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .demande-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        padding: 1rem;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .demande-title {
+        font-weight: 600;
+        color: #1a3a5f;
+        margin-bottom: 0.5rem;
+    }
+    
+    .montant-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .montant-row:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        background-color: #e3f2fd;
+        margin: 0.5rem 0;
+        padding: 0.75rem;
+        border-radius: 5px;
+    }
+    
+    .montant-label {
+        font-weight: 500;
+    }
+    
+    .montant-value {
+        font-weight: 600;
+    }
+    
+    .montant-total {
+        font-size: 1.2rem;
+        color: #28a745;
+    }
+    
+    .reste-a-payer {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    
+    .deja-paye {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .paiement-form {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0 0 8px 8px;
+    }
+    
+    .alert-montant {
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        border-radius: 0 5px 5px 0;
+        font-size: 0.9rem;
+    }
+    
+    .btn-payer-tout {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 5px;
+        font-weight: 600;
+        transition: transform 0.2s;
+    }
+    
+    .btn-payer-tout:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    }
+    
+    .summary-card {
+        background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .summary-item:last-child {
+        border-bottom: none;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+        border-top: 2px solid rgba(255, 255, 255, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="h3 text-dark">
+                    <i class="fas fa-money-check-alt text-success me-2"></i>
+                    {{ title }}
+                </h2>
+                <div>
+                    <a href="{% url 'demandes:paiement_par_releve' %}" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i> Changer de relevé
+                    </a>
+                    <a href="{% url 'demandes:paiement_liste' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-1"></i> Tous les paiements
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informations du relevé -->
+    <div class="row">
+        <div class="col-12">
+            <div class="releve-info-card">
+                <div class="releve-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h4 class="mb-1">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>
+                                {{ releve_depense.periode }}
+                            </h4>
+                            <p class="mb-0">
+                                Total des dépenses: {{ releve_depense.total|floatformat:2 }} {{ releve_depense.devise }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-1">
+                                <strong>Nombre de demandes:</strong> 
+                                {{ total_demandes }}
+                            </p>
+                            <p class="mb-0">
+                                <strong>Total à payer:</strong> 
+                                {{ total_a_payer|floatformat:2 }} {{ releve_depense.devise }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Résumé des paiements -->
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="summary-card">
+                <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Résumé des demandes</h5>
+                <div class="summary-item">
+                    <span>Montant total initial:</span>
+                    <span>{{ total_initial|floatformat:2 }} {{ releve_depense.devise }}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Déjà payé:</span>
+                    <span class="deja-paye">{{ total_deja_paye|floatformat:2 }} {{ releve_depense.devise }}</span>
+                </div>
+                <div class="summary-item">
+                    <span>Total à payer:</span>
+                    <span class="reste-a-payer">{{ total_a_payer|floatformat:2 }} {{ releve_depense.devise }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            {% if demandes %}
+            <form method="post" id="paiementMultipleForm">
+                {% csrf_token %}
+                
+                <!-- Bouton pour tout payer -->
+                <div class="text-end mb-3">
+                    <p class="mb-0 mt-2">Sélectionnez les montants à payer pour chaque demande</p>
+                    <button type="button" class="btn btn-payer-tout" onclick="toutPayer()">
+                        <i class="fas fa-coins me-2"></i>
+                        Payer tout le reste ({{ total_a_payer|floatformat:2 }} {{ releve_depense.devise }})
+                    </button>
+                </div>
+                
+                <!-- Liste des demandes -->
+                {% for demande in demandes %}
+                <div class="demande-card">
+                    <div class="demande-header">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="demande-title">
+                                    {{ demande.reference }} - {{ demande.service_demandeur.nom_service }}
+                                </div>
+                                <p class="mb-0 text-muted">{{ demande.description|truncatechars:80 }}</p>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <span class="badge bg-{% if request.user.role == 'DG' or request.user.role == 'DAF' or request.user.role == 'DF' %}success{% else %}primary{% endif %}">
+                                    {{ demande.get_statut_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="montant-row">
+                                    <span class="montant-label">Montant total:</span>
+                                    <span class="montant-value">{{ demande.montant|floatformat:2 }} {{ demande.devise }}</span>
+                                </div>
+                                <div class="montant-row">
+                                    <span class="montant-label">Déjà payé:</span>
+                                    <span class="montant-value deja-paye">{{ demande.montant_deja_paye|floatformat:2 }} {{ demande.devise }}</span>
+                                </div>
+                                <div class="montant-row">
+                                    <span class="montant-label">Reste à payer:</span>
+                                    <span class="montant-value reste-a-payer">{{ demande.reste_a_payer|floatformat:2 }} {{ demande.devise }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="paiement-form">
+                                    <div class="mb-2">
+                                        <label class="form-label fw-bold">
+                                            Montant à payer pour cette demande:
+                                        </label>
+                                        <input type="number" 
+                                               name="montant_paye_{{ demande.pk }}" 
+                                               id="montant_paye_{{ demande.pk }}"
+                                               class="form-control" 
+                                               value="{{ demande.reste_a_payer|floatformat:2 }}"
+                                               step="0.01" 
+                                               min="0.01" 
+                                               max="{{ demande.reste_a_payer|floatformat:2 }}"
+                                               data-demande="{{ demande.pk }}"
+                                               data-reste="{{ demande.reste_a_payer|floatformat:2 }}">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Observations:</label>
+                                        <textarea name="observations_{{ demande.pk }}" 
+                                                  class="form-control" 
+                                                  rows="2" 
+                                                  placeholder="Observations sur ce paiement..."></textarea>
+                                    </div>
+                                    {% if demande.reste_a_payer > 0 %}
+                                    <div class="alert-montant">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Maximum: {{ demande.reste_a_payer|floatformat:2 }} {{ demande.devise }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Boutons d'action -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-check me-2"></i>
+                        Valider les paiements
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                <h4>Aucune demande à payer</h4>
+                <p class="text-muted">Toutes les demandes validées ont été entièrement payées pour ce relevé.</p>
+                <a href="{% url 'demandes:paiement_par_releve' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Choisir un autre relevé
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const montantInputs = document.querySelectorAll('input[name^="montant_paye_"]');
+    
+    function validateMontant(input) {
+        const maxMontant = parseFloat(input.dataset.reste);
+        const montant = parseFloat(input.value);
+        
+        if (montant > maxMontant) {
+            input.value = maxMontant.toFixed(2);
+            showAlert('warning', `Le montant ne peut pas dépasser ${maxMontant.toFixed(2)}`);
+        }
+        
+        if (montant < 0) {
+            input.value = '0.00';
+        }
+    }
+    
+    function showAlert(type, message) {
+        // Créer une alerte temporaire
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+        alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto-suppression après 3 secondes
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.parentNode.removeChild(alertDiv);
+            }
+        }, 3000);
+    }
+    
+    montantInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            validateMontant(this);
+        });
+        
+        input.addEventListener('blur', function() {
+            if (this.value === '') {
+                this.value = '0.00';
+            }
+            validateMontant(this);
+        });
+    });
+});
+
+function toutPayer() {
+    const montantInputs = document.querySelectorAll('input[name^="montant_paye_"]');
+    montantInputs.forEach(input => {
+        input.value = input.dataset.reste;
+    });
+    
+    // Scroll vers le formulaire
+    document.getElementById('paiementMultipleForm').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+}
+</script>
+{% endblock %}

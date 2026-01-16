@@ -152,6 +152,11 @@ class RecetteValidationView(LoginRequiredMixin, DetailView):
         
         return super().dispatch(request, *args, **kwargs)
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Validation de la recette {self.recette.reference}'
+        return context
+    
     def post(self, request, *args, **kwargs):
         recette = self.get_object()
         if not recette.valide:
@@ -159,16 +164,9 @@ class RecetteValidationView(LoginRequiredMixin, DetailView):
             recette.valide_par = request.user
             recette.date_validation = timezone.now()
             recette.save()
-            
-            # Mise à jour du solde du compte selon la devise
-            if recette.montant_usd > 0 and recette.compte_bancaire.devise == 'USD':
-                recette.compte_bancaire.mettre_a_jour_solde(recette.montant_usd, operation='recette')
-            if recette.montant_cdf > 0 and recette.compte_bancaire.devise == 'CDF':
-                recette.compte_bancaire.mettre_a_jour_solde(recette.montant_cdf, operation='recette')
-            
-            messages.success(request, 'Recette validée avec succès.')
+            messages.success(request, 'Recette validée avec succès!')
         else:
-            messages.warning(request, 'Cette recette est déjà validée.')
+            messages.info(request, 'Cette recette est déjà validée.')
         
         return redirect('recettes:detail', pk=recette.pk)
 

@@ -126,3 +126,4 @@ def load_comptes(request):
         data = [{'id': c.id, 'intitule': str(c), 'devise': c.devise} for c in comptes]
         return JsonResponse(data, safe=False)
     return JsonResponse([], safe=False)
+

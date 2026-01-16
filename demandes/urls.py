@@ -31,5 +31,14 @@ urlpatterns = [
     path('natures/creer/', views.NatureEconomiqueCreateView.as_view(), name='nature_creer'),
     path('natures/<int:pk>/', views.NatureEconomiqueDetailView.as_view(), name='nature_detail'),
     path('natures/<int:pk>/modifier/', views.NatureEconomiqueUpdateView.as_view(), name='nature_modifier'),
+    
+    # URLs pour les paiements
+    path('paiements/', views.PaiementListView.as_view(), name='paiement_liste'),
+    path('paiements/creer/', views.PaiementCreateView.as_view(), name='paiement_create'),
+    path('paiements/<int:pk>/', views.PaiementDetailView.as_view(), name='paiement_detail'),
+    path('paiements/releve/', views.PaiementParReleveView.as_view(), name='paiement_par_releve'),
+    path('paiements/releve/<int:pk>/', views.PaiementReleveDetailView.as_view(), name='paiement_releve_detail'),
+    
+    # URLs API
+    path('api/demande/<int:pk>/reste-a-payer/', views.DemandeResteAPayerView.as_view(), name='demande_reste_a_payer_api'),
 ]
-

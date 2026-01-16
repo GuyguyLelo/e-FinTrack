@@ -42,6 +42,16 @@ class ReleveBancaire(models.Model):
     )
     date_validation = models.DateTimeField(null=True, blank=True)
     observations = models.TextField(blank=True)
+    archive = models.BooleanField(
+        default=False, 
+        verbose_name="Archivé",
+        help_text="Coché si toutes les dépenses de ce relevé ont été payées"
+    )
+    date_archivage = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        verbose_name="Date d'archivage"
+    )
     date_modification = models.DateTimeField(auto_now=True)
     
     class Meta:

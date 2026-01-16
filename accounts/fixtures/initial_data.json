@@ -5,7 +5,8 @@
         "fields": {
             "nom_service": "Direction Générale",
             "description": "Direction Générale de la DGRAD",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -14,7 +15,8 @@
         "fields": {
             "nom_service": "Service Financier",
             "description": "Service de gestion financière",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -23,7 +25,8 @@
         "fields": {
             "nom_service": "Service Comptable",
             "description": "Service de comptabilité",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -32,7 +35,8 @@
         "fields": {
             "nom_service": "Service Audit",
             "description": "Service d'audit interne",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z"
         }
     }
 ]

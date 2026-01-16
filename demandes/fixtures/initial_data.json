@@ -1,0 +1,305 @@
+[
+    {
+        "model": "demandes.nomenclaturedepense",
+        "pk": 1,
+        "fields": {
+            "annee": 2024,
+            "date_publication": "2024-01-15",
+            "statut": "EN_COURS"
+        }
+    },
+    {
+        "model": "demandes.natureeconomique",
+        "pk": 1,
+        "fields": {
+            "code": "601",
+            "titre": "Achats de matières premières",
+            "description": "Achats de matières premières et fournitures"
+        }
+    },
+    {
+        "model": "demandes.natureeconomique",
+        "pk": 2,
+        "fields": {
+            "code": "602",
+            "titre": "Achats de fournitures de bureau",
+            "description": "Achats de fournitures et matériel de bureau"
+        }
+    },
+    {
+        "model": "demandes.natureeconomique",
+        "pk": 3,
+        "fields": {
+            "code": "603",
+            "titre": "Frais de transport",
+            "description": "Frais de transport et déplacements"
+        }
+    },
+    {
+        "model": "demandes.natureeconomique",
+        "pk": 4,
+        "fields": {
+            "code": "604",
+            "titre": "Services extérieurs",
+            "description": "Prestations de services externes"
+        }
+    },
+    {
+        "model": "demandes.natureeconomique",
+        "pk": 5,
+        "fields": {
+            "code": "605",
+            "titre": "Frais de maintenance",
+            "description": "Maintenance et entretien des équipements"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 1,
+        "fields": {
+            "reference": "DEM-000001",
+            "service_demandeur": 2,
+            "nomenclature": 1,
+            "nature_economique": 1,
+            "description": "Achat de matériel informatique pour le service financier",
+            "montant": "2500.00",
+            "devise": "USD",
+            "date_demande": "2024-01-20",
+            "date_soumission": "2024-01-20T10:30:00Z",
+            "statut": "EN_ATTENTE",
+            "cree_par": 3,
+            "approuve_par": null,
+            "date_approbation": null,
+            "commentaire_rejet": "",
+            "date_modification": "2024-01-20T10:30:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 2,
+        "fields": {
+            "reference": "DEM-000002",
+            "service_demandeur": 3,
+            "nomenclature": 1,
+            "nature_economique": 2,
+            "description": "Fournitures de bureau pour le service comptable",
+            "montant": "850.50",
+            "devise": "USD",
+            "date_demande": "2024-01-22",
+            "date_soumission": "2024-01-22T14:15:00Z",
+            "statut": "VALIDEE_DF",
+            "cree_par": 4,
+            "approuve_par": 2,
+            "date_approbation": "2024-01-23T09:00:00Z",
+            "commentaire_rejet": "",
+            "date_modification": "2024-01-23T09:00:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 3,
+        "fields": {
+            "reference": "DEM-000003",
+            "service_demandeur": 4,
+            "nomenclature": 1,
+            "nature_economique": 3,
+            "description": "Frais de transport pour mission d'audit",
+            "montant": "1200000.00",
+            "devise": "CDF",
+            "date_demande": "2024-01-25",
+            "date_soumission": "2024-01-25T11:45:00Z",
+            "statut": "VALIDEE_DG",
+            "cree_par": 5,
+            "approuve_par": 1,
+            "date_approbation": "2024-01-26T16:30:00Z",
+            "commentaire_rejet": "",
+            "date_modification": "2024-01-26T16:30:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 4,
+        "fields": {
+            "reference": "DEM-000004",
+            "service_demandeur": 2,
+            "nomenclature": 1,
+            "nature_economique": 4,
+            "description": "Prestations de service de consultant externe",
+            "montant": "5000.00",
+            "devise": "USD",
+            "date_demande": "2024-02-01",
+            "date_soumission": "2024-02-01T09:00:00Z",
+            "statut": "PAYEE",
+            "cree_par": 3,
+            "approuve_par": 2,
+            "date_approbation": "2024-02-02T10:00:00Z",
+            "commentaire_rejet": "",
+            "date_modification": "2024-02-02T10:00:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 5,
+        "fields": {
+            "reference": "DEM-000005",
+            "service_demandeur": 2,
+            "nomenclature": 1,
+            "nature_economique": 5,
+            "description": "Maintenance du système informatique du service financier",
+            "montant": "1800.00",
+            "devise": "USD",
+            "date_demande": "2024-02-05",
+            "date_soumission": "2024-02-05T08:30:00Z",
+            "statut": "VALIDEE_DF",
+            "cree_par": 3,
+            "approuve_par": 2,
+            "date_approbation": "2024-02-06T11:00:00Z",
+            "commentaire_rejet": "",
+            "date_modification": "2024-02-06T11:00:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 6,
+        "fields": {
+            "reference": "DEM-000006",
+            "service_demandeur": 2,
+            "nomenclature": 1,
+            "nature_economique": 3,
+            "description": "Frais de déplacement pour formation du personnel financier",
+            "montant": "350000.00",
+            "devise": "CDF",
+            "date_demande": "2024-02-10",
+            "date_soumission": "2024-02-10T14:20:00Z",
+            "statut": "EN_ATTENTE",
+            "cree_par": 3,
+            "approuve_par": null,
+            "date_approbation": null,
+            "commentaire_rejet": "",
+            "date_modification": "2024-02-10T14:20:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 7,
+        "fields": {
+            "reference": "DEM-000007",
+            "service_demandeur": 2,
+            "nomenclature": 1,
+            "nature_economique": 1,
+            "description": "Achat de licences logicielles pour la gestion financière",
+            "montant": "3200.00",
+            "devise": "USD",
+            "date_demande": "2024-02-15",
+            "date_soumission": "2024-02-15T10:15:00Z",
+            "statut": "VALIDEE_DG",
+            "cree_par": 3,
+            "approuve_par": 1,
+            "date_approbation": "2024-02-16T15:30:00Z",
+            "commentaire_rejet": "",
+            "date_modification": "2024-02-16T15:30:00Z"
+        }
+    },
+    {
+        "model": "demandes.demandepaiement",
+        "pk": 8,
+        "fields": {
+            "reference": "DEM-000008",
+            "service_demandeur": 2,
+            "nomenclature": 1,
+            "nature_economique": 4,
+            "description": "Consultation externe pour audit comptable annuel",
+            "montant": "7500.00",
+            "devise": "USD",
+            "date_demande": "2024-02-20",
+            "date_soumission": "2024-02-20T09:45:00Z",
+            "statut": "REJETEE",
+            "cree_par": 3,
+            "approuve_par": 2,
+            "date_approbation": "2024-02-21T13:00:00Z",
+            "commentaire_rejet": "Budget insuffisant pour ce trimestre",
+            "date_modification": "2024-02-21T13:00:00Z"
+        }
+    },
+    {
+        "model": "demandes.relevedepense",
+        "pk": 1,
+        "fields": {
+            "numero": "REL-000001",
+            "periode": "2024-01-31",
+            "demandes": [2, 3, 4],
+            "montant_cdf": "1200000.00",
+            "montant_usd": "5850.50",
+            "ipr_cdf": "36000.00",
+            "ipr_usd": "175.52",
+            "net_a_payer_cdf": "1164000.00",
+            "net_a_payer_usd": "5674.98",
+            "observation": "Relevé mensuel des dépenses de janvier 2024",
+            "total": "705050.00",
+            "devise": "USD",
+            "valide_par": 2,
+            "date_validation": "2024-02-05T10:00:00Z",
+            "date_creation": "2024-02-05T10:00:00Z",
+            "depenses_validees": true,
+            "depenses_validees_par": 2,
+            "date_validation_depenses": "2024-02-05T10:00:00Z"
+        }
+    },
+    {
+        "model": "demandes.depense",
+        "pk": 1,
+        "fields": {
+            "code_depense": "DEP-2024-001",
+            "mois": 1,
+            "annee": 2024,
+            "date_depense": "2024-01-15",
+            "date_demande": "2024-01-10",
+            "nomenclature": 1,
+            "libelle_depenses": "Achat de matériel de bureau",
+            "banque": 1,
+            "montant_fc": "2500000.00",
+            "montant_usd": "1200.00",
+            "observation": "Achat de matériel informatique et fournitures",
+            "date_creation": "2024-01-15T10:00:00Z",
+            "date_modification": "2024-01-15T10:00:00Z"
+        }
+    },
+    {
+        "model": "demandes.depense",
+        "pk": 2,
+        "fields": {
+            "code_depense": "DEP-2024-002",
+            "mois": 1,
+            "annee": 2024,
+            "date_depense": "2024-01-20",
+            "date_demande": "2024-01-18",
+            "nomenclature": 1,
+            "libelle_depenses": "Frais de maintenance véhicule",
+            "banque": 2,
+            "montant_fc": "800000.00",
+            "montant_usd": "400.00",
+            "observation": "Entretien périodique des véhicules de service",
+            "date_creation": "2024-01-20T14:30:00Z",
+            "date_modification": "2024-01-20T14:30:00Z"
+        }
+    },
+    {
+        "model": "demandes.cheque",
+        "pk": 1,
+        "fields": {
+            "numero_cheque": "CHQ-000001",
+            "releve_depense": 1,
+            "banque": 1,
+            "montant_cdf": "1164000.00",
+            "montant_usd": "5674.98",
+            "date_emission": "2024-02-06",
+            "date_encaissement": "2024-02-10",
+            "statut": "ENCAISSE",
+            "beneficiaire": "Fournisseurs divers",
+            "observation": "Paiement des factures de janvier 2024",
+            "cree_par": 3,
+            "date_creation": "2024-02-06T09:00:00Z",
+            "date_modification": "2024-02-10T14:30:00Z"
+        }
+    }
+]

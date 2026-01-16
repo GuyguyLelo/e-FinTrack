@@ -38,10 +38,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Ajouter le champ article_littera s'il n'existe pas
+        # Vérifier si le champ existe déjà, sinon l'ajouter
         migrations.RunSQL(
             """
-            -- Vérifier si la colonne existe, sinon l'ajouter
             SELECT CASE 
                 WHEN COUNT(*) = 0 THEN 
                     'ALTER TABLE demandes_nomenclaturedepense ADD COLUMN article_littera_id INTEGER REFERENCES demandes_articlelittera(id);'
@@ -53,30 +52,6 @@ class Migration(migrations.Migration):
             """,
             reverse_sql="-- Cannot reverse",
         ),
-        # Ajouter la colonne directement
-        migrations.AddField(
-            model_name='nomenclaturedepense',
-            name='article_littera',
-            field=models.ForeignKey(
-                null=True,
-                blank=True,
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name='nomenclatures',
-                to='demandes.articlelittera',
-                verbose_name='Article Littéra'
-            ),
-        ),
-        # Migrer les données
+        # Migrer les données seulement si nécessaire
         migrations.RunPython(add_article_littera_to_nomenclature, reverse_migrate),
-        # Rendre le champ obligatoire
-        migrations.AlterField(
-            model_name='nomenclaturedepense',
-            name='article_littera',
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT,
-                related_name='nomenclatures',
-                to='demandes.articlelittera',
-                verbose_name='Article Littéra'
-            ),
-        ),
     ]

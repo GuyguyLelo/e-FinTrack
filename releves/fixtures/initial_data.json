@@ -1,0 +1,167 @@
+[
+    {
+        "model": "releves.relevebancaire",
+        "pk": 1,
+        "fields": {
+            "banque": 1,
+            "compte_bancaire": 1,
+            "periode_debut": "2024-01-01",
+            "periode_fin": "2024-01-31",
+            "devise": "USD",
+            "total_recettes": "5000.00",
+            "total_depenses": "2500.00",
+            "solde_banque": "2500.00",
+            "saisi_par": 6,
+            "date_saisie": "2024-02-01T09:00:00Z",
+            "valide": true,
+            "valide_par": 2,
+            "date_validation": "2024-02-02T10:00:00Z",
+            "observations": "Relevé bancaire USD - Janvier 2024",
+            "date_modification": "2024-02-02T10:00:00Z"
+        }
+    },
+    {
+        "model": "releves.relevebancaire",
+        "pk": 2,
+        "fields": {
+            "banque": 1,
+            "compte_bancaire": 2,
+            "periode_debut": "2024-01-01",
+            "periode_fin": "2024-01-31",
+            "devise": "CDF",
+            "total_recettes": "25000000.00",
+            "total_depenses": "800000.00",
+            "solde_banque": "24200000.00",
+            "saisi_par": 6,
+            "date_saisie": "2024-02-01T14:00:00Z",
+            "valide": true,
+            "valide_par": 2,
+            "date_validation": "2024-02-02T11:30:00Z",
+            "observations": "Relevé bancaire CDF - Janvier 2024",
+            "date_modification": "2024-02-02T11:30:00Z"
+        }
+    },
+    {
+        "model": "releves.relevebancaire",
+        "pk": 3,
+        "fields": {
+            "banque": 2,
+            "compte_bancaire": 3,
+            "periode_debut": "2024-01-01",
+            "periode_fin": "2024-01-31",
+            "devise": "USD",
+            "total_recettes": "15000.00",
+            "total_depenses": "3000.00",
+            "solde_banque": "12000.00",
+            "saisi_par": 6,
+            "date_saisie": "2024-02-01T16:00:00Z",
+            "valide": false,
+            "valide_par": null,
+            "date_validation": null,
+            "observations": "Relevé bancaire USD Trust Bank - Janvier 2024",
+            "date_modification": "2024-02-01T16:00:00Z"
+        }
+    },
+    {
+        "model": "releves.mouvementbancaire",
+        "pk": 1,
+        "fields": {
+            "releve": 1,
+            "type_mouvement": "RECETTE",
+            "reference_operation": "VIR-001",
+            "description": "Virement client - Facture FAC-2024-001",
+            "montant": "5000.00",
+            "devise": "USD",
+            "date_operation": "2024-01-05",
+            "beneficiaire_ou_source": "Client ABC",
+            "lie_a_recette": 1,
+            "lie_a_demande": null,
+            "date_creation": "2024-01-05T10:00:00Z"
+        }
+    },
+    {
+        "model": "releves.mouvementbancaire",
+        "pk": 2,
+        "fields": {
+            "releve": 1,
+            "type_mouvement": "DEPENSE",
+            "reference_operation": "VIR-002",
+            "description": "Paiement fournisseur informatique",
+            "montant": "2500.00",
+            "devise": "USD",
+            "date_operation": "2024-01-10",
+            "beneficiaire_ou_source": "Fournisseur IT Solutions",
+            "lie_a_recette": null,
+            "lie_a_demande": 1,
+            "date_creation": "2024-01-10T14:30:00Z"
+        }
+    },
+    {
+        "model": "releves.mouvementbancaire",
+        "pk": 3,
+        "fields": {
+            "releve": 2,
+            "type_mouvement": "RECETTE",
+            "reference_operation": "DEP-001",
+            "description": "Encaissement redevances minières",
+            "montant": "25000000.00",
+            "devise": "CDF",
+            "date_operation": "2024-01-08",
+            "beneficiaire_ou_source": "Société Minière XYZ",
+            "lie_a_recette": 2,
+            "lie_a_demande": null,
+            "date_creation": "2024-01-08T09:15:00Z"
+        }
+    },
+    {
+        "model": "releves.mouvementbancaire",
+        "pk": 4,
+        "fields": {
+            "releve": 2,
+            "type_mouvement": "DEPENSE",
+            "reference_operation": "CHQ-001",
+            "description": "Frais de maintenance véhicules",
+            "montant": "800000.00",
+            "devise": "CDF",
+            "date_operation": "2024-01-15",
+            "beneficiaire_ou_source": "Garage Auto Service",
+            "lie_a_recette": null,
+            "lie_a_demande": null,
+            "date_creation": "2024-01-15T11:00:00Z"
+        }
+    },
+    {
+        "model": "releves.mouvementbancaire",
+        "pk": 5,
+        "fields": {
+            "releve": 3,
+            "type_mouvement": "RECETTE",
+            "reference_operation": "VIR-003",
+            "description": "Participations bénéfices entreprise publique",
+            "montant": "15000.00",
+            "devise": "USD",
+            "date_operation": "2024-01-12",
+            "beneficiaire_ou_source": "Entreprise Publique A",
+            "lie_a_recette": 3,
+            "lie_a_demande": null,
+            "date_creation": "2024-01-12T10:30:00Z"
+        }
+    },
+    {
+        "model": "releves.mouvementbancaire",
+        "pk": 6,
+        "fields": {
+            "releve": 3,
+            "type_mouvement": "DEPENSE",
+            "reference_operation": "VIR-004",
+            "description": "Achat matériel de bureau",
+            "montant": "3000.00",
+            "devise": "USD",
+            "date_operation": "2024-01-20",
+            "beneficiaire_ou_source": "Fournisseur Bureau Plus",
+            "lie_a_recette": null,
+            "lie_a_demande": null,
+            "date_creation": "2024-01-20T15:45:00Z"
+        }
+    }
+]

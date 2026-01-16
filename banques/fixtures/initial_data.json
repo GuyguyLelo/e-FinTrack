@@ -8,7 +8,9 @@
             "adresse": "Avenue de la République, Kinshasa",
             "email": "contact@bankofkinshasa.cd",
             "telephone": "+243900000001",
-            "active": true
+            "active": true,
+            "date_creation": "2024-01-01T00:00:00Z",
+            "date_modification": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -20,7 +22,9 @@
             "adresse": "Boulevard 30 Juin, Kinshasa",
             "email": "info@trustbank.cd",
             "telephone": "+243900000002",
-            "active": true
+            "active": true,
+            "date_creation": "2024-01-01T00:00:00Z",
+            "date_modification": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -34,7 +38,9 @@
             "solde_initial": "100000.00",
             "solde_courant": "100000.00",
             "date_ouverture": "2024-01-01",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z",
+            "date_modification": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -48,7 +54,9 @@
             "solde_initial": "50000000.00",
             "solde_courant": "50000000.00",
             "date_ouverture": "2024-01-01",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z",
+            "date_modification": "2024-01-01T00:00:00Z"
         }
     },
     {
@@ -62,7 +70,9 @@
             "solde_initial": "50000.00",
             "solde_courant": "50000.00",
             "date_ouverture": "2024-01-01",
-            "actif": true
+            "actif": true,
+            "date_creation": "2024-01-01T00:00:00Z",
+            "date_modification": "2024-01-01T00:00:00Z"
         }
     }
 ]
