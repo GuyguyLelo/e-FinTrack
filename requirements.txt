@@ -1,11 +1,25 @@
+# Django
 Django==5.0.4
 djangorestframework==3.14.0
+
+# Database
 psycopg2-binary==2.9.9
+
+# Media files
 Pillow==10.3.0
+
+# Configuration
 python-decouple==3.8
+
+# Forms
 django-crispy-forms==2.3
 crispy-bootstrap5==2024.2
-django-extensions==3.2.3
-openpyxl==3.1.2
-reportlab==4.0.9
 
+# Development tools
+django-extensions==3.2.3
+
+# Excel export
+openpyxl==3.1.2
+
+# PDF generation
+reportlab==4.0.9
