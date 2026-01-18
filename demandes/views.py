@@ -2031,6 +2031,7 @@ class PaiementListView(LoginRequiredMixin, ListView):
         
         # Filtrage par relevé de dépenses
         releve_id = self.request.GET.get('releve')
+
         if releve_id:
             queryset = queryset.filter(releve_depense_id=releve_id)
         
@@ -2046,10 +2047,9 @@ class PaiementListView(LoginRequiredMixin, ListView):
         context['title'] = 'Historique des paiements'
         
         # Récupérer les relevés pour le filtre
-        context['releves'] = self.get_queryset().values_list(
-            'releve_depense_id', 'releve_depense__periode'
-        ).distinct()
-        
+        context['releves'] = self.get_queryset().distinct()
+
+        #context['releves'] = self.get_queryset().values("releve_depense_id")
         return context
 
 

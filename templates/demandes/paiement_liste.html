@@ -92,52 +92,6 @@
     </div>
     
     <!-- Guide d'utilisation -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-info">
-                <h5 class="alert-heading">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Comment utiliser les paiements
-                </h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-route me-1"></i> Méthode 1 : Payer par relevé (Recommandé)</h6>
-                        <ol class="mb-3">
-                            <li>Cliquez sur "<strong>Payer par relevé</strong>"</li>
-                            <li>Sélectionnez un relevé de dépenses</li>
-                            <li>Voyez toutes les demandes à payer pour ce relevé</li>
-                            <li>Saisissez les montants pour chaque demande</li>
-                            <li>Cliquez sur "<strong>Valider les paiements</strong>"</li>
-                        </ol>
-                        
-                        <h6><i class="fas fa-hand-pointer me-1"></i> Méthode 2 : Paiement individuel</h6>
-                        <ol class="mb-3">
-                            <li>Cliquez sur "<strong>Nouveau paiement</strong>"</li>
-                            <li>Sélectionnez un relevé de dépenses</li>
-                            <li>Sélectionnez une demande spécifique</li>
-                            <li>Saisissez le montant à payer</li>
-                            <li>Ajoutez des observations si nécessaire</li>
-                            <li>Cliquez sur "<strong>Effectuer le paiement</strong>"</li>
-                        </ol>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-lightbulb me-1"></i> Avantages du système</h6>
-                        <ul class="mb-3">
-                            <li>Calcul automatique du reste à payer</li>
-                            <li>Archivage automatique des relevés entièrement payés</li>
-                            <li>Suivi précis des paiements par demande</li>
-                            <li>Historique complet des transactions</li>
-                        </ul>
-                    </div>
-                </div>
-                <hr>
-                <p class="mb-0">
-                    <strong>💡 Astuce :</strong> Le système calcule automatiquement le reste à payer et archive les relevés 
-                    lorsque toutes les demandes associées sont entièrement payées.
-                </p>
-            </div>
-        </div>
-    </div>
     
     <!-- Filtres -->
     <div class="row">
@@ -145,12 +99,12 @@
             <div class="filtre-section">
                 <form method="get" class="row g-3">
                     <div class="col-md-4">
-                        <label for="releve" class="form-label">Relevé bancaire</label>
+                        <label for="releve" class="form-label">Relevé des depenses</label>
                         <select name="releve" id="releve" class="form-select">
                             <option value="">Tous les relevés</option>
-                            {% for releve_id, releve_nom in releves %}
-                            <option value="{{ releve_id }}" {% if request.GET.releve == releve_id|stringformat:"s" %}selected{% endif %}>
-                                {{ releve_nom }}
+                            {% for releve_id in releves %}
+                            <option value="{{ releve_id.releve_depense.id }}" {% if request.GET.releve == releve_id.releve_depense|stringformat:"s" %}selected{% endif %}>
+                                {{ releve_id.releve_depense.numero }}
                             </option>
                             {% endfor %}
                         </select>
@@ -186,10 +140,8 @@
                             <th>Référence</th>
                             <th>Date</th>
                             <th>Demande</th>
-                            <th>Service</th>
-                            <th>Relevé bancaire</th>
+                            <th>Percepteur</th>
                             <th>Montant payé</th>
-                            <th>Effectué par</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -208,17 +160,13 @@
                                 <small class="text-muted">{{ paiement.demande.description|truncatechars:50 }}</small>
                             </td>
                             <td>{{ paiement.demande.service_demandeur.nom_service }}</td>
-                            <td>
-                                <small>{{ paiement.releve_bancaire.banque.nom_banque }}</small>
-                                <br>
-                                <span class="text-muted">{{ paiement.releve_bancaire.periode_debut|date:"d/m/Y" }} au {{ paiement.releve_bancaire.periode_fin|date:"d/m/Y" }}</span>
-                            </td>
+                            
                             <td>
                                 <span class="montant text-success">
                                     {{ paiement.montant_paye|floatformat:2 }} {{ paiement.devise }}
                                 </span>
                             </td>
-                            <td>{{ paiement.paiement_par.get_full_name|default:paiement.paiement_par.username }}</td>
+                            
                             <td>
                                 <div class="btn-group btn-group-sm" role="group">
                                     <a href="{% url 'demandes:paiement_detail' paiement.pk %}" 
