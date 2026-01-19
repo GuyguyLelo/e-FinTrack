@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:pk>/modifier/', views.DemandePaiementUpdateView.as_view(), name='modifier'),
     path('<int:pk>/valider/', views.DemandePaiementValidationView.as_view(), name='valider'),
     path('releves/', views.ReleveDepenseListView.as_view(), name='releves_liste'),
+    path('releves/old/', views.ReleveDepenseOldListView.as_view(), name='releves_liste_old'),
     path('releves/pdf/', views.ReleveDepensePDFView.as_view(), name='releve_pdf'),
     path('releves/excel/', views.ReleveDepenseExcelView.as_view(), name='releve_excel'),
     path('releves/reimprimer/pdf/', views.ReleveDepenseReprintPDFView.as_view(), name='releve_reprint_pdf'),
