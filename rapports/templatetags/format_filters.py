@@ -201,6 +201,46 @@ def mois_en_lettres(value):
         return str(value) if value else ""
 
 
+@register.filter(name='format_montant_sep')
+def format_montant_sep(value, devise=None):
+    """
+    Formate un nombre avec séparateurs de milliers
+    Exemple: 3500000 -> 3,500,000
+    """
+    try:
+        if value is None:
+            return "0"
+        
+        value = Decimal(str(value))
+        
+        # Formatter avec séparateurs
+        if devise == 'CDF':
+            formatted = "{:,.0f}".format(value)
+        else:
+            formatted = "{:,.2f}".format(value)
+        
+        return formatted
+    except (ValueError, TypeError):
+        return "0"
+
+
+@register.filter(name='sum_attr')
+def sum_attr(queryset, attr):
+    """
+    Calcule la somme d'un attribut pour tous les objets d'un queryset
+    Exemple: {{ demandes|sum_attr:'montant' }}
+    """
+    try:
+        total = Decimal('0.00')
+        for obj in queryset:
+            value = getattr(obj, attr, Decimal('0.00'))
+            if value is not None:
+                total += Decimal(str(value))
+        return total
+    except (ValueError, TypeError, AttributeError):
+        return Decimal('0.00')
+
+
 def nombre_en_lettres(nombre):
     """
     Convertit un nombre en lettres en français (version simplifiée)
