@@ -1747,6 +1747,9 @@ class ReleveDepenseAjouterDemandesView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         releve = self.get_object()
         
+        # Ajouter le relevé au contexte avec le nom attendu par le template
+        context['releve'] = releve
+        
         # Récupérer les demandes validées non encore dans un relevé
         demandes_disponibles = DemandePaiement.objects.filter(
             statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE']
@@ -1759,11 +1762,11 @@ class ReleveDepenseAjouterDemandesView(LoginRequiredMixin, UpdateView):
         
         return context
     
-    def form_valid(self, form):
+    def post(self, request, *args, **kwargs):
         releve = self.get_object()
         
         # Récupérer les demandes sélectionnées depuis le formulaire
-        demandes_selectionnees = self.request.POST.getlist('demandes')
+        demandes_selectionnees = request.POST.getlist('demandes')
         
         if demandes_selectionnees:
             # Créer un queryset à partir des IDs
@@ -1777,16 +1780,20 @@ class ReleveDepenseAjouterDemandesView(LoginRequiredMixin, UpdateView):
                 releve.calculer_total()
                 
                 messages.success(
-                    self.request, 
+                    request, 
                     f'{len(demandes_ajoutees)} demande(s) ajoutée(s) au relevé avec succès.'
                 )
             except Exception as e:
-                messages.error(self.request, f'Erreur lors de l\'ajout des demandes : {str(e)}')
+                messages.error(request, f'Erreur lors de l\'ajout des demandes : {str(e)}')
                 return redirect('demandes:releve_ajouter_demandes', pk=releve.pk)
         else:
-            messages.info(self.request, 'Aucune demande sélectionnée.')
+            messages.info(request, 'Aucune demande sélectionnée.')
         
         return redirect('demandes:releve_detail', pk=releve.pk)
+    
+    def form_valid(self, form):
+        # Cette méthode n'est plus utilisée, nous utilisons post() directement
+        return redirect('demandes:releve_detail', pk=self.get_object().pk)
 
 
 class ReleveDepenseAncienneCreateView(LoginRequiredMixin, CreateView):

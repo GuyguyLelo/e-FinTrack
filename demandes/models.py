@@ -262,9 +262,16 @@ class ReleveDepense(models.Model):
                 f"Les demandes suivantes sont déjà dans un autre relevé : {', '.join(references)}"
             )
         
-        # Ajouter uniquement les demandes valides
-        self.demandes.set(demandes_valides)
-        return demandes_valides
+        # Ajouter les nouvelles demandes sans supprimer les existantes
+        # Utiliser add() au lieu de set() pour préserver les demandes existantes
+        demandes_ajoutees = []
+        for demande in demandes_valides:
+            # Vérifier que la demande n'est pas déjà dans ce relevé
+            if not self.demandes.filter(pk=demande.pk).exists():
+                self.demandes.add(demande)
+                demandes_ajoutees.append(demande)
+        
+        return demandes_ajoutees
     
     def calculer_total(self):
         """Calcule tous les montants du relevé"""
