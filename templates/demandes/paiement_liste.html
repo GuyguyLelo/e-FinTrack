@@ -140,7 +140,7 @@
                             <th>Référence</th>
                             <th>Date</th>
                             <th>Demande</th>
-                            <th>Percepteur</th>
+                            <th>Bénéficiaire</th>
                             <th>Montant payé</th>
                             <th>Actions</th>
                         </tr>
@@ -159,7 +159,11 @@
                                 <br>
                                 <small class="text-muted">{{ paiement.demande.description|truncatechars:50 }}</small>
                             </td>
-                            <td>{{ paiement.demande.service_demandeur.nom_service }}</td>
+                            <td>
+                                <strong>{{ paiement.beneficiaire|default:"Non spécifié" }}</strong>
+                                <br>
+                                <small class="text-muted">{{ paiement.demande.service_demandeur.nom_service }}</small>
+                            </td>
                             
                             <td>
                                 <span class="montant text-success">
@@ -182,7 +186,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="6" class="text-center py-4">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Aucun paiement trouvé</p>
                                 <a href="{% url 'demandes:paiement_create' %}" class="btn btn-primary">

@@ -13,10 +13,16 @@
         - {{ releve.periode|date:"F Y" }}
     </h2>
     <div>
+        <a href="{% url 'demandes:releve_ajouter_demandes' releve.pk %}" class="btn btn-success me-2">
+            <i class="bi bi-plus-square"></i> Ajouter des demandes
+        </a>
+        <a href="{% url 'demandes:releve_generer_pdf' releve.pk %}" class="btn btn-primary me-2" target="_blank">
+            <i class="bi bi-printer"></i> Générer PDF
+        </a>
         {% if not releve.depenses_validees and user.peut_valider_depense %}
         <form method="post" action="{% url 'demandes:releve_valider_depenses' releve.pk %}" class="d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-success me-2" onclick="return confirm('Êtes-vous sûr de vouloir valider les dépenses de ce relevé ? Cette action créera des objets Dépense à partir des demandes.');">
+            <button type="submit" class="btn btn-warning me-2" onclick="return confirm('Êtes-vous sûr de vouloir valider les dépenses de ce relevé ? Cette action créera des objets Dépense à partir des demandes.');">
                 <i class="bi bi-check-circle"></i> Valider les dépenses
             </button>
         </form>
@@ -26,7 +32,7 @@
         </span>
         {% endif %}
         <a href="{% url 'demandes:cheque_pdf' %}?releve_id={{ releve.pk }}" class="btn btn-warning me-2">
-            <i class="bi bi-printer"></i> Imprimer chèque
+            <i class="bi bi-receipt-cutoff"></i> Imprimer chèque
         </a>
         <a href="{% url 'demandes:releves_crees_liste' %}" class="btn btn-info me-2">
             <i class="bi bi-list-ul"></i> Liste des relevés

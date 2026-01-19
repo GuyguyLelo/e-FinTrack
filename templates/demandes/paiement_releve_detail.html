@@ -269,8 +269,8 @@
                                             Montant à payer pour cette demande:
                                         </label>
                                         <input type="number" 
-                                               name="montant_paye_{{ demande.pk }}" 
-                                               id="montant_paye_{{ demande.pk }}"
+                                               name="montant_{{ demande.pk }}" 
+                                               id="montant_{{ demande.pk }}"
                                                class="form-control" 
                                                value="{{ demande.reste_a_payer|floatformat:2 }}"
                                                step="0.01" 
@@ -278,6 +278,15 @@
                                                max="{{ demande.reste_a_payer|floatformat:2 }}"
                                                data-demande="{{ demande.pk }}"
                                                data-reste="{{ demande.reste_a_payer|floatformat:2 }}">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Bénéficiaire:</label>
+                                        <input type="text" 
+                                               name="beneficiaire_{{ demande.pk }}" 
+                                               id="beneficiaire_{{ demande.pk }}"
+                                               class="form-control" 
+                                               placeholder="Nom du bénéficiaire..."
+                                               required>
                                     </div>
                                     <div class="mb-2">
                                         <label class="form-label">Observations:</label>
@@ -325,7 +334,7 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const montantInputs = document.querySelectorAll('input[name^="montant_paye_"]');
+    const montantInputs = document.querySelectorAll('input[name^="montant_"]');
     
     function validateMontant(input) {
         const maxMontant = parseFloat(input.dataset.reste);
@@ -375,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function toutPayer() {
-    const montantInputs = document.querySelectorAll('input[name^="montant_paye_"]');
+    const montantInputs = document.querySelectorAll('input[name^="montant_"]');
     montantInputs.forEach(input => {
         input.value = input.dataset.reste;
     });

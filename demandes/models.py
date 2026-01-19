@@ -532,6 +532,8 @@ class Paiement(models.Model):
         blank=True,
         verbose_name="Observations"
     )
+
+    beneficiaire = models.CharField(max_length=50, verbose_name="Beneficiaire")
     
     class Meta:
         verbose_name = "Paiement"

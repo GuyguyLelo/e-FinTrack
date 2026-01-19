@@ -165,6 +165,24 @@
                 </div>
                 
                 <div class="card-body p-4">
+                    <!-- Informations sur le bénéficiaire -->
+                    <div class="info-section">
+                        <h5 class="info-title">
+                            <i class="fas fa-user me-2"></i>
+                            Informations sur le bénéficiaire
+                        </h5>
+                        <div class="info-row">
+                            <span class="info-label">Bénéficiaire:</span>
+                            <span class="info-value">
+                                <strong>{{ paiement.beneficiaire|default:"Non spécifié" }}</strong>
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Service demandeur:</span>
+                            <span class="info-value">{{ paiement.demande.service_demandeur.nom_service }}</span>
+                        </div>
+                    </div>
+                    
                     <!-- Informations sur la demande -->
                     <div class="info-section">
                         <h5 class="info-title">
@@ -178,10 +196,6 @@
                                     {{ paiement.demande.reference }}
                                 </a>
                             </span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Service demandeur:</span>
-                            <span class="info-value">{{ paiement.demande.service_demandeur.nom_service }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Description:</span>

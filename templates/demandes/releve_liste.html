@@ -10,8 +10,11 @@
         <p class="mb-0 text-muted">Demandes validées uniquement</p>
     </div>
     <div>
-        <a href="{% url 'demandes:releve_pdf' %}" class="btn btn-primary" target="_blank">
-            <i class="bi bi-printer"></i> Créer un relevé
+        <a href="{% url 'demandes:releve_creer' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Créer un relevé
+        </a>
+        <a href="{% url 'demandes:releve_pdf' %}" class="btn btn-outline-primary" target="_blank">
+            <i class="bi bi-printer"></i> Imprimer PDF
         </a>
         <a href="{% url 'demandes:releve_excel' %}" class="btn btn-success">
             <i class="bi bi-file-earmark-excel"></i> Exporter (Excel)

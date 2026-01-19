@@ -10,6 +10,9 @@
         <p class="mb-0 text-muted">Tous les relevés créés</p>
     </div>
     <div>
+        <a href="{% url 'demandes:releve_creer' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Créer un relevé
+        </a>
         <a href="{% url 'demandes:releves_liste' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Retour
         </a>
@@ -66,11 +69,14 @@
                                 <a href="{% url 'demandes:releve_detail' releve.pk %}" class="btn btn-sm btn-info" title="Voir les détails">
                                     <i class="bi bi-eye"></i>
                                 </a>
+                                <a href="{% url 'demandes:releve_ajouter_demandes' releve.pk %}" class="btn btn-sm btn-success" title="Ajouter des demandes">
+                                    <i class="bi bi-plus-square"></i>
+                                </a>
+                                <a href="{% url 'demandes:releve_generer_pdf' releve.pk %}" class="btn btn-sm btn-primary" target="_blank" title="Générer PDF">
+                                    <i class="bi bi-printer"></i>
+                                </a>
                                 <a href="{% url 'demandes:cheque_pdf' %}?releve_id={{ releve.pk }}" class="btn btn-sm btn-warning" target="_blank" title="Générer chèque">
                                     <i class="bi bi-receipt-cutoff"></i>
-                                </a>
-                                <a href="{% url 'demandes:releve_reprint_pdf' %}?numero={{ releve.numero }}" class="btn btn-sm btn-primary" target="_blank" title="Réimprimer PDF">
-                                    <i class="bi bi-printer"></i>
                                 </a>
                             </div>
                         </td>

@@ -24,7 +24,7 @@ from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense
 from accounts.models import Service
 from banques.models import Banque
 from releves.models import ReleveBancaire
-from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
+from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
 
 
 class DemandePaiementListView(LoginRequiredMixin, ListView):
@@ -268,6 +268,144 @@ class ReleveDepenseListView(LoginRequiredMixin, ListView):
         context['demande_numero'] = demande_numero
         
         return context
+
+
+class ReleveDepenseGenererPDFView(LoginRequiredMixin, DetailView):
+    """Vue pour générer un PDF d'un relevé de dépense existant"""
+    model = ReleveDepense
+    template_name = 'demandes/releve_pdf_template.html'
+    context_object_name = 'releve'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Vérifier les permissions
+        if not request.user.peut_consulter_tout():
+            messages.error(request, 'Vous n\'avez pas la permission de générer un PDF de relevé.')
+            return redirect('demandes:releves_liste')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, *args, **kwargs):
+        releve = self.get_object()
+        
+        # Créer le PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="releve_depense_{releve.numero}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+        
+        # Créer le document PDF
+        doc = SimpleDocTemplate(response, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+        
+        # Contenu du PDF
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Style personnalisé pour les titres
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=colors.darkblue
+        )
+        
+        # Style pour les en-têtes de tableau
+        header_style = ParagraphStyle(
+            'TableHeader',
+            parent=styles['Normal'],
+            fontSize=10,
+            alignment=TA_CENTER,
+            textColor=colors.white
+        )
+        
+        # En-tête
+        story.append(Paragraph("DGRAD - DIRECTION GÉNÉRALE DES REVENUS", title_style))
+        story.append(Paragraph("RELEVÉ DES DÉPENSES", styles['Heading2']))
+        story.append(Paragraph(f"Numéro: {releve.numero}", styles['Normal']))
+        story.append(Paragraph(f"Période: {releve.periode}", styles['Normal']))
+        story.append(Paragraph(f"Date de création: {releve.date_creation.strftime('%d/%m/%Y')}", styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Tableau des demandes
+        demandes = releve.demandes.filter(
+            statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE']
+        ).select_related('service_demandeur', 'nature_economique').order_by('nature_economique__code')
+        
+        if demandes:
+            # En-têtes du tableau
+            headers = ['Référence', 'Service', 'Nature Éco', 'Description', 'Montant', 'Devise']
+            data = [headers]
+            
+            # Données
+            for demande in demandes:
+                data.append([
+                    demande.reference,
+                    demande.service_demandeur.nom_service if demande.service_demandeur else '',
+                    demande.nature_economique.code if demande.nature_economique else '',
+                    demande.description[:50] + '...' if len(demande.description) > 50 else demande.description,
+                    str(demande.montant),
+                    demande.devise
+                ])
+            
+            # Créer le tableau
+            table = Table(data)
+            table.setStyle(TableStyle([
+                # En-tête
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                
+                # Données
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                ('ALIGN', (4, 1), (5, -1), 'RIGHT'),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                
+                # Bordures
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ]))
+            
+            story.append(table)
+            story.append(Spacer(1, 20))
+        
+        # Totaux
+        story.append(Paragraph("RÉCAPITULATIF", styles['Heading3']))
+        
+        totaux_data = [
+            ['Description', 'Montant CDF', 'Montant USD'],
+            ['Total Brut', f"{releve.montant_cdf:,.2f}", f"{releve.montant_usd:,.2f}"],
+            ['IPR (3%)', f"{releve.ipr_cdf:,.2f}", f"{releve.ipr_usd:,.2f}"],
+            ['Net à Payer', f"{releve.net_a_payer_cdf:,.2f}", f"{releve.net_a_payer_usd:,.2f}"],
+        ]
+        
+        totaux_table = Table(totaux_data)
+        totaux_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        
+        story.append(totaux_table)
+        
+        # Observation
+        if releve.observation:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("OBSERVATION", styles['Heading3']))
+            story.append(Paragraph(releve.observation, styles['Normal']))
+        
+        # Signatures
+        story.append(Spacer(1, 30))
+        story.append(Paragraph("Validé par:", styles['Normal']))
+        story.append(Paragraph(f"{releve.valide_par.get_full_name() or releve.valide_par.username}", styles['Normal']))
+        
+        # Construire le PDF
+        doc.build(story)
+        
+        return response
 
 
 class ReleveDepensePDFView(LoginRequiredMixin, ListView):
@@ -1569,6 +1707,90 @@ class ReleveDepenseValiderDepensesView(LoginRequiredMixin, View):
 
 
 class ReleveDepenseCreateView(LoginRequiredMixin, CreateView):
+    """Vue pour créer un relevé de dépenses vide (sans demandes)"""
+    model = ReleveDepense
+    form_class = ReleveDepenseCreateForm
+    template_name = 'demandes/releve_create_form.html'
+    success_url = reverse_lazy('demandes:releves_liste')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Vérifier les permissions (seuls DAF et DG peuvent créer des relevés)
+        if not request.user.peut_valider_depense():
+            messages.error(request, 'Vous n\'avez pas la permission de créer un relevé de dépense.')
+            return redirect('demandes:releves_liste')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        releve = form.save(commit=False)
+        releve.valide_par = self.request.user
+        releve.save()
+        
+        messages.success(self.request, 'Relevé de dépenses créé avec succès. Vous pouvez maintenant y ajouter des demandes.')
+        return redirect('demandes:releve_ajouter_demandes', pk=releve.pk)
+
+
+class ReleveDepenseAjouterDemandesView(LoginRequiredMixin, UpdateView):
+    """Vue pour ajouter des demandes à un relevé existant"""
+    model = ReleveDepense
+    form_class = ReleveDepenseForm
+    template_name = 'demandes/releve_ajouter_demandes.html'
+    success_url = reverse_lazy('demandes:releves_liste')
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Vérifier les permissions
+        if not request.user.peut_valider_depense():
+            messages.error(request, 'Vous n\'avez pas la permission de modifier un relevé de dépense.')
+            return redirect('demandes:releves_liste')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        releve = self.get_object()
+        
+        # Récupérer les demandes validées non encore dans un relevé
+        demandes_disponibles = DemandePaiement.objects.filter(
+            statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE']
+        ).exclude(
+            releves_depense__isnull=False
+        ).select_related('service_demandeur', 'nature_economique')
+        
+        context['demandes_disponibles'] = demandes_disponibles
+        context['demandes_actuelles'] = releve.demandes.all()
+        
+        return context
+    
+    def form_valid(self, form):
+        releve = self.get_object()
+        
+        # Récupérer les demandes sélectionnées depuis le formulaire
+        demandes_selectionnees = self.request.POST.getlist('demandes')
+        
+        if demandes_selectionnees:
+            # Créer un queryset à partir des IDs
+            demandes_queryset = DemandePaiement.objects.filter(
+                pk__in=demandes_selectionnees
+            )
+            
+            # Utiliser la méthode sécurisée pour ajouter les demandes
+            try:
+                demandes_ajoutees = releve.ajouter_demandes_securise(demandes_queryset)
+                releve.calculer_total()
+                
+                messages.success(
+                    self.request, 
+                    f'{len(demandes_ajoutees)} demande(s) ajoutée(s) au relevé avec succès.'
+                )
+            except Exception as e:
+                messages.error(self.request, f'Erreur lors de l\'ajout des demandes : {str(e)}')
+                return redirect('demandes:releve_ajouter_demandes', pk=releve.pk)
+        else:
+            messages.info(self.request, 'Aucune demande sélectionnée.')
+        
+        return redirect('demandes:releve_detail', pk=releve.pk)
+
+
+class ReleveDepenseAncienneCreateView(LoginRequiredMixin, CreateView):
+    """Ancienne vue pour créer un relevé avec demandes (gardée pour compatibilité)"""
     model = ReleveDepense
     form_class = ReleveDepenseForm
     template_name = 'demandes/releve_form.html'
@@ -2124,15 +2346,26 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
         
         for demande in releve_depense.demandes.all():
             montant_key = f'montant_{demande.pk}'
+            beneficiaire_key = f'beneficiaire_{demande.pk}'
+            observations_key = f'observations_{demande.pk}'
+            
             if montant_key in request.POST:
                 try:
                     montant = Decimal(request.POST.get(montant_key, '0.00'))
-                    if montant > 0:
+                    beneficiaire = request.POST.get(beneficiaire_key, '').strip()
+                    observations = request.POST.get(observations_key, '').strip()
+                    
+                    if montant > 0 and beneficiaire:  # Exiger le bénéficiaire
                         paiements_data[demande.pk] = {
                             'montant': montant,
-                            'demande': demande
+                            'demande': demande,
+                            'beneficiaire': beneficiaire,
+                            'observations': observations
                         }
                         total_paye += montant
+                    elif montant > 0 and not beneficiaire:
+                        messages.error(request, f"Veuillez spécifier le bénéficiaire pour la demande {demande.reference}.")
+                        return self.get(request, pk)
                 except (ValueError, TypeError):
                     continue
         
@@ -2145,15 +2378,18 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
             for demande_pk, paiement_data in paiements_data.items():
                 demande = paiement_data['demande']
                 montant = paiement_data['montant']
+                beneficiaire = paiement_data['beneficiaire']
+                observations = paiement_data['observations']
                 
                 # Créer le paiement
                 paiement = Paiement.objects.create(
                     demande=demande,
-                    releve_bancaire=None,  # Pas de relevé bancaire direct
+                    releve_depense=releve_depense,  # Associer au relevé de dépenses
                     paiement_par=request.user,
                     montant_paye=montant,
                     devise=demande.devise,
-                    observations=f"Paiement par rapport au relevé {releve_depense.periode}"
+                    beneficiaire=beneficiaire,
+                    observations=observations or f"Paiement par rapport au relevé {releve_depense.periode}"
                 )
                 
                 # Mettre à jour la demande
@@ -2168,66 +2404,6 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
         
         messages.success(request, f"{len(paiements_data)} paiement(s) effectué(s) avec succès pour un total de {total_paye} {paiements_data[next(iter(paiements_data))]['demande'].devise}.")
         return redirect('demandes:paiement_liste')
-        
-        # Récupérer les demandes validées non entièrement payées
-        demandes = DemandePaiement.objects.filter(
-            statut__in=['VALIDEE_DG', 'VALIDEE_DF'],
-            reste_a_payer__gt=0,
-            devise=releve_bancaire.devise
-        ).select_related('service_demandeur', 'cree_par')
-        
-        # Calculer les totaux
-        total_reste_a_payer = sum(demande.reste_a_payer for demande in demandes)
-        total_deja_paye = sum(demande.montant_deja_paye for demande in demandes)
-        total_initial = sum(demande.montant for demande in demandes)
-        
-        context = {
-            'title': f'Paiement des demandes - {releve_bancaire}',
-            'releve_bancaire': releve_bancaire,
-            'demandes': demandes,
-            'total_reste_a_payer': total_reste_a_payer,
-            'total_deja_paye': total_deja_paye,
-            'total_initial': total_initial,
-            'forms': {demande.pk: PaiementForm(user=request.user, initial={
-                'releve_bancaire': releve_bancaire,
-                'demande': demande,
-                'montant_paye': demande.reste_a_payer
-            }) for demande in demandes}
-        }
-        
-        return render(request, 'demandes/paiement_releve_detail.html', context)
-    
-    def post(self, request, pk):
-        releve_bancaire = get_object_or_404(ReleveBancaire, pk=pk)
-        
-        # Traiter chaque paiement
-        paiements_effectues = 0
-        for key, value in request.POST.items():
-            if key.startswith('montant_paye_'):
-                demande_id = key.split('_')[2]
-                montant = value
-                
-                if montant and Decimal(montant) > 0:
-                    demande = get_object_or_404(DemandePaiement, pk=demande_id)
-                    observations = request.POST.get(f'observations_{demande_id}', '')
-                    
-                    # Vérifier que le montant ne dépasse pas le reste à payer
-                    if Decimal(montant) <= demande.reste_a_payer:
-                        Paiement.objects.create(
-                            releve_bancaire=releve_bancaire,
-                            demande=demande,
-                            montant_paye=Decimal(montant),
-                            observations=observations,
-                            paiement_par=request.user
-                        )
-                        paiements_effectues += 1
-        
-        if paiements_effectues > 0:
-            messages.success(request, f'{paiements_effectues} paiement(s) effectué(s) avec succès!')
-        else:
-            messages.warning(request, 'Aucun paiement n\'a été effectué.')
-        
-        return redirect('demandes:paiement_releve_detail', pk=pk)
 
 
 class PaiementDetailView(LoginRequiredMixin, DetailView):

@@ -135,6 +135,39 @@ class ReleveDepenseForm(forms.ModelForm):
         )
 
 
+class ReleveDepenseCreateForm(forms.ModelForm):
+    """Formulaire pour créer un relevé de dépenses vide (sans demandes)"""
+    class Meta:
+        model = ReleveDepense
+        fields = ['periode', 'observation']
+        widgets = {
+            'periode': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'observation': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Observations sur ce relevé...'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(
+                Column('periode', css_class='col-md-6'),
+                css_class='mb-3'
+            ),
+            Row(
+                Column('observation', css_class='col-12'),
+                css_class='mb-3'
+            ),
+            Row(
+                Column(
+                    HTML('<div class="d-flex justify-content-end gap-2">'),
+                    Submit('submit', 'Créer le relevé', css_class='btn btn-primary'),
+                    HTML('</div>'),
+                    css_class='col-12'
+                ),
+            ),
+        )
+
+
 class ReleveDepenseAutoForm(forms.Form):
     periode = forms.DateField(
         label="Période",
@@ -289,12 +322,16 @@ class PaiementForm(forms.ModelForm):
     
     class Meta:
         model = Paiement
-        fields = ['releve_depense', 'demande', 'montant_paye', 'observations']
+        fields = ['releve_depense', 'demande', 'montant_paye', 'beneficiaire', 'observations']
         widgets = {
             'montant_paye': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
                 'min': '0.01'
+            }),
+            'beneficiaire': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nom du bénéficiaire...'
             }),
             'observations': forms.Textarea(attrs={
                 'rows': 3,
@@ -346,7 +383,11 @@ class PaiementForm(forms.ModelForm):
             ),
             Row(
                 Column('montant_paye', css_class='col-md-6'),
-                Column('observations', css_class='col-md-6'),
+                Column('beneficiaire', css_class='col-md-6'),
+                css_class='mb-3'
+            ),
+            Row(
+                Column('observations', css_class='col-12'),
                 css_class='mb-3'
             ),
             Row(

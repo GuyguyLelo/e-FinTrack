@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Ajouter des demandes au relevé {{ releve.numero }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-file-invoice me-2"></i>
+                        Ajouter des demandes au relevé {{ releve.numero }}
+                    </h4>
+                    <div class="card-subtitle text-muted">
+                        Période: {{ releve.periode }} | Créé le: {{ releve.date_creation|date:"d/m/Y" }}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Informations du relevé -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded">
+                                <small class="text-muted">Montant CDF</small>
+                                <h5 class="mb-0">{{ releve.montant_cdf|floatformat:2 }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded">
+                                <small class="text-muted">Montant USD</small>
+                                <h5 class="mb-0">{{ releve.montant_usd|floatformat:2 }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded">
+                                <small class="text-muted">Demandes actuelles</small>
+                                <h5 class="mb-0">{{ demandes_actuelles.count }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded">
+                                <small class="text-muted">Disponibles</small>
+                                <h5 class="mb-0">{{ demandes_disponibles.count }}</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Demandes déjà dans le relevé -->
+                    {% if demandes_actuelles %}
+                    <div class="mb-4">
+                        <h5><i class="fas fa-check-circle text-success me-2"></i>Demandes déjà dans le relevé</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Référence</th>
+                                        <th>Service</th>
+                                        <th>Description</th>
+                                        <th>Montant</th>
+                                        <th>Devise</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for demande in demandes_actuelles %}
+                                    <tr>
+                                        <td>{{ demande.reference }}</td>
+                                        <td>{{ demande.service_demandeur.nom_service }}</td>
+                                        <td>{{ demande.description|truncatechars:50 }}</td>
+                                        <td class="text-end">{{ demande.montant|floatformat:2 }}</td>
+                                        <td>{{ demande.devise }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulaire pour ajouter des demandes -->
+                    {% if demandes_disponibles %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Sélectionnez les demandes à ajouter à ce relevé. Seules les demandes validées et non encore dans un relevé sont affichées.
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th width="50">
+                                            <input type="checkbox" id="selectAll" class="form-check-input">
+                                        </th>
+                                        <th>Référence</th>
+                                        <th>Service</th>
+                                        <th>Nature Économique</th>
+                                        <th>Description</th>
+                                        <th>Montant</th>
+                                        <th>Devise</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for demande in demandes_disponibles %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="demandes" value="{{ demande.pk }}" class="form-check-input demande-checkbox">
+                                        </td>
+                                        <td><strong>{{ demande.reference }}</strong></td>
+                                        <td>{{ demande.service_demandeur.nom_service }}</td>
+                                        <td>
+                                            {% if demande.nature_economique %}
+                                                <span class="badge bg-secondary">{{ demande.nature_economique.code }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ demande.description|truncatechars:60 }}</td>
+                                        <td class="text-end fw-bold">{{ demande.montant|floatformat:2 }}</td>
+                                        <td>
+                                            <span class="badge {% if demande.devise == 'USD' %}bg-primary{% else %}bg-success{% endif %}">
+                                                {{ demande.devise }}
+                                            </span>
+                                        </td>
+                                        <td>{{ demande.date_soumission|date:"d/m/Y" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <small class="text-muted">
+                                    <span id="selectedCount">0</span> demande(s) sélectionnée(s)
+                                </small>
+                            </div>
+                            <div>
+                                <a href="{% url 'demandes:releve_detail' releve.pk %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour au relevé
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Ajouter les demandes sélectionnées
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Aucune demande validée disponible pour être ajoutée à ce relevé.
+                        <a href="{% url 'demandes:liste' %}" class="btn btn-sm btn-outline-primary ms-2">
+                            Voir les demandes
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const demandeCheckboxes = document.querySelectorAll('.demande-checkbox');
+    const selectedCountSpan = document.getElementById('selectedCount');
+
+    function updateSelectedCount() {
+        const checkedBoxes = document.querySelectorAll('.demande-checkbox:checked');
+        selectedCountSpan.textContent = checkedBoxes.length;
+    }
+
+    selectAllCheckbox.addEventListener('change', function() {
+        demandeCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateSelectedCount();
+    });
+
+    demandeCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+
+    updateSelectedCount();
+});
+</script>
+{% endblock %}
