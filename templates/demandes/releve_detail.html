@@ -12,30 +12,24 @@
         {% endif %}
         - {{ releve.periode|date:"F Y" }}
     </h2>
-    <div>
-        <a href="{% url 'demandes:releve_ajouter_demandes' releve.pk %}" class="btn btn-success me-2">
-            <i class="bi bi-plus-square"></i> Ajouter des demandes
-        </a>
-        <a href="{% url 'demandes:releve_generer_pdf' releve.pk %}" class="btn btn-primary me-2" target="_blank">
-            <i class="bi bi-printer"></i> Générer PDF
-        </a>
+    <div class="btn-group" role="group">
         {% if not releve.depenses_validees and user.peut_valider_depense %}
         <form method="post" action="{% url 'demandes:releve_valider_depenses' releve.pk %}" class="d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-warning me-2" onclick="return confirm('Êtes-vous sûr de vouloir valider les dépenses de ce relevé ? Cette action créera des objets Dépense à partir des demandes.');">
+            <button type="submit" class="btn btn-warning" onclick="return confirm('Êtes-vous sûr de vouloir valider les dépenses de ce relevé ? Cette action créera des objets Dépense à partir des demandes.');">
                 <i class="bi bi-check-circle"></i> Valider les dépenses
             </button>
         </form>
         {% elif releve.depenses_validees %}
-        <span class="badge bg-success me-2">
+        <span class="badge bg-success">
             <i class="bi bi-check-circle"></i> Dépenses validées
         </span>
         {% endif %}
-        <a href="{% url 'demandes:cheque_pdf' %}?releve_id={{ releve.pk }}" class="btn btn-warning me-2">
-            <i class="bi bi-receipt-cutoff"></i> Imprimer chèque
+        <a href="{% url 'demandes:releve_generer_pdf' releve.pk %}" class="btn btn-primary" target="_blank">
+            <i class="bi bi-printer"></i> PDF
         </a>
-        <a href="{% url 'demandes:releves_crees_liste' %}" class="btn btn-info me-2">
-            <i class="bi bi-list-ul"></i> Liste des relevés
+        <a href="{% url 'demandes:releves_crees_liste' %}" class="btn btn-info">
+            <i class="bi bi-list-ul"></i> Liste
         </a>
         <a href="{% url 'demandes:releves_liste' %}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Retour
@@ -44,160 +38,63 @@
 </div>
 
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h5>Informations du relevé</h5>
+                <h6>Informations du relevé</h6>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        {% if releve.numero %}
-                        <p><strong>Numéro de relevé :</strong> 
-                            <span class="badge bg-primary">{{ releve.numero }}</span>
-                        </p>
-                        {% endif %}
-                        <p><strong>Période :</strong> {{ releve.periode|date:"F Y" }}</p>
-                        <p><strong>Date de création :</strong> {{ releve.date_creation|date:"d/m/Y H:i" }}</p>
+                    <div class="col-6">
+                        <p><strong>Numéro :</strong><br>{{ releve.numero }}</p>
+                        <p><strong>Période :</strong><br>{{ releve.periode|date:"F Y" }}</p>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Validé par :</strong> {{ releve.valide_par.get_full_name|default:releve.valide_par.username }}</p>
-                        <p><strong>Date de validation :</strong> {{ releve.date_validation|date:"d/m/Y H:i" }}</p>
-                        {% if releve.depenses_validees %}
-                        <p><strong>Dépenses validées :</strong> 
-                            <span class="badge bg-success">Oui</span>
-                            {% if releve.depenses_validees_par %}
-                            par {{ releve.depenses_validees_par.get_full_name|default:releve.depenses_validees_par.username }}
-                            {% endif %}
-                        </p>
-                        <p><strong>Date validation dépenses :</strong> {{ releve.date_validation_depenses|date:"d/m/Y H:i" }}</p>
-                        <p>
-                            <a href="{% url 'demandes:depenses_liste' %}?releve={{ releve.numero }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i> Voir les dépenses validées
-                            </a>
-                        </p>
-                        {% else %}
-                        <p><strong>Dépenses validées :</strong> <span class="badge bg-warning">Non</span></p>
-                        {% endif %}
+                    <div class="col-6">
+                        <p><strong>Créé le :</strong><br>{{ releve.date_creation|date:"d/m/Y H:i" }}</p>
+                        <p><strong>Validé par :</strong><br>{{ releve.valide_par.get_full_name|default:releve.valide_par.username }}</p>
                     </div>
                 </div>
                 {% if releve.observation %}
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <p><strong>Observation :</strong></p>
-                        <p class="bg-light p-3 rounded">{{ releve.observation }}</p>
-                    </div>
+                <div class="mt-3">
+                    <p><strong>Observation :</strong></p>
+                    <p class="bg-light p-2 rounded">{{ releve.observation }}</p>
                 </div>
                 {% endif %}
             </div>
         </div>
-
+    </div>
+    
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <h5>Détails des montants</h5>
+                <h6>Résumé des montants</h6>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Désignation</th>
-                                <th class="text-end">CDF</th>
-                                <th class="text-end">USD</th>
-                            </tr>
-                        </thead>
+                    <table class="table table-sm table-borderless">
                         <tbody>
                             <tr>
-                                <td><strong>Montant</strong></td>
-                                <td class="text-end"><strong class="text-success">{{ releve.montant_cdf|format_montant:"CDF" }}</strong></td>
-                                <td class="text-end"><strong class="text-primary">{{ releve.montant_usd|format_montant:"USD" }}</strong></td>
+                                <td><strong>Montant CDF</strong></td>
+                                <td class="text-end"><strong class="text-success">{{ releve.montant_cdf|floatformat:0 }}</strong></td>
                             </tr>
                             <tr>
+                                <td><strong>Montant USD</strong></td>
+                                <td class="text-end"><strong class="text-primary">{{ releve.montant_usd|floatformat:2 }}</strong></td>
+                            </tr>
+                            <tr class="border-top">
                                 <td><strong>IPR (3%)</strong></td>
-                                <td class="text-end"><strong class="text-warning">{{ releve.ipr_cdf|format_montant:"CDF" }}</strong></td>
-                                <td class="text-end"><strong class="text-warning">{{ releve.ipr_usd|format_montant:"USD" }}</strong></td>
+                                <td class="text-end">
+                                    <span class="text-warning">{{ releve.ipr_cdf|floatformat:0 }} CDF</span><br>
+                                    <span class="text-warning">{{ releve.ipr_usd|floatformat:2 }} USD</span>
+                                </td>
                             </tr>
-                            <tr class="table-success">
+                            <tr class="border-top">
                                 <td><strong>Net à payer</strong></td>
-                                <td class="text-end"><strong>{{ releve.net_a_payer_cdf|format_montant:"CDF" }}</strong></td>
-                                <td class="text-end"><strong>{{ releve.net_a_payer_usd|format_montant:"USD" }}</strong></td>
-                            </tr>
-                        </tbody>
-                        <tfoot class="table-secondary">
-                            <tr>
-                                <th><strong>Total général</strong></th>
-                                <th class="text-end" colspan="2">
-                                    <strong class="text-primary" style="font-size: 1.2em;">
-                                        {{ releve.get_total_general|format_montant:"CDF" }}
-                                    </strong>
-                                </th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h5>Demandes incluses ({{ releve.demandes.count }})</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Référence</th>
-                                <th>Service</th>
-                                <th>Description</th>
-                                <th class="text-end">Montant CDF</th>
-                                <th class="text-end">Montant USD</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for demande in releve.demandes.all %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'demandes:detail' demande.pk %}" class="text-primary">
-                                        <strong>{{ demande.reference }}</strong>
-                                    </a>
-                                </td>
-                                <td>{{ demande.service_demandeur }}</td>
-                                <td>{{ demande.description|truncatewords:10 }}</td>
                                 <td class="text-end">
-                                    {% if demande.devise == 'CDF' %}
-                                    <strong class="text-success">{{ demande.montant|format_montant:"CDF" }}</strong>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    {% if demande.devise == 'USD' %}
-                                    <strong class="text-primary">{{ demande.montant|format_montant:"USD" }}</strong>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if demande.statut == 'EN_ATTENTE' %}
-                                    <span class="badge bg-warning">En attente</span>
-                                    {% elif demande.statut == 'VALIDEE_DG' %}
-                                    <span class="badge bg-info">Validée DG</span>
-                                    {% elif demande.statut == 'VALIDEE_DF' %}
-                                    <span class="badge bg-primary">Validée DF</span>
-                                    {% elif demande.statut == 'PAYEE' %}
-                                    <span class="badge bg-success">Payée</span>
-                                    {% elif demande.statut == 'REJETEE' %}
-                                    <span class="badge bg-danger">Rejetée</span>
-                                    {% endif %}
+                                    <span class="text-success">{{ releve.net_a_payer_cdf|floatformat:0 }} CDF</span><br>
+                                    <span class="text-primary">{{ releve.net_a_payer_usd|floatformat:2 }} USD</span>
                                 </td>
                             </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">Aucune demande incluse</td>
-                            </tr>
-                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -205,6 +102,87 @@
         </div>
     </div>
 </div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Demandes incluses ({{ releve.demandes.count }})</h5>
+        {% if releve.depenses_validees %}
+        <a href="{% url 'demandes:depenses_liste' %}?releve={{ releve.numero }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-eye"></i> Voir les dépenses
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Référence</th>
+                        <th>Service</th>
+                        <th>Description</th>
+                        <th class="text-end">Montant</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for demande in releve.demandes.all %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'demandes:detail' demande.pk %}" class="text-primary">
+                                <strong>{{ demande.reference }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ demande.service_demandeur.nom_service }}</td>
+                        <td>{{ demande.description|truncatewords:10 }}</td>
+                        <td class="text-end">
+                            <strong class="{% if demande.devise == 'CDF' %}text-success{% else %}text-primary{% endif %}">
+                                {{ demande.montant|floatformat:2 }} {{ demande.devise }}
+                            </strong>
+                        </td>
+                        <td>
+                            {% if demande.statut == 'EN_ATTENTE' %}
+                            <span class="badge bg-warning">En attente</span>
+                            {% elif demande.statut == 'VALIDEE_DG' %}
+                            <span class="badge bg-info">Validée DG</span>
+                            {% elif demande.statut == 'VALIDEE_DF' %}
+                            <span class="badge bg-primary">Validée DF</span>
+                            {% elif demande.statut == 'PAYEE' %}
+                            <span class="badge bg-success">Payée</span>
+                            {% elif demande.statut == 'REJETEE' %}
+                            <span class="badge bg-danger">Rejetée</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0">Aucune demande incluse</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if releve.demandes.exists %}
+                <tfoot class="table-secondary">
+                    <tr>
+                        <th colspan="3" class="text-end">Total</th>
+                        <th class="text-end">
+                            {% regroup releve.demandes.all by devise as demandes_par_devise %}
+                            {% for devise_group in demandes_par_devise %}
+                                {% if devise_group.grouper == 'CDF' %}
+                                    <span class="text-success">{{ devise_group.list|sum_attr:'montant'|floatformat:0 }} CDF</span>
+                                {% elif devise_group.grouper == 'USD' %}
+                                    <span class="text-primary">{{ devise_group.list|sum_attr:'montant'|floatformat:2 }} USD</span>
+                                {% endif %}
+                                {% if not forloop.last %}<br>{% endif %}
+                            {% endfor %}
+                        </th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}
-
-

@@ -1713,11 +1713,62 @@ class ReleveDepenseOldListView(LoginRequiredMixin, ListView):
         return context
 
 
-class ReleveDepenseCreateView(LoginRequiredMixin, RedirectView):
-    """Vue pour rediriger vers la liste des demandes validées pour créer un relevé"""
-    permanent = False
-    pattern_name = 'demandes:releves_liste_old'
-    query_string = True
+class ReleveDepenseCreateView(LoginRequiredMixin, View):
+    """Vue pour créer automatiquement un relevé avec toutes les demandes validées"""
+    
+    def post(self, request, *args, **kwargs):
+        # Vérifier les permissions (seuls DAF et DG peuvent créer des relevés)
+        if not request.user.peut_valider_depense():
+            messages.error(request, 'Vous n\'avez pas la permission de créer un relevé de dépense.')
+            return redirect('demandes:releves_liste_old')
+        
+        # Récupérer toutes les demandes validées non encore dans un relevé
+        demandes_valides = DemandePaiement.objects.select_related(
+            'service_demandeur', 'cree_par', 'approuve_par', 'nature_economique'
+        ).filter(
+            statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE']
+        ).exclude(
+            releves_depense__isnull=False
+        )
+        
+        if not demandes_valides.exists():
+            messages.warning(request, 'Aucune demande validée disponible pour créer un relevé.')
+            return redirect('demandes:releves_liste_old')
+        
+        try:
+            with transaction.atomic():
+                # Créer le relevé
+                from datetime import date
+                numero = f"REL-{date.today().year}-{date.today().month:02d}-{ReleveDepense.objects.count() + 1:06d}"
+                
+                releve = ReleveDepense.objects.create(
+                    numero=numero,
+                    periode=date.today(),
+                    valide_par=request.user,
+                    date_validation=timezone.now()
+                )
+                
+                # Ajouter toutes les demandes au relevé
+                for demande in demandes_valides:
+                    releve.demandes.add(demande)
+                
+                # Calculer les totaux du relevé
+                releve.calculer_total()
+                
+                messages.success(
+                    request, 
+                    f'Relevé {releve.numero} créé avec succès contenant {len(demandes_valides)} demande(s).'
+                )
+                
+                return redirect('demandes:releves_crees_liste')
+                
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création du relevé : {str(e)}')
+            return redirect('demandes:releves_liste_old')
+    
+    def get(self, request, *args, **kwargs):
+        # Pour les requêtes GET, rediriger vers la liste des demandes
+        return redirect('demandes:releves_liste_old')
 
 
 class ReleveDepenseAjouterDemandesView(LoginRequiredMixin, UpdateView):
