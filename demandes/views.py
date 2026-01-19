@@ -1620,27 +1620,104 @@ class ReleveDepenseValiderDepensesView(LoginRequiredMixin, View):
         return redirect('demandes:releve_detail', pk=releve.pk)
 
 
-class ReleveDepenseCreateView(LoginRequiredMixin, CreateView):
-    """Vue pour créer un relevé de dépenses vide (sans demandes)"""
-    model = ReleveDepense
-    form_class = ReleveDepenseCreateForm
-    template_name = 'demandes/releve_create_form.html'
-    success_url = reverse_lazy('demandes:releves_liste')
+class ReleveDepenseOldListView(LoginRequiredMixin, ListView):
+    """Vue pour afficher les demandes validées comme relevé de dépense (ancienne version)"""
+    model = DemandePaiement
+    template_name = 'demandes/releve_liste_simple.html'
+    context_object_name = 'demandes'
+    paginate_by = 20
     
-    def dispatch(self, request, *args, **kwargs):
-        # Vérifier les permissions (seuls DAF et DG peuvent créer des relevés)
-        if not request.user.peut_valider_depense():
-            messages.error(request, 'Vous n\'avez pas la permission de créer un relevé de dépense.')
-            return redirect('demandes:releves_liste')
-        return super().dispatch(request, *args, **kwargs)
-    
-    def form_valid(self, form):
-        releve = form.save(commit=False)
-        releve.valide_par = self.request.user
-        releve.save()
+    def get_queryset(self):
+        """Récupérer uniquement les demandes validées qui ne sont pas déjà dans un relevé"""
+        queryset = DemandePaiement.objects.select_related(
+            'service_demandeur', 'cree_par', 'approuve_par', 'nature_economique'
+        ).filter(
+            statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE']
+        ).exclude(
+            releves_depense__isnull=False  # Exclure les demandes déjà dans un relevé
+        )
         
-        messages.success(self.request, 'Relevé de dépenses créé avec succès. Vous pouvez maintenant y ajouter des demandes.')
-        return redirect('demandes:releve_ajouter_demandes', pk=releve.pk)
+        # Filtrage selon le rôle
+        if not self.request.user.peut_consulter_tout():
+            if self.request.user.is_chef_service:
+                queryset = queryset.filter(service_demandeur=self.request.user.service)
+        
+        # Trier par code de nature économique, puis par date
+        return queryset.order_by('nature_economique__code', '-date_soumission')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Calculer les totaux pour toutes les demandes validées
+        queryset = self.get_queryset()
+        
+        # Montants par devise
+        montant_cdf = queryset.filter(devise='CDF').aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
+        montant_usd = queryset.filter(devise='USD').aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
+        
+        # IPR (3%)
+        ipr_cdf = montant_cdf * Decimal('0.03')
+        ipr_usd = montant_usd * Decimal('0.03')
+        
+        # Net à payer (montant - IPR)
+        net_a_payer_cdf = montant_cdf - ipr_cdf
+        net_a_payer_usd = montant_usd - ipr_usd
+        
+        # Total général
+        total_general = net_a_payer_cdf + net_a_payer_usd
+        
+        context['montant_cdf'] = montant_cdf
+        context['montant_usd'] = montant_usd
+        context['ipr_cdf'] = ipr_cdf
+        context['ipr_usd'] = ipr_usd
+        context['net_a_payer_cdf'] = net_a_payer_cdf
+        context['net_a_payer_usd'] = net_a_payer_usd
+        context['total_general'] = total_general
+        
+        # Grouper les demandes par code de nature économique pour les sous-totaux
+        # et ajouter un numéro d'ordre à chaque demande
+        demandes_groupes = {}
+        demande_numero = {}
+        numero = 1
+        
+        for demande in queryset:
+            code = demande.nature_economique.code if demande.nature_economique else 'Sans code'
+            if code not in demandes_groupes:
+                demandes_groupes[code] = []
+            demandes_groupes[code].append(demande)
+            demande_numero[demande.pk] = numero
+            numero += 1
+        
+        # Calculer les sous-totaux pour chaque groupe
+        sous_totaux = {}
+        for code, demandes_groupe in demandes_groupes.items():
+            montant_usd_groupe = sum(d.montant for d in demandes_groupe if d.devise == 'USD')
+            montant_cdf_groupe = sum(d.montant for d in demandes_groupe if d.devise == 'CDF')
+            ipr_usd_groupe = montant_usd_groupe * Decimal('0.03')
+            ipr_cdf_groupe = montant_cdf_groupe * Decimal('0.03')
+            net_usd_groupe = montant_usd_groupe - ipr_usd_groupe
+            net_cdf_groupe = montant_cdf_groupe - ipr_cdf_groupe
+            
+            sous_totaux[code] = {
+                'montant_usd': montant_usd_groupe,
+                'montant_cdf': montant_cdf_groupe,
+                'ipr_usd': ipr_usd_groupe,
+                'ipr_cdf': ipr_cdf_groupe,
+                'net_usd': net_usd_groupe,
+                'net_cdf': net_cdf_groupe,
+            }
+        
+        context['sous_totaux'] = sous_totaux
+        context['demande_numero'] = demande_numero
+        
+        return context
+
+
+class ReleveDepenseCreateView(LoginRequiredMixin, RedirectView):
+    """Vue pour rediriger vers la liste des demandes validées pour créer un relevé"""
+    permanent = False
+    pattern_name = 'demandes:releves_liste_old'
+    query_string = True
 
 
 class ReleveDepenseAjouterDemandesView(LoginRequiredMixin, UpdateView):
