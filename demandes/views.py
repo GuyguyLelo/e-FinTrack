@@ -1737,15 +1737,26 @@ class ReleveDepenseCreateView(LoginRequiredMixin, View):
         
         try:
             with transaction.atomic():
-                # Créer le relevé
-                from datetime import date
-                numero = f"REL-{date.today().year}-{date.today().month:02d}-{ReleveDepense.objects.count() + 1:06d}"
+                # Créer le relevé avec une période unique
+                from datetime import date, datetime, timedelta
+                now = timezone.now()
+                
+                # Utiliser le premier jour du mois comme période, mais avec une heure unique
+                periode_unique = now.date().replace(day=1)
+                
+                # Vérifier si un relevé existe déjà pour cette période
+                existing_count = ReleveDepense.objects.filter(periode=periode_unique).count()
+                if existing_count > 0:
+                    # Ajouter un delta de temps pour rendre la période unique
+                    periode_unique = periode_unique + timedelta(days=existing_count)
+                
+                numero = f"REL-{now.year}-{now.month:02d}-{ReleveDepense.objects.count() + 1:06d}"
                 
                 releve = ReleveDepense.objects.create(
                     numero=numero,
-                    periode=date.today(),
+                    periode=periode_unique,
                     valide_par=request.user,
-                    date_validation=timezone.now()
+                    date_validation=now
                 )
                 
                 # Ajouter toutes les demandes au relevé
@@ -1760,7 +1771,7 @@ class ReleveDepenseCreateView(LoginRequiredMixin, View):
                     f'Relevé {releve.numero} créé avec succès contenant {len(demandes_valides)} demande(s).'
                 )
                 
-                return redirect('demandes:releves_crees_liste')
+                return redirect('demandes:releves_liste_old')
                 
         except Exception as e:
             messages.error(request, f'Erreur lors de la création du relevé : {str(e)}')
