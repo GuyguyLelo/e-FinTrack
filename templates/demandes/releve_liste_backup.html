@@ -71,7 +71,7 @@
                         <th>Service</th>
                         <th>Description</th>
                         <th class="text-end">Montant</th>
-                        <th>Devise</th>
+                        <th class="text-end">Devise</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -97,7 +97,7 @@
                     <tr>
                         <td colspan="6" class="text-center text-muted py-4">
                             <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                            <p class="mt-2 mb-0">Aucune demande validée trouvée</p>
+                            <p class="mt-2">Aucune demande validée trouvée</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -145,6 +145,7 @@
     </ul>
 </nav>
 {% endif %}
+{% endblock %}
 
 <!-- Modal de confirmation de création de relevé -->
 <div class="modal fade" id="confirmCreerReleve" tabindex="-1" aria-labelledby="confirmCreerReleveLabel" aria-hidden="true">
@@ -212,4 +213,3 @@
         </div>
     </div>
 </div>
-{% endblock %}
