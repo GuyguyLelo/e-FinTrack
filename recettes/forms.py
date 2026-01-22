@@ -12,7 +12,7 @@ from banques.models import Banque, CompteBancaire
 class RecetteForm(forms.ModelForm):
     class Meta:
         model = Recette
-        fields = ['banque', 'compte_bancaire', 'source_recette', 'description', 
+        fields = ['banque', 'source_recette', 'description', 
                  'montant_usd', 'montant_cdf', 'date_encaissement', 'piece_jointe']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 4}),
@@ -26,29 +26,15 @@ class RecetteForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Filtrer les comptes selon la banque sélectionnée
-        if 'banque' in self.data:
-            banque_id = self.data.get('banque')
-            if banque_id:
-                self.fields['compte_bancaire'].queryset = CompteBancaire.objects.filter(
-                    banque_id=banque_id, actif=True
-                )
-        elif self.instance and self.instance.banque_id:
-            self.fields['compte_bancaire'].queryset = CompteBancaire.objects.filter(
-                banque=self.instance.banque, actif=True
-            )
-        else:
-            self.fields['compte_bancaire'].queryset = CompteBancaire.objects.none()
-        
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(
                 Column('banque', css_class='col-md-6'),
-                Column('compte_bancaire', css_class='col-md-6'),
+                Column('source_recette', css_class='col-md-6'),
             ),
             Row(
-                Column('source_recette', css_class='col-md-6'),
                 Column('date_encaissement', css_class='col-md-6'),
+                Column(css_class='col-md-6'),  # Espace vide pour l'alignement
             ),
             'description',
             Row(
@@ -61,16 +47,8 @@ class RecetteForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
-        banque = cleaned_data.get('banque')
-        compte_bancaire = cleaned_data.get('compte_bancaire')
         montant_usd = cleaned_data.get('montant_usd', Decimal('0.00'))
         montant_cdf = cleaned_data.get('montant_cdf', Decimal('0.00'))
-        
-        if banque and compte_bancaire:
-            if compte_bancaire.banque != banque:
-                raise forms.ValidationError(
-                    'Le compte bancaire sélectionné n\'appartient pas à la banque choisie.'
-                )
         
         # Vérifier qu'au moins un montant est renseigné
         if montant_usd <= 0 and montant_cdf <= 0:

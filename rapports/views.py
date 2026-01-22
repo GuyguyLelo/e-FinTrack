@@ -189,15 +189,19 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 solde_usd = sum(c.solde_courant for c in comptes.filter(devise='USD'))
                 solde_cdf = sum(c.solde_courant for c in comptes.filter(devise='CDF'))
                 
-                if solde_usd > 0 or solde_cdf > 0:
-                    banques_data.append({
-                        'nom': banque.nom_banque,
-                        'solde_usd': float(solde_usd),
-                        'solde_cdf': float(solde_cdf),
-                    })
+                # Ajouter toutes les banques actives, même avec solde nul pour le graphique
+                banques_data.append({
+                    'nom': banque.nom_banque,
+                    'solde_usd': float(solde_usd),
+                    'solde_cdf': float(solde_cdf),
+                })
+            
+            # Filtrer pour le tableau (uniquement les banques avec solde > 0)
+            banques_avec_solde = [b for b in banques_data if b['solde_usd'] > 0 or b['solde_cdf'] > 0]
             
             import json
-            context['banques_data'] = json.dumps(banques_data)
+            context['banques_data'] = json.dumps(banques_data)  # Pour le graphique
+            context['banques_avec_solde'] = banques_avec_solde  # Pour le tableau
             
             # Recettes récentes (10 dernières)
             context['recettes_recentes'] = Recette.objects.select_related(

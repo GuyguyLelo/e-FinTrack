@@ -19,7 +19,7 @@ class Recette(models.Model):
     
     reference = models.CharField(max_length=50, unique=True, editable=False)
     banque = models.ForeignKey(Banque, on_delete=models.PROTECT, related_name='recettes')
-    compte_bancaire = models.ForeignKey(CompteBancaire, on_delete=models.PROTECT, related_name='recettes')
+    compte_bancaire = models.ForeignKey(CompteBancaire, on_delete=models.PROTECT, related_name='recettes', null=True, blank=True)
     source_recette = models.CharField(max_length=30, choices=SOURCE_CHOICES)
     description = models.TextField()
     montant_usd = models.DecimalField(
@@ -99,12 +99,33 @@ class Recette(models.Model):
         
         super().save(*args, **kwargs)
         
-        # Mise à jour du solde du compte bancaire lors de la validation
+        # Mise à jour automatique des soldes lors de la validation
         if self.valide and (is_new or not was_validated):
-            # Mettre à jour le solde USD si le compte est en USD
-            if self.montant_usd > 0 and self.compte_bancaire.devise == 'USD':
-                self.compte_bancaire.mettre_a_jour_solde(self.montant_usd, operation='recette')
-            # Mettre à jour le solde CDF si le compte est en CDF
-            if self.montant_cdf > 0 and self.compte_bancaire.devise == 'CDF':
-                self.compte_bancaire.mettre_a_jour_solde(self.montant_cdf, operation='recette')
+            # Trouver automatiquement les comptes bancaires appropriés selon la banque sélectionnée
+            if self.montant_usd > 0 and self.banque:
+                # Trouver un compte USD pour cette banque
+                compte_usd = CompteBancaire.objects.filter(
+                    banque=self.banque, 
+                    devise='USD', 
+                    actif=True
+                ).first()
+                if compte_usd:
+                    compte_usd.mettre_a_jour_solde(self.montant_usd, operation='recette')
+                    # Associer la recette à ce compte
+                    self.compte_bancaire = compte_usd
+                    self.save(update_fields=['compte_bancaire'])
+            
+            if self.montant_cdf > 0 and self.banque:
+                # Trouver un compte CDF pour cette banque
+                compte_cdf = CompteBancaire.objects.filter(
+                    banque=self.banque, 
+                    devise='CDF', 
+                    actif=True
+                ).first()
+                if compte_cdf:
+                    compte_cdf.mettre_a_jour_solde(self.montant_cdf, operation='recette')
+                    # Si pas déjà associé à un compte USD, associer à ce compte CDF
+                    if not self.compte_bancaire or self.compte_bancaire.devise != 'USD':
+                        self.compte_bancaire = compte_cdf
+                        self.save(update_fields=['compte_bancaire'])
 
