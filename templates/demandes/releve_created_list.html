@@ -19,6 +19,85 @@
     </div>
 </div>
 
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-header py-2">
+        <h6 class="mb-0"><i class="bi bi-funnel"></i> Filtres</h6>
+    </div>
+    <div class="card-body py-2">
+        <form method="get" action="{% url 'demandes:releves_crees_liste' %}" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label for="search" class="form-label small">Recherche</label>
+                <input type="text" name="search" id="search" class="form-control form-control-sm" placeholder="Numéro, observation..." value="{{ filtres.search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="date_debut" class="form-label small">Date début</label>
+                <input type="date" name="date_debut" id="date_debut" class="form-control form-control-sm" value="{{ filtres.date_debut }}">
+            </div>
+            <div class="col-md-2">
+                <label for="date_fin" class="form-label small">Date fin</label>
+                <input type="date" name="date_fin" id="date_fin" class="form-control form-control-sm" value="{{ filtres.date_fin }}">
+            </div>
+            <div class="col-md-1">
+                <label for="annee" class="form-label small">Année</label>
+                <select name="annee" id="annee" class="form-select form-select-sm">
+                    <option value="">Toutes</option>
+                    {% for a in annees %}
+                    <option value="{{ a }}" {% if filtres.annee == a|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label for="mois" class="form-label small">Mois</label>
+                <select name="mois" id="mois" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    <option value="1" {% if filtres.mois == "1" %}selected{% endif %}>Jan</option>
+                    <option value="2" {% if filtres.mois == "2" %}selected{% endif %}>Fév</option>
+                    <option value="3" {% if filtres.mois == "3" %}selected{% endif %}>Mar</option>
+                    <option value="4" {% if filtres.mois == "4" %}selected{% endif %}>Avr</option>
+                    <option value="5" {% if filtres.mois == "5" %}selected{% endif %}>Mai</option>
+                    <option value="6" {% if filtres.mois == "6" %}selected{% endif %}>Jun</option>
+                    <option value="7" {% if filtres.mois == "7" %}selected{% endif %}>Juil</option>
+                    <option value="8" {% if filtres.mois == "8" %}selected{% endif %}>Aoû</option>
+                    <option value="9" {% if filtres.mois == "9" %}selected{% endif %}>Sep</option>
+                    <option value="10" {% if filtres.mois == "10" %}selected{% endif %}>Oct</option>
+                    <option value="11" {% if filtres.mois == "11" %}selected{% endif %}>Nov</option>
+                    <option value="12" {% if filtres.mois == "12" %}selected{% endif %}>Déc</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="valide_par" class="form-label small">Validé par</label>
+                <select name="valide_par" id="valide_par" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    {% for validateur in validateurs %}
+                    <option value="{{ validateur.pk }}" {% if filtres.valide_par == validateur.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ validateur.get_full_name|default:validateur.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label for="devise" class="form-label small">Devise</label>
+                <select name="devise" id="devise" class="form-select form-select-sm">
+                    <option value="">Toutes</option>
+                    <option value="CDF" {% if filtres.devise == "CDF" %}selected{% endif %}>CDF</option>
+                    <option value="USD" {% if filtres.devise == "USD" %}selected{% endif %}>USD</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search"></i> Filtrer
+                </button>
+            </div>
+            <div class="col-md-auto">
+                <a href="{% url 'demandes:releves_crees_liste' %}" class="btn btn-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <h5>Relevés créés{% if page_obj %} ({{ page_obj.paginator.count }}){% else %} ({{ releves|length }}){% endif %}</h5>
@@ -101,12 +180,12 @@
             <ul class="pagination justify-content-center mb-0">
                 {% if page_obj.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1">
+                    <a class="page-link" href="?page=1{% if filtres.search %}&search={{ filtres.search }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.valide_par %}&valide_par={{ filtres.valide_par }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}">
                         <i class="bi bi-chevron-double-left"></i>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres.search %}&search={{ filtres.search }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.valide_par %}&valide_par={{ filtres.valide_par }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}">
                         <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
@@ -127,12 +206,12 @@
                 
                 {% if page_obj.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres.search %}&search={{ filtres.search }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.valide_par %}&valide_par={{ filtres.valide_par }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}">
                         <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if filtres.search %}&search={{ filtres.search }}{% endif %}{% if filtres.date_debut %}&date_debut={{ filtres.date_debut }}{% endif %}{% if filtres.date_fin %}&date_fin={{ filtres.date_fin }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}{% if filtres.mois %}&mois={{ filtres.mois }}{% endif %}{% if filtres.valide_par %}&valide_par={{ filtres.valide_par }}{% endif %}{% if filtres.devise %}&devise={{ filtres.devise }}{% endif %}">
                         <i class="bi bi-chevron-double-right"></i>
                     </a>
                 </li>

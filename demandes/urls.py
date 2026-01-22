@@ -23,6 +23,7 @@ urlpatterns = [
     path('releves/<int:pk>/ajouter-demandes/', views.ReleveDepenseAjouterDemandesView.as_view(), name='releve_ajouter_demandes'),
     path('releves/<int:pk>/valider-depenses/', views.ReleveDepenseValiderDepensesView.as_view(), name='releve_valider_depenses'),
     path('cheques/pdf/', views.ChequePDFView.as_view(), name='cheque_pdf'),
+    path('api/banque/soldes/', views.BanqueSoldesView.as_view(), name='banque_soldes_api'),
     path('releves/creer/', views.ReleveDepenseCreateView.as_view(), name='releve_creer'),
     path('releves/generer/', views.ReleveDepenseAutoCreateView.as_view(), name='releve_generer'),
     path('depenses/', views.DepenseListView.as_view(), name='depenses_liste'),

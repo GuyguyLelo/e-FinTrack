@@ -48,11 +48,42 @@
                                 Sélectionnez la banque pour laquelle le chèque sera généré
                             </small>
                         </div>
+                        <div id="soldes-container" class="mb-3" style="display: none;">
+                            <div class="alert alert-success border-0 shadow-sm">
+                                <h6 class="alert-heading mb-3">
+                                    <i class="bi bi-wallet2"></i> Soldes des comptes bancaires
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6" id="solde-cdf-container" style="display: none;">
+                                        <strong class="text-muted">Solde CDF :</strong><br>
+                                        <span id="solde-cdf" class="text-success fw-bold fs-5">-</span>
+                                    </div>
+                                    <div class="col-md-6" id="solde-usd-container" style="display: none;">
+                                        <strong class="text-muted">Solde USD :</strong><br>
+                                        <span id="solde-usd" class="text-primary fw-bold fs-5">-</span>
+                                    </div>
+                                </div>
+                                <div id="loading-soldes" class="text-center text-muted" style="display: none;">
+                                    <i class="bi bi-arrow-repeat spin"></i> Chargement des soldes...
+                                </div>
+                                <div id="no-comptes" class="text-center text-muted" style="display: none;">
+                                    <i class="bi bi-info-circle"></i> Aucun compte actif trouvé pour cette banque
+                                </div>
+                            </div>
+                        </div>
+                        <div id="avertissement-container" class="mb-3" style="display: none;">
+                            <div class="alert alert-warning border-0 shadow-sm">
+                                <h6 class="alert-heading mb-3">
+                                    <i class="bi bi-exclamation-triangle"></i> Avertissement : Solde insuffisant
+                                </h6>
+                                <div id="avertissement-content"></div>
+                            </div>
+                        </div>
                         <div class="d-flex justify-content-end gap-2">
                             <a href="{% url 'demandes:releve_detail' releve.pk %}" class="btn btn-secondary">
                                 <i class="bi bi-x-circle"></i> Annuler
                             </a>
-                            <button type="submit" class="btn btn-warning">
+                            <button type="submit" id="btn-generer-cheque" class="btn btn-warning" disabled>
                                 <i class="bi bi-printer"></i> Générer le chèque
                             </button>
                         </div>
@@ -62,5 +93,179 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const banqueSelect = document.getElementById('banque_id');
+    const soldesContainer = document.getElementById('soldes-container');
+    const soldeCdf = document.getElementById('solde-cdf');
+    const soldeUsd = document.getElementById('solde-usd');
+    const soldeCdfContainer = document.getElementById('solde-cdf-container');
+    const soldeUsdContainer = document.getElementById('solde-usd-container');
+    const btnGenererCheque = document.getElementById('btn-generer-cheque');
+    
+    // Fonction pour activer/désactiver le bouton
+    function toggleBoutonGenerer(activer) {
+        if (activer) {
+            btnGenererCheque.disabled = false;
+            btnGenererCheque.classList.remove('btn-secondary');
+            btnGenererCheque.classList.add('btn-warning');
+        } else {
+            btnGenererCheque.disabled = true;
+            btnGenererCheque.classList.remove('btn-warning');
+            btnGenererCheque.classList.add('btn-secondary');
+        }
+    }
+    
+    banqueSelect.addEventListener('change', function() {
+        const banqueId = this.value;
+        const loadingSoldes = document.getElementById('loading-soldes');
+        const noComptes = document.getElementById('no-comptes');
+        
+        const avertissementContainer = document.getElementById('avertissement-container');
+        
+        if (!banqueId) {
+            soldesContainer.style.display = 'none';
+            avertissementContainer.style.display = 'none';
+            toggleBoutonGenerer(false);
+            return;
+        }
+        
+        // Afficher un indicateur de chargement
+        soldesContainer.style.display = 'block';
+        loadingSoldes.style.display = 'block';
+        noComptes.style.display = 'none';
+        soldeCdfContainer.style.display = 'none';
+        soldeUsdContainer.style.display = 'none';
+        avertissementContainer.style.display = 'none';
+        toggleBoutonGenerer(false); // Désactiver pendant le chargement
+        
+        // Récupérer les montants du relevé depuis le template
+        const montantCdfReleve = parseFloat('{{ releve.net_a_payer_cdf }}') || 0;
+        const montantUsdReleve = parseFloat('{{ releve.net_a_payer_usd }}') || 0;
+        const releveId = '{{ releve.pk }}';
+        
+        // Récupérer les soldes via AJAX
+        fetch(`{% url 'demandes:banque_soldes_api' %}?banque_id=${banqueId}&releve_id=${releveId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la récupération des soldes');
+                }
+                return response.json();
+            })
+            .then(data => {
+                loadingSoldes.style.display = 'none';
+                
+                let hasComptes = false;
+                const avertissementContent = document.getElementById('avertissement-content');
+                
+                // Afficher le solde CDF si disponible
+                if (data.comptes && data.comptes.CDF) {
+                    const soldeCdfValue = parseFloat(data.comptes.CDF.solde);
+                    soldeCdf.textContent = formatMontant(soldeCdfValue, 'CDF');
+                    soldeCdfContainer.style.display = 'block';
+                    hasComptes = true;
+                } else {
+                    soldeCdfContainer.style.display = 'none';
+                }
+                
+                // Afficher le solde USD si disponible
+                if (data.comptes && data.comptes.USD) {
+                    const soldeUsdValue = parseFloat(data.comptes.USD.solde);
+                    soldeUsd.textContent = formatMontant(soldeUsdValue, 'USD');
+                    soldeUsdContainer.style.display = 'block';
+                    hasComptes = true;
+                } else {
+                    soldeUsdContainer.style.display = 'none';
+                }
+                
+                // Vérifier les avertissements (écarts)
+                let hasAvertissement = false;
+                if (data.avertissements && Object.keys(data.avertissements).length > 0) {
+                    hasAvertissement = true;
+                    let avertissementHtml = '<ul class="mb-0">';
+                    
+                    if (data.avertissements.CDF) {
+                        const avert = data.avertissements.CDF;
+                        const montantReleve = formatMontant(avert.montant_releve, 'CDF');
+                        const solde = formatMontant(avert.solde, 'CDF');
+                        const ecart = formatMontant(avert.ecart, 'CDF');
+                        avertissementHtml += `<li class="mb-2">
+                            <strong>CDF :</strong> Le montant du chèque (<span class="fw-bold">${montantReleve}</span>) 
+                            dépasse le solde disponible (<span class="fw-bold">${solde}</span>). 
+                            <span class="text-danger fw-bold">Écart: ${ecart}</span>
+                        </li>`;
+                    }
+                    
+                    if (data.avertissements.USD) {
+                        const avert = data.avertissements.USD;
+                        const montantReleve = formatMontant(avert.montant_releve, 'USD');
+                        const solde = formatMontant(avert.solde, 'USD');
+                        const ecart = formatMontant(avert.ecart, 'USD');
+                        avertissementHtml += `<li class="mb-2">
+                            <strong>USD :</strong> Le montant du chèque (<span class="fw-bold">${montantReleve}</span>) 
+                            dépasse le solde disponible (<span class="fw-bold">${solde}</span>). 
+                            <span class="text-danger fw-bold">Écart: ${ecart}</span>
+                        </li>`;
+                    }
+                    
+                    avertissementHtml += '</ul>';
+                    avertissementContent.innerHTML = avertissementHtml;
+                    avertissementContainer.style.display = 'block';
+                } else {
+                    avertissementContainer.style.display = 'none';
+                }
+                
+                // Activer/désactiver le bouton selon la présence d'avertissements
+                // Le bouton est activé seulement si :
+                // 1. Au moins un compte existe (hasComptes)
+                // 2. Aucun avertissement de solde insuffisant (hasAvertissement = false)
+                if (hasComptes && !hasAvertissement) {
+                    toggleBoutonGenerer(true);
+                } else {
+                    toggleBoutonGenerer(false);
+                }
+                
+                // Si aucun compte n'est disponible
+                if (!hasComptes) {
+                    noComptes.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                loadingSoldes.style.display = 'none';
+                noComptes.style.display = 'block';
+                noComptes.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Erreur lors du chargement des soldes';
+                toggleBoutonGenerer(false);
+            });
+    });
+    
+    // Fonction pour formater les montants
+    function formatMontant(montant, devise) {
+        if (isNaN(montant)) {
+            return '0,00';
+        }
+        
+        // Formater avec séparateurs de milliers (espaces) et virgule pour les décimales
+        const parts = montant.toFixed(2).split('.');
+        const partieEntiere = parts[0];
+        const partieDecimale = parts[1];
+        
+        // Ajouter des espaces comme séparateurs de milliers
+        const partieEntiereFormatee = partieEntiere.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        
+        return `${partieEntiereFormatee},${partieDecimale} ${devise}`;
+    }
+});
+</script>
+<style>
+.spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
 {% endblock %}
 

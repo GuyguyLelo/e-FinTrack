@@ -27,15 +27,39 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         try:
             return super().dispatch(request, *args, **kwargs)
         except Exception as e:
-            # Logger l'erreur pour le débogage
+            # Vérifier si c'est une erreur de session interrompue
+            is_session_error = (
+                'SessionInterrupted' in str(type(e).__name__) or
+                'session' in str(e).lower() and 'deleted' in str(e).lower() or
+                'SessionInterrupted' in str(e)
+            )
+            
+            if is_session_error:
+                logger.warning(f"Session interrompue dans DashboardView: {str(e)}")
+                # Le middleware devrait gérer cela, mais on fait un fallback ici
+                from django.http import HttpResponseRedirect
+                from django.urls import reverse
+                try:
+                    return HttpResponseRedirect(reverse('accounts:login') + '?session_expired=1')
+                except Exception:
+                    return HttpResponseRedirect('/accounts/login/?session_expired=1')
+            
+            # Logger les autres erreurs pour le débogage
             logger.error(f"Erreur dans DashboardView: {str(e)}", exc_info=True)
             # Ne pas utiliser messages ici car la session peut être déjà interrompue
             # Rediriger vers la page de login en cas d'erreur grave
             from django.contrib.auth import logout
-            logout(request)
+            try:
+                logout(request)
+            except Exception:
+                pass
             from django.shortcuts import redirect
             from django.urls import reverse
-            return redirect(reverse('accounts:login'))
+            try:
+                return redirect(reverse('accounts:login'))
+            except Exception:
+                from django.http import HttpResponseRedirect
+                return HttpResponseRedirect('/accounts/login/')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

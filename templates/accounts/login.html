@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="row justify-content-center mt-5">
-    <div class="col-md-5">
+    <div class="col-md-4 col-lg-3">
         <div class="card">
             <div class="card-header text-center">
                 <h4><i class="bi bi-box-arrow-in-right"></i> Connexion</h4>
@@ -12,6 +12,13 @@
             <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
+                    
+                    {% if session_expired %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Session expirée.</strong> Votre session a été interrompue. Veuillez vous reconnecter.
+                    </div>
+                    {% endif %}
                     
                     {% if form.errors %}
                     <div class="alert alert-danger">

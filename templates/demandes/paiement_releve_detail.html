@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load format_filters %}
 
 {% block title %}{{ title }} - e-Finance DAF{% endblock %}
 
@@ -175,7 +176,7 @@
                                 {{ releve_depense.periode }}
                             </h4>
                             <p class="mb-0">
-                                Total des dépenses: {{ releve_depense.total|floatformat:2 }} {{ releve_depense.devise }}
+                                Total des dépenses: {{ releve_depense.total|format_montant:releve_depense.devise }}
                             </p>
                         </div>
                         <div class="col-md-6 text-md-end">
@@ -185,7 +186,7 @@
                             </p>
                             <p class="mb-0">
                                 <strong>Total à payer:</strong> 
-                                {{ total_a_payer|floatformat:2 }} {{ releve_depense.devise }}
+                                {{ total_a_payer|format_montant:releve_depense.devise }}
                             </p>
                         </div>
                     </div>
@@ -201,15 +202,15 @@
                 <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Résumé des demandes</h5>
                 <div class="summary-item">
                     <span>Montant total initial:</span>
-                    <span>{{ total_initial|floatformat:2 }} {{ releve_depense.devise }}</span>
+                    <span>{{ total_initial|format_montant:releve_depense.devise }}</span>
                 </div>
                 <div class="summary-item">
                     <span>Déjà payé:</span>
-                    <span class="deja-paye">{{ total_deja_paye|floatformat:2 }} {{ releve_depense.devise }}</span>
+                    <span class="deja-paye">{{ total_deja_paye|format_montant:releve_depense.devise }}</span>
                 </div>
                 <div class="summary-item">
                     <span>Total à payer:</span>
-                    <span class="reste-a-payer">{{ total_a_payer|floatformat:2 }} {{ releve_depense.devise }}</span>
+                    <span class="reste-a-payer">{{ total_a_payer|format_montant:releve_depense.devise }}</span>
                 </div>
             </div>
         </div>
@@ -223,7 +224,7 @@
                     <p class="mb-0 mt-2">Sélectionnez les montants à payer pour chaque demande</p>
                     <button type="button" class="btn btn-payer-tout" onclick="toutPayer()">
                         <i class="fas fa-coins me-2"></i>
-                        Payer tout le reste ({{ total_a_payer|floatformat:2 }} {{ releve_depense.devise }})
+                        Payer tout le reste ({{ total_a_payer|format_montant:releve_depense.devise }})
                     </button>
                 </div>
                 
@@ -251,15 +252,15 @@
                             <div class="col-md-6">
                                 <div class="montant-row">
                                     <span class="montant-label">Montant total:</span>
-                                    <span class="montant-value">{{ demande.montant|floatformat:2 }} {{ demande.devise }}</span>
+                                    <span class="montant-value">{{ demande.montant|format_montant:demande.devise }}</span>
                                 </div>
                                 <div class="montant-row">
                                     <span class="montant-label">Déjà payé:</span>
-                                    <span class="montant-value deja-paye">{{ demande.montant_deja_paye|floatformat:2 }} {{ demande.devise }}</span>
+                                    <span class="montant-value deja-paye">{{ demande.montant_deja_paye|format_montant:demande.devise }}</span>
                                 </div>
                                 <div class="montant-row">
                                     <span class="montant-label">Reste à payer:</span>
-                                    <span class="montant-value reste-a-payer">{{ demande.reste_a_payer|floatformat:2 }} {{ demande.devise }}</span>
+                                    <span class="montant-value reste-a-payer">{{ demande.reste_a_payer|format_montant:demande.devise }}</span>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -298,7 +299,7 @@
                                     {% if demande.reste_a_payer > 0 %}
                                     <div class="alert-montant">
                                         <i class="fas fa-info-circle me-1"></i>
-                                        Maximum: {{ demande.reste_a_payer|floatformat:2 }} {{ demande.devise }}
+                                        Maximum: {{ demande.reste_a_payer|format_montant:demande.devise }}
                                     </div>
                                     {% endif %}
                                 </div>

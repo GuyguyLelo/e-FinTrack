@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load format_filters %}
 
 {% block title %}{{ title }} - e-Finance DAF{% endblock %}
 
@@ -157,7 +158,7 @@
                         </div>
                         <div class="col-md-6 text-md-end">
                             <div class="montant-paye">
-                                {{ paiement.montant_paye|floatformat:2 }} {{ paiement.devise }}
+                                {{ paiement.montant_paye|format_montant:paiement.devise }}
                             </div>
                             <p class="mb-0">Montant payé</p>
                         </div>
@@ -203,20 +204,20 @@
                         </div>
                         <div class="info-row">
                             <span class="info-label">Montant total de la demande:</span>
-                            <span class="info-value">{{ paiement.demande.montant|floatformat:2 }} {{ paiement.demande.devise }}</span>
+                            <span class="info-value">{{ paiement.demande.montant|format_montant:paiement.demande.devise }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Montant déjà payé avant:</span>
                             <span class="info-value text-success">
                                 {% with montant_avant=paiement.demande.montant_deja_paye|add:paiement.montant_paye %}
-                                    {{ montant_avant|floatformat:2 }} {{ paiement.demande.devise }}
+                                    {{ montant_avant|format_montant:paiement.demande.devise }}
                                 {% endwith %}
                             </span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Reste à payer après:</span>
                             <span class="info-value {% if paiement.demande.reste_a_payer > 0 %}text-warning{% else %}text-success{% endif %}">
-                                {{ paiement.demande.reste_a_payer|floatformat:2 }} {{ paiement.demande.devise }}
+                                {{ paiement.demande.reste_a_payer|format_montant:paiement.demande.devise }}
                             </span>
                         </div>
                         <div class="info-row">
@@ -242,7 +243,7 @@
                             <div class="col-md-6">
                                 <strong>Total des dépenses:</strong> 
                                 <span class="text-primary">
-                                    {{ paiement.releve_depense.total_depenses|floatformat:2 }} {{ paiement.devise }}
+                                    {{ paiement.releve_depense.total_depenses|format_montant:paiement.devise }}
                                 </span>
                             </div>
                             <div class="col-md-6 mt-2">
@@ -291,7 +292,7 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">Montant payé:</span>
-                    <span class="info-value montant-paye">{{ paiement.montant_paye|floatformat:2 }} {{ paiement.devise }}</span>
+                    <span class="info-value montant-paye">{{ paiement.montant_paye|format_montant:paiement.devise }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">Devise:</span>
@@ -322,7 +323,7 @@
                     <h6 class="text-warning">Demande partiellement payée</h6>
                     {% endif %}
                     <p class="mb-0">
-                        {{ paiement.demande.montant_deja_paye|floatformat:2 }} / {{ paiement.demande.montant|floatformat:2 }} {{ paiement.demande.devise }}
+                        {{ paiement.demande.montant_deja_paye|format_montant:paiement.demande.devise }} / {{ paiement.demande.montant|format_montant:paiement.demande.devise }}
                     </p>
                     <div class="progress mt-2" style="height: 20px;">
                         <div class="progress-bar bg-{% if paiement.demande.reste_a_payer <= 0 %}success{% else %}warning{% endif %}" 

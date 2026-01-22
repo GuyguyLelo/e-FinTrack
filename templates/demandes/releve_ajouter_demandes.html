@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load format_filters %}
 
 {% block title %}Ajouter des demandes au relevé {{ releve.numero }}{% endblock %}
 
@@ -23,13 +24,13 @@
                         <div class="col-md-3">
                             <div class="bg-light p-3 rounded">
                                 <small class="text-muted">Montant CDF</small>
-                                <h5 class="mb-0">{{ releve.montant_cdf|floatformat:2 }}</h5>
+                                <h5 class="mb-0">{{ releve.montant_cdf|format_montant:"CDF" }}</h5>
                             </div>
                         </div>
                         <div class="col-md-3">
                             <div class="bg-light p-3 rounded">
                                 <small class="text-muted">Montant USD</small>
-                                <h5 class="mb-0">{{ releve.montant_usd|floatformat:2 }}</h5>
+                                <h5 class="mb-0">{{ releve.montant_usd|format_montant:"USD" }}</h5>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -67,7 +68,7 @@
                                         <td>{{ demande.reference }}</td>
                                         <td>{{ demande.service_demandeur.nom_service }}</td>
                                         <td>{{ demande.description|truncatechars:50 }}</td>
-                                        <td class="text-end">{{ demande.montant|floatformat:2 }}</td>
+                                        <td class="text-end">{{ demande.montant|format_montant:demande.devise }}</td>
                                         <td>{{ demande.devise }}</td>
                                     </tr>
                                     {% endfor %}
@@ -116,7 +117,7 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ demande.description|truncatechars:60 }}</td>
-                                        <td class="text-end fw-bold">{{ demande.montant|floatformat:2 }}</td>
+                                        <td class="text-end fw-bold">{{ demande.montant|format_montant:demande.devise }}</td>
                                         <td>
                                             <span class="badge {% if demande.devise == 'USD' %}bg-primary{% else %}bg-success{% endif %}">
                                                 {{ demande.devise }}

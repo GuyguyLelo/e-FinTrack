@@ -45,6 +45,8 @@ class CompteBancaireForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.form_tag = True
         self.helper.layout = Layout(
             Row(
                 Column('banque', css_class='col-md-6'),
@@ -61,4 +63,47 @@ class CompteBancaireForm(forms.ModelForm):
             'actif',
             Submit('submit', 'Enregistrer', css_class='btn btn-primary')
         )
+    
+    def clean_numero_compte(self):
+        """Valider l'unicité du numéro de compte"""
+        numero_compte = self.cleaned_data.get('numero_compte')
+        
+        if numero_compte:
+            # Vérifier l'unicité globale de numero_compte (unique=True dans le modèle)
+            queryset = CompteBancaire.objects.filter(numero_compte=numero_compte)
+            
+            # Exclure l'instance actuelle si on est en mode modification
+            if self.instance and self.instance.pk:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            
+            if queryset.exists():
+                raise forms.ValidationError(
+                    f'Un compte avec le numéro "{numero_compte}" existe déjà.'
+                )
+        
+        return numero_compte
+    
+    def clean(self):
+        """Validation globale du formulaire pour vérifier unique_together"""
+        cleaned_data = super().clean()
+        numero_compte = cleaned_data.get('numero_compte')
+        banque = cleaned_data.get('banque')
+        
+        # Vérifier la contrainte unique_together (banque, numero_compte)
+        if numero_compte and banque:
+            queryset = CompteBancaire.objects.filter(
+                banque=banque,
+                numero_compte=numero_compte
+            )
+            
+            # Exclure l'instance actuelle si on est en mode modification
+            if self.instance and self.instance.pk:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            
+            if queryset.exists():
+                raise forms.ValidationError({
+                    'numero_compte': f'Un compte avec le numéro "{numero_compte}" existe déjà pour cette banque "{banque.nom_banque}".'
+                })
+        
+        return cleaned_data
 

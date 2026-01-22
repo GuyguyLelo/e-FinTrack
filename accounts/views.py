@@ -12,6 +12,13 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 class LoginView(BaseLoginView):
     template_name = 'accounts/login.html'
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Vérifier si la session a expiré
+        if self.request.GET.get('session_expired'):
+            context['session_expired'] = True
+        return context
+    
     def form_valid(self, form):
         username = form.cleaned_data.get('username')
         password = form.cleaned_data.get('password')

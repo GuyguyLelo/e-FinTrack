@@ -28,7 +28,7 @@
         <div class="card bg-primary text-white">
             <div class="card-body">
                 <h5 class="card-title">Montant USD</h5>
-                <h3>{{ montant_usd|floatformat:2 }}</h3>
+                <h3>{{ montant_usd|format_montant:"USD" }}</h3>
             </div>
         </div>
     </div>
@@ -36,7 +36,7 @@
         <div class="card bg-success text-white">
             <div class="card-body">
                 <h5 class="card-title">Montant CDF</h5>
-                <h3>{{ montant_cdf|floatformat:2 }}</h3>
+                <h3>{{ montant_cdf|format_montant:"CDF" }}</h3>
             </div>
         </div>
     </div>
@@ -44,7 +44,7 @@
         <div class="card bg-warning text-white">
             <div class="card-body">
                 <h5 class="card-title">IPR (3%)</h5>
-                <h3>{{ ipr_cdf|add:ipr_usd|floatformat:2 }}</h3>
+                <h3>{% if ipr_cdf %}{{ ipr_cdf|format_montant:"CDF" }}{% endif %}{% if ipr_cdf and ipr_usd %} / {% endif %}{% if ipr_usd %}{{ ipr_usd|format_montant:"USD" }}{% endif %}</h3>
             </div>
         </div>
     </div>
@@ -52,7 +52,7 @@
         <div class="card bg-info text-white">
             <div class="card-body">
                 <h5 class="card-title">Net à payer</h5>
-                <h3>{{ net_a_payer_cdf|add:net_a_payer_usd|floatformat:2 }}</h3>
+                <h3>{% if net_a_payer_cdf %}{{ net_a_payer_cdf|format_montant:"CDF" }}{% endif %}{% if net_a_payer_cdf and net_a_payer_usd %} / {% endif %}{% if net_a_payer_usd %}{{ net_a_payer_usd|format_montant:"USD" }}{% endif %}</h3>
             </div>
         </div>
     </div>
@@ -81,7 +81,7 @@
                         <td><strong>{{ demande.reference }}</strong></td>
                         <td>{{ demande.service_demandeur.nom_service }}</td>
                         <td>{{ demande.description|truncatewords:15 }}</td>
-                        <td class="text-end"><strong>{{ demande.montant|floatformat:2 }}</strong></td>
+                        <td class="text-end"><strong>{{ demande.montant|format_montant:demande.devise }}</strong></td>
                         <td>
                             <span class="badge {% if demande.devise == 'USD' %}bg-primary{% else %}bg-success{% endif %}">
                                 {{ demande.devise }}
@@ -180,9 +180,9 @@
                             <div class="card-body text-center">
                                 <h6 class="card-title text-success">Montant total</h6>
                                 <h5 class="text-success mb-0">
-                                    {% if montant_cdf > 0 %}{{ montant_cdf|floatformat:0 }} CDF{% endif %}
+                                    {% if montant_cdf > 0 %}{{ montant_cdf|format_montant:"CDF" }}{% endif %}
                                     {% if montant_usd > 0 and montant_cdf > 0 %}<br>{% endif %}
-                                    {% if montant_usd > 0 %}{{ montant_usd|floatformat:2 }} USD{% endif %}
+                                    {% if montant_usd > 0 %}{{ montant_usd|format_montant:"USD" }}{% endif %}
                                 </h5>
                             </div>
                         </div>

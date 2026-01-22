@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load format_filters %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -15,8 +16,8 @@
                         <h5><i class="fas fa-info-circle me-2"></i>Informations de la recette</h5>
                         <p><strong>Référence:</strong> {{ recette.reference }}</p>
                         <p><strong>Date d'encaissement:</strong> {{ recette.date_encaissement|date:"d/m/Y" }}</p>
-                        <p><strong>Montant USD:</strong> {{ recette.montant_usd|floatformat:2 }} USD</p>
-                        <p><strong>Montant CDF:</strong> {{ recette.montant_cdf|floatformat:2 }} CDF</p>
+                        <p><strong>Montant USD:</strong> {{ recette.montant_usd|format_montant:"USD" }}</p>
+                        <p><strong>Montant CDF:</strong> {{ recette.montant_cdf|format_montant:"CDF" }}</p>
                         <p><strong>Description:</strong> {{ recette.description }}</p>
                         <p><strong>Source:</strong> {{ recette.get_source_recette_display }}</p>
                         <p><strong>Compte bancaire:</strong> {{ recette.compte_bancaire.intitule }}</p>

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load format_filters %}
 
 {% block title %}{{ title }} - e-Finance DAF{% endblock %}
 
@@ -167,7 +168,7 @@
                             
                             <td>
                                 <span class="montant text-success">
-                                    {{ paiement.montant_paye|floatformat:2 }} {{ paiement.devise }}
+                                    {{ paiement.montant_paye|format_montant:paiement.devise }}
                                 </span>
                             </td>
                             

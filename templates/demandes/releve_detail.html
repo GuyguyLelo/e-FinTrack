@@ -75,24 +75,24 @@
                         <tbody>
                             <tr>
                                 <td><strong>Montant CDF</strong></td>
-                                <td class="text-end"><strong class="text-success">{{ releve.montant_cdf|floatformat:0 }}</strong></td>
+                                <td class="text-end"><strong class="text-success">{{ releve.montant_cdf|format_montant:"CDF" }}</strong></td>
                             </tr>
                             <tr>
                                 <td><strong>Montant USD</strong></td>
-                                <td class="text-end"><strong class="text-primary">{{ releve.montant_usd|floatformat:2 }}</strong></td>
+                                <td class="text-end"><strong class="text-primary">{{ releve.montant_usd|format_montant:"USD" }}</strong></td>
                             </tr>
                             <tr class="border-top">
                                 <td><strong>IPR (3%)</strong></td>
                                 <td class="text-end">
-                                    <span class="text-warning">{{ releve.ipr_cdf|floatformat:0 }} CDF</span><br>
-                                    <span class="text-warning">{{ releve.ipr_usd|floatformat:2 }} USD</span>
+                                    <span class="text-warning">{{ releve.ipr_cdf|format_montant:"CDF" }}</span><br>
+                                    <span class="text-warning">{{ releve.ipr_usd|format_montant:"USD" }}</span>
                                 </td>
                             </tr>
                             <tr class="border-top">
                                 <td><strong>Net à payer</strong></td>
                                 <td class="text-end">
-                                    <span class="text-success">{{ releve.net_a_payer_cdf|floatformat:0 }} CDF</span><br>
-                                    <span class="text-primary">{{ releve.net_a_payer_usd|floatformat:2 }} USD</span>
+                                    <span class="text-success">{{ releve.net_a_payer_cdf|format_montant:"CDF" }}</span><br>
+                                    <span class="text-primary">{{ releve.net_a_payer_usd|format_montant:"USD" }}</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -136,7 +136,7 @@
                         <td>{{ demande.description|truncatewords:10 }}</td>
                         <td class="text-end">
                             <strong class="{% if demande.devise == 'CDF' %}text-success{% else %}text-primary{% endif %}">
-                                {{ demande.montant|floatformat:2 }} {{ demande.devise }}
+                                {{ demande.montant|format_montant:demande.devise }}
                             </strong>
                         </td>
                         <td>
@@ -170,9 +170,9 @@
                             {% regroup releve.demandes.all by devise as demandes_par_devise %}
                             {% for devise_group in demandes_par_devise %}
                                 {% if devise_group.grouper == 'CDF' %}
-                                    <span class="text-success">{{ devise_group.list|sum_attr:'montant'|floatformat:0 }} CDF</span>
+                                    <span class="text-success">{{ devise_group.list|sum_attr:'montant'|format_montant:"CDF" }}</span>
                                 {% elif devise_group.grouper == 'USD' %}
-                                    <span class="text-primary">{{ devise_group.list|sum_attr:'montant'|floatformat:2 }} USD</span>
+                                    <span class="text-primary">{{ devise_group.list|sum_attr:'montant'|format_montant:"USD" }}</span>
                                 {% endif %}
                                 {% if not forloop.last %}<br>{% endif %}
                             {% endfor %}

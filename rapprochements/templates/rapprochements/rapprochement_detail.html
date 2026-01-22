@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load format_filters %}
 
 {% block title %}Détail Rapprochement - e-Finance DAF{% endblock %}
 
@@ -50,20 +51,20 @@
                     </tr>
                     <tr>
                         <th>Solde Banque</th>
-                        <td><strong class="text-primary">{{ rapprochement.solde_banque|floatformat:2 }} {{ rapprochement.devise }}</strong></td>
+                        <td><strong class="text-primary">{{ rapprochement.solde_banque|format_montant:rapprochement.devise }}</strong></td>
                     </tr>
                     <tr>
                         <th>Solde Interne</th>
-                        <td><strong class="text-info">{{ rapprochement.solde_interne|floatformat:2 }} {{ rapprochement.devise }}</strong></td>
+                        <td><strong class="text-info">{{ rapprochement.solde_interne|format_montant:rapprochement.devise }}</strong></td>
                     </tr>
                     <tr>
                         <th>Écart</th>
                         <td>
                             {% if rapprochement.ecart == 0 %}
-                            <span class="badge bg-success">{{ rapprochement.ecart|floatformat:2 }} {{ rapprochement.devise }}</span>
+                            <span class="badge bg-success">{{ rapprochement.ecart|format_montant:rapprochement.devise }}</span>
                             {% else %}
                             <span class="badge {% if rapprochement.ecart > 0 %}bg-warning{% else %}bg-danger{% endif %}">
-                                {{ rapprochement.ecart|floatformat:2 }} {{ rapprochement.devise }}
+                                {{ rapprochement.ecart|format_montant:rapprochement.devise }}
                             </span>
                             {% endif %}
                         </td>

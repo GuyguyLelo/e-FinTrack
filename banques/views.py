@@ -54,6 +54,17 @@ class CompteBancaireUpdateView(LoginRequiredMixin, UpdateView):
     form_class = CompteBancaireForm
     template_name = 'banques/compte_form.html'
     success_url = reverse_lazy('banques:comptes_liste')
+    
+    def form_valid(self, form):
+        """Gérer la validation du formulaire lors de la modification"""
+        # Sauvegarder le formulaire (cela met à jour l'objet)
+        response = super().form_valid(form)
+        
+        # Si le solde_initial a changé et que le solde_courant n'a jamais été modifié manuellement,
+        # on peut optionnellement mettre à jour le solde_courant
+        # Mais ici, on garde le solde_courant tel quel car il peut avoir été modifié par des opérations
+        
+        return response
 
 
 class CompteBancaireDetailView(LoginRequiredMixin, DetailView):

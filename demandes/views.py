@@ -22,7 +22,7 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense, NatureEconomique, Cheque, Paiement
 from accounts.models import Service
-from banques.models import Banque
+from banques.models import Banque, CompteBancaire
 from releves.models import ReleveBancaire
 from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
 
@@ -1227,11 +1227,96 @@ class ReleveDepenseListCreatedView(LoginRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        """Récupérer tous les relevés créés"""
+        """Récupérer les relevés créés avec filtres"""
         queryset = ReleveDepense.objects.select_related(
             'valide_par', 'depenses_validees_par'
         ).prefetch_related('demandes', 'cheque')
+        
+        # Filtre par recherche (numéro de relevé)
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(numero__icontains=search) |
+                Q(observation__icontains=search)
+            )
+        
+        # Filtre par période (date de création)
+        date_debut = self.request.GET.get('date_debut')
+        date_fin = self.request.GET.get('date_fin')
+        if date_debut:
+            try:
+                from datetime import datetime
+                date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_creation__date__gte=date_debut_obj)
+            except (ValueError, TypeError):
+                pass
+        if date_fin:
+            try:
+                from datetime import datetime
+                date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date()
+                queryset = queryset.filter(date_creation__date__lte=date_fin_obj)
+            except (ValueError, TypeError):
+                pass
+        
+        # Filtre par année et mois (basé sur la période du relevé)
+        annee = self.request.GET.get('annee')
+        mois = self.request.GET.get('mois')
+        if annee:
+            try:
+                annee_int = int(annee)
+                queryset = queryset.filter(periode__year=annee_int)
+                if mois:
+                    try:
+                        mois_int = int(mois)
+                        queryset = queryset.filter(periode__month=mois_int)
+                    except (ValueError, TypeError):
+                        pass
+            except (ValueError, TypeError):
+                pass
+        
+        # Filtre par validé par (utilisateur)
+        valide_par = self.request.GET.get('valide_par')
+        if valide_par:
+            try:
+                queryset = queryset.filter(valide_par_id=valide_par)
+            except (ValueError, TypeError):
+                pass
+        
+        # Filtre par devise (montant > 0)
+        devise = self.request.GET.get('devise')
+        if devise == 'CDF':
+            queryset = queryset.filter(montant_cdf__gt=0)
+        elif devise == 'USD':
+            queryset = queryset.filter(montant_usd__gt=0)
+        
         return queryset.order_by('-date_creation')
+    
+    def get_context_data(self, **kwargs):
+        """Ajouter les données de contexte pour les filtres"""
+        context = super().get_context_data(**kwargs)
+        
+        # Récupérer les années disponibles (basées sur periode)
+        annees = ReleveDepense.objects.exclude(periode__isnull=True).values_list('periode__year', flat=True).distinct().order_by('-periode__year')
+        context['annees'] = list(annees)
+        
+        # Liste des utilisateurs ayant validé des relevés
+        from accounts.models import User
+        context['validateurs'] = User.objects.filter(
+            releves_depense_valides__isnull=False
+        ).distinct().order_by('username')
+        
+        # Paramètres de filtrage actuels
+        context['filtres'] = {
+            'search': self.request.GET.get('search', ''),
+            'date_debut': self.request.GET.get('date_debut', ''),
+            'date_fin': self.request.GET.get('date_fin', ''),
+            'annee': self.request.GET.get('annee', ''),
+            'mois': self.request.GET.get('mois', ''),
+            'valide_par': self.request.GET.get('valide_par', ''),
+            'devise': self.request.GET.get('devise', ''),
+        }
+        
+        return context
     
     def dispatch(self, request, *args, **kwargs):
         """Gérer la requête avec gestion d'erreur pour éviter les problèmes de session"""
@@ -1530,6 +1615,64 @@ class ChequePDFView(LoginRequiredMixin, View):
         # Construire le PDF
         doc.build(elements)
         return response
+
+
+class BanqueSoldesView(LoginRequiredMixin, View):
+    """Vue AJAX pour récupérer les soldes des comptes bancaires d'une banque et comparer avec les montants du relevé"""
+    
+    def get(self, request, *args, **kwargs):
+        banque_id = request.GET.get('banque_id')
+        releve_id = request.GET.get('releve_id')
+        
+        if not banque_id:
+            return JsonResponse({'error': 'banque_id requis'}, status=400)
+        
+        try:
+            banque = Banque.objects.get(pk=banque_id, active=True)
+        except Banque.DoesNotExist:
+            return JsonResponse({'error': 'Banque introuvable'}, status=404)
+        
+        # Récupérer les montants du relevé si fourni
+        montant_cdf_releve = None
+        montant_usd_releve = None
+        if releve_id:
+            try:
+                releve = ReleveDepense.objects.get(pk=releve_id)
+                montant_cdf_releve = float(releve.net_a_payer_cdf)
+                montant_usd_releve = float(releve.net_a_payer_usd)
+            except ReleveDepense.DoesNotExist:
+                pass
+        
+        # Récupérer les comptes actifs de la banque
+        comptes = CompteBancaire.objects.filter(banque=banque, actif=True).order_by('devise')
+        
+        soldes = {
+            'banque': banque.nom_banque,
+            'comptes': {},
+            'avertissements': {}
+        }
+        
+        for compte in comptes:
+            solde = float(compte.solde_courant)
+            montant_releve = montant_cdf_releve if compte.devise == 'CDF' else montant_usd_releve
+            
+            soldes['comptes'][compte.devise] = {
+                'solde': solde,
+                'intitule': compte.intitule_compte,
+                'numero_compte': compte.numero_compte
+            }
+            
+            # Vérifier si le montant du relevé dépasse le solde
+            if montant_releve is not None and montant_releve > 0:
+                if solde < montant_releve:
+                    ecart = montant_releve - solde
+                    soldes['avertissements'][compte.devise] = {
+                        'montant_releve': montant_releve,
+                        'solde': solde,
+                        'ecart': ecart
+                    }
+        
+        return JsonResponse(soldes)
 
 
 class ReleveDepenseValiderDepensesView(LoginRequiredMixin, View):

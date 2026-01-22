@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'efinance_daf.middleware.SessionInterruptedMiddleware',  # Gestion gracieuse des sessions interrompues (juste après SessionMiddleware)
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -174,8 +175,12 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
 
 # Session settings
-SESSION_COOKIE_AGE = 3600  # 1 hour
+SESSION_COOKIE_AGE = 3600  # 1 hour (en secondes)
 SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_SECURE = False  # True en production avec HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # La session persiste après fermeture du navigateur
 
 # Email settings (configure for production)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
