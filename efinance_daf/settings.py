@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     'demandes',
     'recettes',
     'releves',
-    'rapprochements',
     'rapports',
 ]
 

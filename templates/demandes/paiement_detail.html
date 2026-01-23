@@ -243,7 +243,11 @@
                             <div class="col-md-6">
                                 <strong>Total des dépenses:</strong> 
                                 <span class="text-primary">
-                                    {{ paiement.releve_depense.total_depenses|format_montant:paiement.devise }}
+                                    {% if paiement.devise == 'USD' %}
+                                        {{ paiement.releve_depense.net_a_payer_usd|format_montant:'USD' }}
+                                    {% else %}
+                                        {{ paiement.releve_depense.net_a_payer_cdf|format_montant:'CDF' }}
+                                    {% endif %}
                                 </span>
                             </div>
                             <div class="col-md-6 mt-2">

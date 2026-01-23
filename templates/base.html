@@ -212,9 +212,6 @@
                     <a class="nav-link {% if request.resolver_match.app_name == 'releves' %}active{% endif %}" href="{% url 'releves:liste' %}">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Relevés bancaires
                     </a>
-                    <a class="nav-link {% if request.resolver_match.app_name == 'rapprochements' %}active{% endif %}" href="{% url 'rapprochements:liste' %}">
-                        <i class="bi bi-arrow-left-right"></i> Rapprochements
-                    </a>
                     <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:consolide' %}">
                         <i class="bi bi-graph-up"></i> Rapports consolidés
                     </a>

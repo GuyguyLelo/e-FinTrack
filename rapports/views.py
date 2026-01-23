@@ -13,7 +13,6 @@ from banques.models import Banque, CompteBancaire
 from demandes.models import DemandePaiement, ReleveDepense, Depense, Paiement, Paiement
 from recettes.models import Recette
 from releves.models import ReleveBancaire, MouvementBancaire
-from rapprochements.models import RapprochementBancaire
 
 logger = logging.getLogger(__name__)
 
@@ -139,10 +138,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             # Relevés bancaires
             context['releves_valides'] = ReleveBancaire.objects.filter(valide=True).count()
             context['releves_en_attente'] = ReleveBancaire.objects.filter(valide=False).count()
-            
-            # Rapprochements
-            context['rapprochements_valides'] = RapprochementBancaire.objects.filter(valide=True).count()
-            context['rapprochements_en_attente'] = RapprochementBancaire.objects.filter(valide=False).count()
             
             # Graphiques - Données pour les 12 derniers mois
             mois_list = []

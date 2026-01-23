@@ -60,7 +60,13 @@
                     </div>
                     <div class="col-md-4">
                         <strong>Total Dépenses:</strong> 
-                        <span class="text-danger">{{ releve.total_depenses|format_montant:releve.devise }}</span>
+                        <span class="text-danger">
+                            {% if releve.devise == 'USD' %}
+                                {{ releve.net_a_payer_usd|format_montant:'USD' }}
+                            {% else %}
+                                {{ releve.net_a_payer_cdf|format_montant:'CDF' }}
+                            {% endif %}
+                        </span>
                     </div>
                     <div class="col-md-4">
                         <strong>Solde:</strong> 

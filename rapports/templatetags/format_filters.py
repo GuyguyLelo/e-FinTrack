@@ -14,7 +14,7 @@ def format_montant(value, devise=''):
     Exemple: 1234567.89 -> "1 234 567,89"
     Format français : espaces pour milliers, virgule pour décimales
     """
-    if value is None:
+    if value is None or value == '':
         return "0,00"
     
     try:
@@ -22,6 +22,10 @@ def format_montant(value, devise=''):
         if isinstance(value, (int, float)):
             value = Decimal(str(value))
         elif isinstance(value, str):
+            # Nettoyer la chaîne avant conversion
+            value = value.strip().replace(',', '.').replace(' ', '')
+            if not value:
+                return "0,00"
             value = Decimal(value)
         elif isinstance(value, Decimal):
             pass  # Déjà un Decimal
@@ -48,8 +52,9 @@ def format_montant(value, devise=''):
         if devise:
             return f"{formatted} {devise}"
         return formatted
-    except (ValueError, TypeError, AttributeError):
-        return str(value) if value else "0,00"
+    except (ValueError, TypeError, AttributeError, Exception) as e:
+        # En cas d'erreur, retourner une valeur par défaut
+        return "0,00"
 
 
 @register.filter(name='format_montant_simple')

@@ -36,7 +36,13 @@
                         <td>{{ releve.compte_bancaire.intitule_compte }}</td>
                         <td>{{ releve.periode_debut|date:"d/m/Y" }} - {{ releve.periode_fin|date:"d/m/Y" }}</td>
                         <td class="text-success"><strong>+{{ releve.total_recettes|format_montant:releve.devise }}</strong></td>
-                        <td class="text-danger"><strong>-{{ releve.total_depenses|format_montant:releve.devise }}</strong></td>
+                        <td class="text-danger"><strong>
+                            {% if releve.devise == 'USD' %}
+                                -{{ releve.net_a_payer_usd|format_montant:'USD' }}
+                            {% else %}
+                                -{{ releve.net_a_payer_cdf|format_montant:'CDF' }}
+                            {% endif %}
+                        </strong></td>
                         <td><strong>{{ releve.solde_banque|format_montant:releve.devise }}</strong></td>
                         <td>
                             {% if releve.valide %}
