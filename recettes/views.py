@@ -160,11 +160,13 @@ class RecetteValidationView(LoginRequiredMixin, DetailView):
     def post(self, request, *args, **kwargs):
         recette = self.get_object()
         if not recette.valide:
+            # Marquer la recette comme validée
             recette.valide = True
             recette.valide_par = request.user
             recette.date_validation = timezone.now()
+            # Sauvegarder - cela déclenchera automatiquement la mise à jour du solde dans le modèle
             recette.save()
-            messages.success(request, 'Recette validée avec succès!')
+            messages.success(request, 'Recette validée avec succès! Le solde du compte bancaire a été mis à jour.')
         else:
             messages.info(request, 'Cette recette est déjà validée.')
         

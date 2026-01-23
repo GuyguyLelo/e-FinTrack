@@ -22,6 +22,7 @@
                         <th>Numéro</th>
                         <th>Devise</th>
                         <th>Solde courant</th>
+                        <th>Date solde</th>
                         <th>Statut</th>
                         <th>Actions</th>
                     </tr>
@@ -34,6 +35,13 @@
                         <td>{{ compte.numero_compte }}</td>
                         <td><span class="badge bg-info">{{ compte.devise }}</span></td>
                         <td><strong>{{ compte.solde_courant|format_montant:compte.devise }}</strong></td>
+                        <td>
+                            {% if compte.date_solde_courant %}
+                            <small class="text-muted">{{ compte.date_solde_courant|date:"d/m/Y H:i" }}</small>
+                            {% else %}
+                            <small class="text-muted">-</small>
+                            {% endif %}
+                        </td>
                         <td>
                             {% if compte.actif %}
                             <span class="badge bg-success">Actif</span>
@@ -52,7 +60,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted">Aucun compte bancaire enregistré</td>
+                        <td colspan="8" class="text-center text-muted">Aucun compte bancaire enregistré</td>
                     </tr>
                     {% endfor %}
                 </tbody>

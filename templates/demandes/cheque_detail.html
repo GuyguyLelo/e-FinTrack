@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Détails du Chèque - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-credit-card"></i> Détails du Chèque</h2>
+        <p class="mb-0 text-muted">Chèque {{ cheque.numero_cheque }}</p>
+    </div>
+    <div>
+        <a href="{% url 'demandes:releves_crees_liste' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Retour à la liste
+        </a>
+        <a href="{% url 'demandes:cheque_pdf' %}?releve_id={{ cheque.releve_depense.pk }}&banque_id={{ cheque.banque.pk }}" class="btn btn-primary" target="_blank">
+            <i class="bi bi-printer"></i> Imprimer le chèque
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informations du chèque</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tbody>
+                        <tr>
+                            <th width="30%">Numéro de chèque</th>
+                            <td><strong class="text-primary">{{ cheque.numero_cheque }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Relevé de dépense</th>
+                            <td>
+                                <a href="{% url 'demandes:releve_detail' cheque.releve_depense.pk %}" class="text-decoration-none">
+                                    <span class="badge bg-info">{{ cheque.releve_depense.numero }}</span>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Banque</th>
+                            <td><strong>{{ cheque.banque.nom_banque }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Statut</th>
+                            <td>
+                                {% if cheque.statut == 'GENERE' %}
+                                <span class="badge bg-secondary">{{ cheque.get_statut_display }}</span>
+                                {% elif cheque.statut == 'EMIS' %}
+                                <span class="badge bg-warning">{{ cheque.get_statut_display }}</span>
+                                {% elif cheque.statut == 'ENCAISSE' %}
+                                <span class="badge bg-success">{{ cheque.get_statut_display }}</span>
+                                {% elif cheque.statut == 'ANNULE' %}
+                                <span class="badge bg-danger">{{ cheque.get_statut_display }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ cheque.get_statut_display }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Montant CDF</th>
+                            <td>
+                                {% if cheque.montant_cdf > 0 %}
+                                <strong class="text-success fs-5">{{ cheque.montant_cdf|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Montant USD</th>
+                            <td>
+                                {% if cheque.montant_usd > 0 %}
+                                <strong class="text-primary fs-5">{{ cheque.montant_usd|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if cheque.beneficiaire %}
+                        <tr>
+                            <th>Bénéficiaire</th>
+                            <td>{{ cheque.beneficiaire }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if cheque.date_emission %}
+                        <tr>
+                            <th>Date d'émission</th>
+                            <td>{{ cheque.date_emission|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if cheque.date_encaissement %}
+                        <tr>
+                            <th>Date d'encaissement</th>
+                            <td>{{ cheque.date_encaissement|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if cheque.observation %}
+                        <tr>
+                            <th>Observation</th>
+                            <td>{{ cheque.observation|linebreaks }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Créé par</th>
+                            <td>{{ cheque.cree_par.get_full_name|default:cheque.cree_par.username }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date de création</th>
+                            <td>{{ cheque.date_creation|date:"d/m/Y à H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Dernière modification</th>
+                            <td>{{ cheque.date_modification|date:"d/m/Y à H:i" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Informations du relevé</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless">
+                    <tbody>
+                        <tr>
+                            <th>Numéro</th>
+                            <td>
+                                <a href="{% url 'demandes:releve_detail' cheque.releve_depense.pk %}" class="text-decoration-none">
+                                    {{ cheque.releve_depense.numero }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Période</th>
+                            <td>{{ cheque.releve_depense.periode|date:"d/m/Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Nombre de demandes</th>
+                            <td><span class="badge bg-info">{{ cheque.releve_depense.demandes.count }}</span></td>
+                        </tr>
+                        <tr>
+                            <th>Montant total CDF</th>
+                            <td>
+                                {% if cheque.releve_depense.montant_cdf > 0 %}
+                                <strong class="text-success">{{ cheque.releve_depense.montant_cdf|format_montant:"CDF" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Montant total USD</th>
+                            <td>
+                                {% if cheque.releve_depense.montant_usd > 0 %}
+                                <strong class="text-primary">{{ cheque.releve_depense.montant_usd|format_montant:"USD" }}</strong>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

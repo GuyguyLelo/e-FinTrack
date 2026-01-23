@@ -13,7 +13,7 @@
     <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted">Solde USD</h6>
+                <h6 class="text-muted">Solde USD (Consolidé)</h6>
                 <div class="stat-value">{{ solde_consolide_usd|default:0|format_montant_simple }} USD</div>
             </div>
         </div>
@@ -21,7 +21,7 @@
     <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body">
-                <h6 class="text-muted">Solde CDF</h6>
+                <h6 class="text-muted">Solde CDF (Consolidé)</h6>
                 <div class="stat-value">{{ solde_consolide_cdf|default:0|format_montant_simple }} CDF</div>
             </div>
         </div>
@@ -70,16 +70,16 @@
     <div class="col-md-3">
         <div class="card">
             <div class="card-body text-center">
-                <h5>{{ releves_en_attente }}</h5>
-                <p class="text-muted mb-0">Relevés en attente</p>
+                <h5>{{ demandes_validees }}</h5>
+                <p class="text-muted mb-0">Demandes validées</p>
             </div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="card">
             <div class="card-body text-center">
-                <h5>{{ rapprochements_en_attente }}</h5>
-                <p class="text-muted mb-0">Rapprochements en attente</p>
+                <h5>{{ releves_en_attente }}</h5>
+                <p class="text-muted mb-0">Relevés en attente</p>
             </div>
         </div>
     </div>
@@ -91,7 +91,7 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5><i class="bi bi-table"></i> Détail des Soldes par Banque</h5>
+                <h5><i class="bi bi-table"></i> Détail des Soldes par Banque (Tableau)</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -168,167 +168,16 @@
     </div>
 </div>
 
-<!-- Tableaux Recettes et Dépenses -->
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="bi bi-cash-coin"></i> Recettes Récentes</h5>
-                <a href="{% url 'recettes:liste' %}" class="btn btn-sm btn-outline-primary">
-                    Voir tout <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Référence</th>
-                                <th>Date</th>
-                                <th>Banque</th>
-                                <th class="text-end">CDF</th>
-                                <th class="text-end">USD</th>
-                                <th>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for recette in recettes_recentes %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'recettes:detail' recette.pk %}" class="text-decoration-none">
-                                        <strong>{{ recette.reference }}</strong>
-                                    </a>
-                                </td>
-                                <td>{{ recette.date_encaissement|date:"d/m/Y" }}</td>
-                                <td>
-                                    {% if recette.banque %}
-                                    <span class="badge bg-info">{{ recette.banque.nom_banque|truncatechars:15 }}</span>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    {% if recette.montant_cdf > 0 %}
-                                    <span class="text-success">{{ recette.montant_cdf|format_montant:"CDF" }}</span>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    {% if recette.montant_usd > 0 %}
-                                    <span class="text-primary">{{ recette.montant_usd|format_montant:"USD" }}</span>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if recette.valide %}
-                                    <span class="badge bg-success">Validée</span>
-                                    {% else %}
-                                    <span class="badge bg-warning">En attente</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-3">
-                                    <i class="bi bi-inbox"></i> Aucune recette
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5><i class="bi bi-list-ul"></i> Dépenses Récentes</h5>
-                <a href="{% url 'demandes:depenses_liste' %}" class="btn btn-sm btn-outline-primary">
-                    Voir tout <i class="bi bi-arrow-right"></i>
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Code</th>
-                                <th>Date</th>
-                                <th>Banque</th>
-                                <th class="text-end">CDF</th>
-                                <th class="text-end">USD</th>
-                                <th>Libellé</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for depense in depenses_recentes %}
-                            <tr>
-                                <td>
-                                    <a href="{% url 'demandes:depense_detail' depense.pk %}" class="text-decoration-none">
-                                        <strong>{{ depense.code_depense|truncatechars:10 }}</strong>
-                                    </a>
-                                </td>
-                                <td>
-                                    {% if depense.date_depense %}
-                                    {{ depense.date_depense|date:"d/m/Y" }}
-                                    {% elif depense.annee and depense.mois %}
-                                    {{ depense.mois }}/{{ depense.annee }}
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if depense.banque %}
-                                    <span class="badge bg-info">{{ depense.banque.nom_banque|truncatechars:15 }}</span>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    {% if depense.montant_fc > 0 %}
-                                    <span class="text-success">{{ depense.montant_fc|format_montant:"CDF" }}</span>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-end">
-                                    {% if depense.montant_usd > 0 %}
-                                    <span class="text-primary">{{ depense.montant_usd|format_montant:"USD" }}</span>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="text-muted" title="{{ depense.libelle_depenses }}">
-                                        {{ depense.libelle_depenses|truncatewords:5 }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-3">
-                                    <i class="bi bi-inbox"></i> Aucune dépense
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Graphique Recettes et Dépenses
-const ctx1 = document.getElementById('chartRecettesDepenses').getContext('2d');
-new Chart(ctx1, {
+document.addEventListener('DOMContentLoaded', function() {
+    // Graphique Recettes et Dépenses
+    const chartRecettesDepensesEl = document.getElementById('chartRecettesDepenses');
+    if (chartRecettesDepensesEl) {
+    const ctx1 = chartRecettesDepensesEl.getContext('2d');
+    new Chart(ctx1, {
     type: 'line',
     data: {
         labels: {{ mois_labels|safe|escapejs }},
@@ -400,62 +249,8 @@ new Chart(ctx1, {
         }
     }
 });
-
-// Graphique Soldes par Banque
-const banquesData = {{ banques_data|safe }};
-const ctx2 = document.getElementById('chartSoldesBanques').getContext('2d');
-new Chart(ctx2, {
-    type: 'bar',
-    data: {
-        labels: banquesData.map(b => b.nom),
-        datasets: [
-            {
-                label: 'Solde USD',
-                data: banquesData.map(b => b.solde_usd),
-                backgroundColor: 'rgba(40, 167, 69, 0.8)'
-            },
-            {
-                label: 'Solde CDF',
-                data: banquesData.map(b => b.solde_cdf),
-                backgroundColor: 'rgba(212, 175, 55, 0.8)'
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        let label = context.dataset.label || '';
-                        if (label) {
-                            label += ': ';
-                        }
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('fr-FR', {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 0
-                            }).format(context.parsed.y);
-                        }
-                        return label;
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return new Intl.NumberFormat('fr-FR', {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }).format(value);
-                    }
-                }
-            }
-        }
     }
+
 });
 </script>
 {% endblock %}

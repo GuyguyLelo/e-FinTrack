@@ -99,33 +99,103 @@ class Recette(models.Model):
         
         super().save(*args, **kwargs)
         
-        # Mise à jour automatique des soldes lors de la validation
-        if self.valide and (is_new or not was_validated):
-            # Trouver automatiquement les comptes bancaires appropriés selon la banque sélectionnée
-            if self.montant_usd > 0 and self.banque:
-                # Trouver un compte USD pour cette banque
-                compte_usd = CompteBancaire.objects.filter(
-                    banque=self.banque, 
-                    devise='USD', 
-                    actif=True
-                ).first()
-                if compte_usd:
-                    compte_usd.mettre_a_jour_solde(self.montant_usd, operation='recette')
-                    # Associer la recette à ce compte
-                    self.compte_bancaire = compte_usd
-                    self.save(update_fields=['compte_bancaire'])
+        # Mise à jour automatique des soldes lors de l'enregistrement de la recette
+        # Cette mise à jour cumule automatiquement le montant dans le solde consolidé du tableau de bord
+        # Mettre à jour les comptes bancaires pour toutes les recettes enregistrées (validées ou non)
+        # Vérifier si c'est une nouvelle recette ou si la recette vient d'être validée
+        recette_a_traiter = is_new or (self.valide and not was_validated)
+        
+        if recette_a_traiter:
+            # Utiliser une transaction pour garantir la cohérence
+            from django.db import transaction
+            import logging
+            logger = logging.getLogger(__name__)
             
-            if self.montant_cdf > 0 and self.banque:
-                # Trouver un compte CDF pour cette banque
-                compte_cdf = CompteBancaire.objects.filter(
-                    banque=self.banque, 
-                    devise='CDF', 
-                    actif=True
-                ).first()
-                if compte_cdf:
-                    compte_cdf.mettre_a_jour_solde(self.montant_cdf, operation='recette')
-                    # Si pas déjà associé à un compte USD, associer à ce compte CDF
-                    if not self.compte_bancaire or self.compte_bancaire.devise != 'USD':
-                        self.compte_bancaire = compte_cdf
-                        self.save(update_fields=['compte_bancaire'])
+            try:
+                with transaction.atomic():
+                    # Vérifier que la banque est définie
+                    if not self.banque:
+                        logger.error(f"Recette {self.reference}: Aucune banque définie, impossible de mettre à jour le solde")
+                        return
+                    
+                    # Trouver automatiquement les comptes bancaires appropriés selon la banque sélectionnée
+                    if self.montant_usd > 0:
+                        # Trouver un compte USD pour cette banque
+                        # Note: select_for_update() peut ne pas fonctionner avec SQLite, mais on l'utilise quand même pour la compatibilité
+                        try:
+                            compte_usd = CompteBancaire.objects.select_for_update().filter(
+                                banque=self.banque, 
+                                devise='USD', 
+                                actif=True
+                            ).first()
+                        except Exception:
+                            # Fallback si select_for_update() ne fonctionne pas (ex: SQLite)
+                            compte_usd = CompteBancaire.objects.filter(
+                                banque=self.banque, 
+                                devise='USD', 
+                                actif=True
+                            ).first()
+                        
+                        if compte_usd:
+                            # Rafraîchir le compte pour avoir le solde le plus récent
+                            compte_usd.refresh_from_db()
+                            solde_avant = compte_usd.solde_courant
+                            # Ajouter le montant au solde du compte (cumul dans le solde consolidé)
+                            compte_usd.mettre_a_jour_solde(self.montant_usd, operation='recette')
+                            logger.info(f"Recette {self.reference}: Solde USD mis à jour de {solde_avant} à {compte_usd.solde_courant} pour le compte {compte_usd.intitule_compte}")
+                            # Associer la recette à ce compte
+                            if not self.compte_bancaire or self.compte_bancaire != compte_usd:
+                                self.compte_bancaire = compte_usd
+                                # Utiliser update pour éviter un appel récursif à save()
+                                Recette.objects.filter(pk=self.pk).update(compte_bancaire=compte_usd)
+                        else:
+                            logger.warning(f"Recette {self.reference}: Aucun compte USD actif trouvé pour la banque {self.banque.nom_banque}")
+                    
+                    if self.montant_cdf > 0:
+                        # Trouver un compte CDF pour cette banque
+                        try:
+                            compte_cdf = CompteBancaire.objects.select_for_update().filter(
+                                banque=self.banque, 
+                                devise='CDF', 
+                                actif=True
+                            ).first()
+                        except Exception:
+                            # Fallback si select_for_update() ne fonctionne pas (ex: SQLite)
+                            compte_cdf = CompteBancaire.objects.filter(
+                                banque=self.banque, 
+                                devise='CDF', 
+                                actif=True
+                            ).first()
+                        
+                        if compte_cdf:
+                            # Rafraîchir le compte pour avoir le solde le plus récent
+                            compte_cdf.refresh_from_db()
+                            solde_avant = compte_cdf.solde_courant
+                            # Ajouter le montant au solde du compte (cumul dans le solde consolidé)
+                            compte_cdf.mettre_a_jour_solde(self.montant_cdf, operation='recette')
+                            logger.info(f"Recette {self.reference}: Solde CDF mis à jour de {solde_avant} à {compte_cdf.solde_courant} pour le compte {compte_cdf.intitule_compte}")
+                            # Si pas déjà associé à un compte USD, associer à ce compte CDF
+                            if not self.compte_bancaire or (self.compte_bancaire and self.compte_bancaire.devise != 'USD'):
+                                if self.compte_bancaire != compte_cdf:
+                                    self.compte_bancaire = compte_cdf
+                                    # Utiliser update pour éviter un appel récursif à save()
+                                    Recette.objects.filter(pk=self.pk).update(compte_bancaire=compte_cdf)
+                        else:
+                            logger.warning(f"Recette {self.reference}: Aucun compte CDF actif trouvé pour la banque {self.banque.nom_banque}")
+            except Exception as e:
+                logger.error(f"Erreur lors de la mise à jour du solde pour la recette {self.reference}: {str(e)}", exc_info=True)
+                # Ne pas lever l'exception pour ne pas bloquer la sauvegarde de la recette
+        
+        # Si une recette validée est modifiée et dévalidée, retirer le montant du solde
+        elif not is_new and was_validated and not self.valide:
+            # Retirer le montant du solde si la recette était validée et ne l'est plus
+            if self.compte_bancaire:
+                from django.db import transaction
+                with transaction.atomic():
+                    compte = CompteBancaire.objects.select_for_update().get(pk=self.compte_bancaire.pk)
+                    compte.refresh_from_db()
+                    if self.montant_usd > 0 and compte.devise == 'USD':
+                        compte.mettre_a_jour_solde(self.montant_usd, operation='depense')
+                    elif self.montant_cdf > 0 and compte.devise == 'CDF':
+                        compte.mettre_a_jour_solde(self.montant_cdf, operation='depense')
 

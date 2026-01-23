@@ -18,14 +18,14 @@
                         <strong>Relevé :</strong> <span class="badge bg-primary">{{ releve.numero }}</span><br><br>
                         <div class="row">
                             <div class="col-md-6">
-                                <strong>Montant CDF :</strong><br>
-                                <span class="text-success fw-bold fs-5">{{ releve.net_a_payer_cdf|format_montant:"CDF" }}</span><br>
-                                <small class="text-muted fst-italic">{{ releve.net_a_payer_cdf|montant_en_lettres }}</small>
+                                <strong>Montant total CDF :</strong><br>
+                                <span class="text-success fw-bold fs-5">{{ releve.montant_cdf|format_montant:"CDF" }}</span><br>
+                                <small class="text-muted fst-italic">{{ releve.montant_cdf|montant_en_lettres }}</small>
                             </div>
                             <div class="col-md-6">
-                                <strong>Montant USD :</strong><br>
-                                <span class="text-primary fw-bold fs-5">{{ releve.net_a_payer_usd|format_montant:"USD" }}</span><br>
-                                <small class="text-muted fst-italic">{{ releve.net_a_payer_usd|montant_en_lettres }}</small>
+                                <strong>Montant total USD :</strong><br>
+                                <span class="text-primary fw-bold fs-5">{{ releve.montant_usd|format_montant:"USD" }}</span><br>
+                                <small class="text-muted fst-italic">{{ releve.montant_usd|montant_en_lettres }}</small>
                             </div>
                         </div>
                     </div>
@@ -140,9 +140,9 @@ document.addEventListener('DOMContentLoaded', function() {
         avertissementContainer.style.display = 'none';
         toggleBoutonGenerer(false); // Désactiver pendant le chargement
         
-        // Récupérer les montants du relevé depuis le template
-        const montantCdfReleve = parseFloat('{{ releve.net_a_payer_cdf }}') || 0;
-        const montantUsdReleve = parseFloat('{{ releve.net_a_payer_usd }}') || 0;
+        // Récupérer les montants totaux du relevé depuis le template
+        const montantCdfReleve = parseFloat('{{ releve.montant_cdf }}') || 0;
+        const montantUsdReleve = parseFloat('{{ releve.montant_usd }}') || 0;
         const releveId = '{{ releve.pk }}';
         
         // Récupérer les soldes via AJAX
@@ -179,10 +179,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     soldeUsdContainer.style.display = 'none';
                 }
                 
-                // Vérifier les avertissements (écarts)
+                // Vérifier les avertissements (écarts) pour les deux monnaies
+                // Les montants sont déjà récupérés plus haut : montantCdfReleve et montantUsdReleve
                 let hasAvertissement = false;
+                
+                // Vérifier que les deux montants sont inférieurs ou égaux aux soldes
+                let compteCdf = data.comptes && data.comptes.CDF;
+                let compteUsd = data.comptes && data.comptes.USD;
+                
+                // Vérifier CDF : le montant doit être inférieur ou égal au solde
+                if (montantCdfReleve > 0) {
+                    if (!compteCdf) {
+                        hasAvertissement = true;
+                        if (!data.avertissements) data.avertissements = {};
+                        data.avertissements.CDF = {
+                            montant_releve: montantCdfReleve,
+                            solde: 0,
+                            ecart: montantCdfReleve,
+                            message: 'Aucun compte CDF actif trouvé pour cette banque'
+                        };
+                    } else if (compteCdf.solde < montantCdfReleve) {
+                        hasAvertissement = true;
+                        if (!data.avertissements) data.avertissements = {};
+                        data.avertissements.CDF = {
+                            montant_releve: montantCdfReleve,
+                            solde: compteCdf.solde,
+                            ecart: montantCdfReleve - compteCdf.solde
+                        };
+                    }
+                }
+                
+                // Vérifier USD : le montant doit être inférieur ou égal au solde
+                if (montantUsdReleve > 0) {
+                    if (!compteUsd) {
+                        hasAvertissement = true;
+                        if (!data.avertissements) data.avertissements = {};
+                        data.avertissements.USD = {
+                            montant_releve: montantUsdReleve,
+                            solde: 0,
+                            ecart: montantUsdReleve,
+                            message: 'Aucun compte USD actif trouvé pour cette banque'
+                        };
+                    } else if (compteUsd.solde < montantUsdReleve) {
+                        hasAvertissement = true;
+                        if (!data.avertissements) data.avertissements = {};
+                        data.avertissements.USD = {
+                            montant_releve: montantUsdReleve,
+                            solde: compteUsd.solde,
+                            ecart: montantUsdReleve - compteUsd.solde
+                        };
+                    }
+                }
+                
+                // Afficher les avertissements
                 if (data.avertissements && Object.keys(data.avertissements).length > 0) {
-                    hasAvertissement = true;
                     let avertissementHtml = '<ul class="mb-0">';
                     
                     if (data.avertissements.CDF) {
@@ -190,10 +240,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const montantReleve = formatMontant(avert.montant_releve, 'CDF');
                         const solde = formatMontant(avert.solde, 'CDF');
                         const ecart = formatMontant(avert.ecart, 'CDF');
+                        const message = avert.message || '';
                         avertissementHtml += `<li class="mb-2">
                             <strong>CDF :</strong> Le montant du chèque (<span class="fw-bold">${montantReleve}</span>) 
-                            dépasse le solde disponible (<span class="fw-bold">${solde}</span>). 
-                            <span class="text-danger fw-bold">Écart: ${ecart}</span>
+                            ${avert.message ? `- ${message}` : `dépasse le solde disponible (<span class="fw-bold">${solde}</span>)`}. 
+                            ${!avert.message ? `<span class="text-danger fw-bold">Écart: ${ecart}</span>` : ''}
                         </li>`;
                     }
                     
@@ -202,10 +253,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const montantReleve = formatMontant(avert.montant_releve, 'USD');
                         const solde = formatMontant(avert.solde, 'USD');
                         const ecart = formatMontant(avert.ecart, 'USD');
+                        const message = avert.message || '';
                         avertissementHtml += `<li class="mb-2">
                             <strong>USD :</strong> Le montant du chèque (<span class="fw-bold">${montantReleve}</span>) 
-                            dépasse le solde disponible (<span class="fw-bold">${solde}</span>). 
-                            <span class="text-danger fw-bold">Écart: ${ecart}</span>
+                            ${avert.message ? `- ${message}` : `dépasse le solde disponible (<span class="fw-bold">${solde}</span>)`}. 
+                            ${!avert.message ? `<span class="text-danger fw-bold">Écart: ${ecart}</span>` : ''}
                         </li>`;
                     }
                     
@@ -218,9 +270,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Activer/désactiver le bouton selon la présence d'avertissements
                 // Le bouton est activé seulement si :
-                // 1. Au moins un compte existe (hasComptes)
+                // 1. Les comptes nécessaires existent (CDF si montantCdfReleve > 0, USD si montantUsdReleve > 0)
                 // 2. Aucun avertissement de solde insuffisant (hasAvertissement = false)
-                if (hasComptes && !hasAvertissement) {
+                // 3. Les montants sont inférieurs ou égaux aux soldes correspondants
+                let canGenerate = true;
+                
+                // Vérifier CDF : le montant doit être inférieur ou égal au solde
+                if (montantCdfReleve > 0) {
+                    if (!compteCdf || (compteCdf && compteCdf.solde < montantCdfReleve)) {
+                        canGenerate = false;
+                    }
+                }
+                
+                // Vérifier USD : le montant doit être inférieur ou égal au solde
+                if (montantUsdReleve > 0) {
+                    if (!compteUsd || (compteUsd && compteUsd.solde < montantUsdReleve)) {
+                        canGenerate = false;
+                    }
+                }
+                
+                // Au moins un compte doit exister si au moins un montant > 0
+                if ((montantCdfReleve > 0 || montantUsdReleve > 0) && !hasComptes) {
+                    canGenerate = false;
+                }
+                
+                if (canGenerate && !hasAvertissement) {
                     toggleBoutonGenerer(true);
                 } else {
                     toggleBoutonGenerer(false);

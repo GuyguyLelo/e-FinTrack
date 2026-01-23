@@ -76,7 +76,7 @@
     }
     
     .reste-a-payer {
-        color: #dc3545;
+        color: #ffffff;
         font-weight: 600;
     }
     
@@ -100,21 +100,6 @@
         font-size: 0.9rem;
     }
     
-    .btn-payer-tout {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        border: none;
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 5px;
-        font-weight: 600;
-        transition: transform 0.2s;
-    }
-    
-    .btn-payer-tout:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-    }
-    
     .summary-card {
         background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%);
         color: white;
@@ -129,6 +114,19 @@
         align-items: center;
         padding: 0.5rem 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        gap: 1rem;
+    }
+    
+    .summary-item span:first-child {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    
+    .summary-item span:last-child {
+        flex: 0 0 auto;
+        text-align: right;
+        white-space: nowrap;
+        font-weight: 600;
     }
     
     .summary-item:last-child {
@@ -164,158 +162,133 @@
         </div>
     </div>
     
-    <!-- Informations du relevé -->
-    <div class="row">
-        <div class="col-12">
-            <div class="releve-info-card">
-                <div class="releve-header">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h4 class="mb-1">
-                                <i class="fas fa-file-invoice-dollar me-2"></i>
-                                {{ releve_depense.periode }}
-                            </h4>
-                            <p class="mb-0">
-                                Total des dépenses: {{ releve_depense.total|format_montant:releve_depense.devise }}
-                            </p>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            <p class="mb-1">
-                                <strong>Nombre de demandes:</strong> 
-                                {{ total_demandes }}
-                            </p>
-                            <p class="mb-0">
-                                <strong>Total à payer:</strong> 
-                                {{ total_a_payer|format_montant:releve_depense.devise }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- Résumé des paiements -->
     <div class="row">
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <div class="summary-card">
                 <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Résumé des demandes</h5>
                 <div class="summary-item">
                     <span>Montant total initial:</span>
-                    <span>{{ total_initial|format_montant:releve_depense.devise }}</span>
+                    <span>{{ total_initial|format_montant:devise_releve }}</span>
                 </div>
                 <div class="summary-item">
                     <span>Déjà payé:</span>
-                    <span class="deja-paye">{{ total_deja_paye|format_montant:releve_depense.devise }}</span>
+                    <span class="deja-paye">{{ total_deja_paye|format_montant:devise_releve }}</span>
                 </div>
                 <div class="summary-item">
                     <span>Total à payer:</span>
-                    <span class="reste-a-payer">{{ total_a_payer|format_montant:releve_depense.devise }}</span>
+                    <span class="reste-a-payer">{{ total_a_payer|format_montant:devise_releve }}</span>
+                </div>
+            </div>
+            
+            <!-- Liste des demandes du relevé (version simplifiée) -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-list me-2"></i>Liste des demandes ({{ toutes_demandes.count }})</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
+                        {% for demande in toutes_demandes %}
+                        <div class="list-group-item py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <strong class="small">{{ demande.reference }}</strong>
+                                    <span class="badge bg-{% if demande.statut == 'PAYEE' %}success{% elif demande.statut == 'VALIDEE_DG' or demande.statut == 'VALIDEE_DF' %}primary{% else %}warning{% endif %} ms-2" style="font-size: 0.7rem;">
+                                        {{ demande.get_statut_display|slice:":3" }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">{{ demande.service_demandeur.nom_service|truncatechars:25 }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <small class="d-block">
+                                        <span class="text-muted">Reste:</span>
+                                        <strong class="{% if demande.reste_a_payer > 0 %}text-danger{% else %}text-success{% endif %}">
+                                            {{ demande.reste_a_payer|format_montant:demande.devise }}
+                                        </strong>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item text-center text-muted py-3">
+                            <p class="mb-0">Aucune demande dans ce relevé</p>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-8">
+        <div class="col-lg-9">
             {% if demandes %}
             <form method="post" id="paiementMultipleForm">
                 {% csrf_token %}
-                
-                <!-- Bouton pour tout payer -->
-                <div class="text-end mb-3">
-                    <p class="mb-0 mt-2">Sélectionnez les montants à payer pour chaque demande</p>
-                    <button type="button" class="btn btn-payer-tout" onclick="toutPayer()">
-                        <i class="fas fa-coins me-2"></i>
-                        Payer tout le reste ({{ total_a_payer|format_montant:releve_depense.devise }})
-                    </button>
-                </div>
+                <input type="hidden" name="demande_pk" id="demande_pk" value="">
                 
                 <!-- Liste des demandes -->
                 {% for demande in demandes %}
-                <div class="demande-card">
-                    <div class="demande-header">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <div class="demande-title">
-                                    {{ demande.reference }} - {{ demande.service_demandeur.nom_service }}
-                                </div>
-                                <p class="mb-0 text-muted">{{ demande.description|truncatechars:80 }}</p>
-                            </div>
-                            <div class="col-md-4 text-md-end">
-                                <span class="badge bg-{% if request.user.role == 'DG' or request.user.role == 'DAF' or request.user.role == 'DF' %}success{% else %}primary{% endif %}">
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ demande.reference }}</strong> - {{ demande.service_demandeur.nom_service }}
+                                <span class="badge bg-{% if demande.statut == 'PAYEE' %}success{% elif demande.statut == 'VALIDEE_DG' or demande.statut == 'VALIDEE_DF' %}primary{% else %}warning{% endif %} ms-2">
                                     {{ demande.get_statut_display }}
                                 </span>
                             </div>
+                            <div class="text-end">
+                                <small class="text-muted">Reste à payer: <strong class="text-primary fw-bold">{{ demande.reste_a_payer|format_montant:demande.devise }}</strong></small>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="p-3">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="montant-row">
-                                    <span class="montant-label">Montant total:</span>
-                                    <span class="montant-value">{{ demande.montant|format_montant:demande.devise }}</span>
-                                </div>
-                                <div class="montant-row">
-                                    <span class="montant-label">Déjà payé:</span>
-                                    <span class="montant-value deja-paye">{{ demande.montant_deja_paye|format_montant:demande.devise }}</span>
-                                </div>
-                                <div class="montant-row">
-                                    <span class="montant-label">Reste à payer:</span>
-                                    <span class="montant-value reste-a-payer">{{ demande.reste_a_payer|format_montant:demande.devise }}</span>
-                                </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">
+                                    Montant à payer <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" 
+                                       name="montant_{{ demande.pk }}" 
+                                       id="montant_{{ demande.pk }}"
+                                       class="form-control" 
+                                       value="{{ demande.reste_a_payer|floatformat:2 }}"
+                                       step="0.01" 
+                                       min="0.01" 
+                                       max="{{ demande.reste_a_payer|floatformat:2 }}"
+                                       data-demande="{{ demande.pk }}"
+                                       data-reste="{{ demande.reste_a_payer|floatformat:2 }}"
+                                       required>
+                                <small class="text-muted">Max: {{ demande.reste_a_payer|format_montant:demande.devise }}</small>
                             </div>
-                            <div class="col-md-6">
-                                <div class="paiement-form">
-                                    <div class="mb-2">
-                                        <label class="form-label fw-bold">
-                                            Montant à payer pour cette demande:
-                                        </label>
-                                        <input type="number" 
-                                               name="montant_{{ demande.pk }}" 
-                                               id="montant_{{ demande.pk }}"
-                                               class="form-control" 
-                                               value="{{ demande.reste_a_payer|floatformat:2 }}"
-                                               step="0.01" 
-                                               min="0.01" 
-                                               max="{{ demande.reste_a_payer|floatformat:2 }}"
-                                               data-demande="{{ demande.pk }}"
-                                               data-reste="{{ demande.reste_a_payer|floatformat:2 }}">
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label">Bénéficiaire:</label>
-                                        <input type="text" 
-                                               name="beneficiaire_{{ demande.pk }}" 
-                                               id="beneficiaire_{{ demande.pk }}"
-                                               class="form-control" 
-                                               placeholder="Nom du bénéficiaire..."
-                                               required>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label">Observations:</label>
-                                        <textarea name="observations_{{ demande.pk }}" 
-                                                  class="form-control" 
-                                                  rows="2" 
-                                                  placeholder="Observations sur ce paiement..."></textarea>
-                                    </div>
-                                    {% if demande.reste_a_payer > 0 %}
-                                    <div class="alert-montant">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        Maximum: {{ demande.reste_a_payer|format_montant:demande.devise }}
-                                    </div>
-                                    {% endif %}
-                                </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">
+                                    Bénéficiaire <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="beneficiaire_{{ demande.pk }}" 
+                                       id="beneficiaire_{{ demande.pk }}"
+                                       class="form-control" 
+                                       placeholder="Nom du bénéficiaire..."
+                                       required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Observations</label>
+                                <textarea name="observations_{{ demande.pk }}" 
+                                          class="form-control" 
+                                          rows="2" 
+                                          placeholder="Observations..."></textarea>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" 
+                                        onclick="payerDemande({{ demande.pk }})"
+                                        id="btn_payer_{{ demande.pk }}"
+                                        class="btn btn-success w-100">
+                                    <i class="fas fa-check me-1"></i> Payer
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
-                
-                <!-- Boutons d'action -->
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-check me-2"></i>
-                        Valider les paiements
-                    </button>
-                </div>
             </form>
             {% else %}
             <div class="text-center py-5">
@@ -334,6 +307,80 @@
 
 {% block extra_js %}
 <script>
+// Définir payerDemande dans le scope global pour qu'elle soit accessible depuis onclick
+function payerDemande(demandePk) {
+        // Récupérer les valeurs du formulaire pour cette demande
+        const montantInput = document.getElementById('montant_' + demandePk);
+        const beneficiaireInput = document.getElementById('beneficiaire_' + demandePk);
+        const observationsInput = document.querySelector('textarea[name="observations_' + demandePk + '"]');
+        
+        if (!montantInput || !beneficiaireInput) {
+            alert('Erreur: Impossible de trouver les champs du formulaire.');
+            return;
+        }
+        
+        const montant = montantInput.value;
+        const beneficiaire = beneficiaireInput.value;
+        const observations = observationsInput ? observationsInput.value : '';
+        
+        // Validation
+        if (!montant || parseFloat(montant) <= 0) {
+            alert('Veuillez saisir un montant valide.');
+            montantInput.focus();
+            return;
+        }
+        
+        if (!beneficiaire || beneficiaire.trim() === '') {
+            alert('Veuillez saisir le bénéficiaire.');
+            beneficiaireInput.focus();
+            return;
+        }
+        
+        // Confirmation
+        if (!confirm(`Confirmer le paiement de ${parseFloat(montant).toFixed(2)} pour cette demande ?`)) {
+            return;
+        }
+        
+        // Créer un formulaire temporaire pour soumettre le paiement individuel
+        const form = document.getElementById('paiementMultipleForm');
+        if (!form) {
+            alert('Erreur: Formulaire introuvable.');
+            return;
+        }
+        
+        // S'assurer que le champ demande_pk existe
+        let demandePkInput = document.getElementById('demande_pk');
+        if (!demandePkInput) {
+            // Créer le champ s'il n'existe pas
+            demandePkInput = document.createElement('input');
+            demandePkInput.type = 'hidden';
+            demandePkInput.name = 'demande_pk';
+            demandePkInput.id = 'demande_pk';
+            form.appendChild(demandePkInput);
+        }
+        demandePkInput.value = demandePk;
+        
+        // S'assurer que les valeurs sont bien dans le formulaire
+        // Les champs avec les noms montant_{pk}, beneficiaire_{pk}, etc. sont déjà dans le formulaire
+        // donc ils seront automatiquement inclus lors de la soumission
+        
+        // Vérifier que le formulaire a bien le token CSRF
+        const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+            alert('Erreur: Token CSRF manquant. Veuillez recharger la page.');
+            return;
+        }
+        
+        // Soumettre le formulaire
+        try {
+            form.submit();
+        } catch (error) {
+            console.error('Erreur lors de la soumission du formulaire:', error);
+            alert('Erreur lors de la soumission du formulaire. Veuillez réessayer.');
+        }
+}
+
+// Code exécuté au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     const montantInputs = document.querySelectorAll('input[name^="montant_"]');
     
@@ -383,18 +430,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-function toutPayer() {
-    const montantInputs = document.querySelectorAll('input[name^="montant_"]');
-    montantInputs.forEach(input => {
-        input.value = input.dataset.reste;
-    });
-    
-    // Scroll vers le formulaire
-    document.getElementById('paiementMultipleForm').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-    });
-}
 </script>
 {% endblock %}

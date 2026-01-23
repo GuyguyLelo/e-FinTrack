@@ -49,6 +49,16 @@
                         <td><strong class="text-primary">{{ compte.solde_courant|format_montant:compte.devise }}</strong></td>
                     </tr>
                     <tr>
+                        <th>Date de mise à jour du solde</th>
+                        <td>
+                            {% if compte.date_solde_courant %}
+                            <span class="text-info">{{ compte.date_solde_courant|date:"d/m/Y à H:i" }}</span>
+                            {% else %}
+                            <span class="text-muted">Non mise à jour</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
                         <th>Date d'ouverture</th>
                         <td>{{ compte.date_ouverture|date:"d/m/Y" }}</td>
                     </tr>

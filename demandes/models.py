@@ -572,18 +572,9 @@ class Paiement(models.Model):
             self.demande.montant_deja_paye += self.montant_paye
             self.demande.save()
         
-        # Soustraction automatique du solde bancaire correspondant
-        if self.montant_paye > 0:
-            if self.devise == 'USD':
-                # Trouver un compte USD actif
-                compte_usd = CompteBancaire.objects.filter(devise='USD', actif=True).first()
-                if compte_usd:
-                    compte_usd.mettre_a_jour_solde(self.montant_paye, operation='depense')
-            elif self.devise == 'CDF':
-                # Trouver un compte CDF actif
-                compte_cdf = CompteBancaire.objects.filter(devise='CDF', actif=True).first()
-                if compte_cdf:
-                    compte_cdf.mettre_a_jour_solde(self.montant_paye, operation='depense')
+        # NOTE: La mise à jour du solde bancaire est maintenant gérée dans les vues
+        # pour permettre la sélection explicite du compte bancaire.
+        # La soustraction automatique a été supprimée pour éviter les doubles déductions.
         
         # Vérifier si toutes les demandes du relevé sont payées
         self.verifier_et_archiver_releve()

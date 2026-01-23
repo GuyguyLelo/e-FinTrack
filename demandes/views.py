@@ -1229,8 +1229,8 @@ class ReleveDepenseListCreatedView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         """Récupérer les relevés créés avec filtres"""
         queryset = ReleveDepense.objects.select_related(
-            'valide_par', 'depenses_validees_par'
-        ).prefetch_related('demandes', 'cheque')
+            'valide_par', 'depenses_validees_par', 'cheque__banque', 'cheque__cree_par'
+        ).prefetch_related('demandes')
         
         # Filtre par recherche (numéro de relevé)
         search = self.request.GET.get('search')
@@ -1373,22 +1373,32 @@ class ChequePDFView(LoginRequiredMixin, View):
             return redirect('demandes:releves_liste')
         
         # Créer ou récupérer le chèque
+        # Utiliser les montants totaux des demandes (montant_cdf et montant_usd) au lieu du net à payer
         with transaction.atomic():
             cheque, created = Cheque.objects.get_or_create(
                 releve_depense=releve,
                 defaults={
                     'banque': banque,
-                    'montant_cdf': releve.net_a_payer_cdf,
-                    'montant_usd': releve.net_a_payer_usd,
+                    'montant_cdf': releve.montant_cdf,  # Montant total CDF (avant IPR)
+                    'montant_usd': releve.montant_usd,  # Montant total USD (avant IPR)
                     'cree_par': request.user,
                     'statut': 'GENERE'
                 }
             )
             
-            # Si le chèque existe déjà, mettre à jour la banque si différente
-            if not created and cheque.banque != banque:
-                cheque.banque = banque
-                cheque.save()
+            # Si le chèque existe déjà, mettre à jour la banque et les montants si nécessaire
+            if not created:
+                updated = False
+                if cheque.banque != banque:
+                    cheque.banque = banque
+                    updated = True
+                # Mettre à jour les montants avec les montants totaux (au lieu du net à payer)
+                if cheque.montant_cdf != releve.montant_cdf or cheque.montant_usd != releve.montant_usd:
+                    cheque.montant_cdf = releve.montant_cdf
+                    cheque.montant_usd = releve.montant_usd
+                    updated = True
+                if updated:
+                    cheque.save()
         
         # Créer le PDF du chèque
         response = HttpResponse(content_type='application/pdf')
@@ -1632,14 +1642,15 @@ class BanqueSoldesView(LoginRequiredMixin, View):
         except Banque.DoesNotExist:
             return JsonResponse({'error': 'Banque introuvable'}, status=404)
         
-        # Récupérer les montants du relevé si fourni
+        # Récupérer les montants totaux du relevé si fourni (utiliser montant_cdf et montant_usd au lieu de net_a_payer)
         montant_cdf_releve = None
         montant_usd_releve = None
         if releve_id:
             try:
                 releve = ReleveDepense.objects.get(pk=releve_id)
-                montant_cdf_releve = float(releve.net_a_payer_cdf)
-                montant_usd_releve = float(releve.net_a_payer_usd)
+                # Utiliser les montants totaux des demandes (avant IPR) au lieu du net à payer
+                montant_cdf_releve = float(releve.montant_cdf) if releve.montant_cdf else 0.0
+                montant_usd_releve = float(releve.montant_usd) if releve.montant_usd else 0.0
             except ReleveDepense.DoesNotExist:
                 pass
         
@@ -1662,17 +1673,101 @@ class BanqueSoldesView(LoginRequiredMixin, View):
                 'numero_compte': compte.numero_compte
             }
             
-            # Vérifier si le montant du relevé dépasse le solde
-            if montant_releve is not None and montant_releve > 0:
-                if solde < montant_releve:
-                    ecart = montant_releve - solde
+            # Vérifier si le montant du relevé dépasse le solde (pour les deux monnaies)
+            # Si montant_releve est None, utiliser 0 pour la vérification
+            montant_a_verifier = montant_releve if montant_releve is not None else 0.0
+            
+            # Vérifier que le montant est inférieur ou égal au solde
+            if montant_a_verifier > 0:
+                if solde < montant_a_verifier:
+                    ecart = montant_a_verifier - solde
                     soldes['avertissements'][compte.devise] = {
-                        'montant_releve': montant_releve,
+                        'montant_releve': montant_a_verifier,
                         'solde': solde,
                         'ecart': ecart
                     }
         
+        # Vérifier que les deux montants (USD et CDF) sont vérifiés
+        # Si un montant est supérieur à 0 mais qu'il n'y a pas de compte correspondant, créer un avertissement
+        if montant_cdf_releve is not None and montant_cdf_releve > 0:
+            if 'CDF' not in soldes['comptes']:
+                soldes['avertissements']['CDF'] = {
+                    'montant_releve': montant_cdf_releve,
+                    'solde': 0.0,
+                    'ecart': montant_cdf_releve,
+                    'message': 'Aucun compte CDF actif trouvé pour cette banque'
+                }
+        
+        if montant_usd_releve is not None and montant_usd_releve > 0:
+            if 'USD' not in soldes['comptes']:
+                soldes['avertissements']['USD'] = {
+                    'montant_releve': montant_usd_releve,
+                    'solde': 0.0,
+                    'ecart': montant_usd_releve,
+                    'message': 'Aucun compte USD actif trouvé pour cette banque'
+                }
+        
         return JsonResponse(soldes)
+
+
+class ChequeListView(LoginRequiredMixin, ListView):
+    """Vue pour afficher la liste de tous les chèques"""
+    model = Cheque
+    template_name = 'demandes/cheque_liste.html'
+    context_object_name = 'cheques'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        """Récupérer tous les chèques avec optimisations"""
+        queryset = Cheque.objects.select_related(
+            'releve_depense', 'banque', 'cree_par'
+        ).order_by('-date_creation')
+        
+        # Filtre par recherche (numéro de chèque, numéro de relevé)
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(numero_cheque__icontains=search) |
+                Q(releve_depense__numero__icontains=search) |
+                Q(beneficiaire__icontains=search)
+            )
+        
+        # Filtre par statut
+        statut = self.request.GET.get('statut')
+        if statut:
+            queryset = queryset.filter(statut=statut)
+        
+        # Filtre par banque
+        banque_id = self.request.GET.get('banque')
+        if banque_id:
+            queryset = queryset.filter(banque_id=banque_id)
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from banques.models import Banque
+        
+        context['banques'] = Banque.objects.filter(active=True).order_by('nom_banque')
+        context['statuts'] = Cheque.STATUT_CHOICES
+        context['filtres'] = {
+            'search': self.request.GET.get('search', ''),
+            'statut': self.request.GET.get('statut', ''),
+            'banque': self.request.GET.get('banque', ''),
+        }
+        return context
+
+
+class ChequeDetailView(LoginRequiredMixin, DetailView):
+    """Vue pour afficher les détails d'un chèque"""
+    model = Cheque
+    template_name = 'demandes/cheque_detail.html'
+    context_object_name = 'cheque'
+    
+    def get_queryset(self):
+        return Cheque.objects.select_related(
+            'releve_depense', 'banque', 'cree_par'
+        )
 
 
 class ReleveDepenseValiderDepensesView(LoginRequiredMixin, View):
@@ -2515,29 +2610,207 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
         
         # Forcer le recalcul des montants pour chaque demande
         for demande in toutes_demandes:
-            print(f"  - {demande.reference}: montant={demande.montant}, deja_paye={demande.montant_deja_paye}, reste={demande.reste_a_payer}, statut={demande.statut}")
-            # Recalculer si nécessaire
-            if demande.reste_a_payer == 0 and demande.statut != 'PAYEE':
-                demande.reste_a_payer = demande.montant - demande.montant_deja_paye
-                demande.save()
-                print(f"    -> Recalculé: nouveau reste_a_payer={demande.reste_a_payer}")
+            # S'assurer que les valeurs Decimal sont valides
+            try:
+                if demande.montant is None:
+                    demande.montant = Decimal('0.00')
+                if demande.montant_deja_paye is None:
+                    demande.montant_deja_paye = Decimal('0.00')
+                if demande.reste_a_payer is None:
+                    demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                
+                # Convertir en Decimal si ce n'est pas déjà le cas
+                demande.montant = Decimal(str(demande.montant))
+                demande.montant_deja_paye = Decimal(str(demande.montant_deja_paye))
+                demande.reste_a_payer = Decimal(str(demande.reste_a_payer))
+                
+                # Recalculer si nécessaire
+                if demande.reste_a_payer == 0 and demande.statut != 'PAYEE':
+                    demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                    demande.save()
+            except (ValueError, TypeError, Exception) as e:
+                # Si erreur, recalculer depuis les valeurs de base
+                try:
+                    demande.montant = Decimal(str(demande.montant)) if demande.montant else Decimal('0.00')
+                    demande.montant_deja_paye = Decimal(str(demande.montant_deja_paye)) if demande.montant_deja_paye else Decimal('0.00')
+                    demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                    demande.save()
+                except Exception:
+                    # Ignorer cette demande si elle cause toujours des problèmes
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Impossible de traiter la demande {demande.pk}: {e}")
+                    continue
         
         # Maintenant filtrer les demandes non entièrement payées
         demandes = toutes_demandes.filter(
             reste_a_payer__gt=0
         )
         
+        # Calculer les totaux en gérant les valeurs None ou invalides
+        total_a_payer = Decimal('0.00')
+        total_initial = Decimal('0.00')
+        total_deja_paye = Decimal('0.00')
+        
+        for demande in toutes_demandes:
+            # Total initial
+            if demande.montant is not None:
+                try:
+                    total_initial += Decimal(str(demande.montant))
+                except (ValueError, TypeError, Exception):
+                    pass
+            
+            # Total déjà payé
+            if demande.montant_deja_paye is not None:
+                try:
+                    total_deja_paye += Decimal(str(demande.montant_deja_paye))
+                except (ValueError, TypeError, Exception):
+                    pass
+        
+        # Total à payer (seulement pour les demandes non entièrement payées)
+        for demande in demandes:
+            if demande.reste_a_payer is not None:
+                try:
+                    total_a_payer += Decimal(str(demande.reste_a_payer))
+                except (ValueError, TypeError, Exception):
+                    pass
+        
+        # Déterminer la devise du relevé (utiliser la devise de la première demande si disponible)
+        devise_releve = 'CDF'  # Par défaut
+        if toutes_demandes.exists():
+            premiere_demande = toutes_demandes.first()
+            if premiere_demande and premiere_demande.devise:
+                devise_releve = premiere_demande.devise
+        
+        # Calculer le total du relevé (montant_cdf + montant_usd converti ou utiliser total_initial)
+        total_releve = Decimal('0.00')
+        if releve_depense.montant_cdf:
+            try:
+                total_releve += Decimal(str(releve_depense.montant_cdf))
+            except (ValueError, TypeError, Exception):
+                pass
+        if releve_depense.montant_usd:
+            try:
+                total_releve += Decimal(str(releve_depense.montant_usd))
+            except (ValueError, TypeError, Exception):
+                pass
+        
+        # Si total_releve est 0, utiliser total_initial
+        if total_releve == 0:
+            total_releve = total_initial
+        
+        # Construire le titre avec le numéro du relevé
+        titre_releve = f"Relevé {releve_depense.numero}" if releve_depense.numero else f"Relevé du {releve_depense.periode}"
+        
+        # Récupérer les comptes bancaires actifs pour la sélection
+        from banques.models import CompteBancaire
+        comptes_bancaires = CompteBancaire.objects.filter(actif=True).select_related('banque').order_by('banque__nom_banque', 'devise')
+        
         context = {
-            'title': f'Paiement des demandes - {releve_depense.periode}',
+            'title': f'Paiement des demandes du {titre_releve}',
             'releve_depense': releve_depense,
             'demandes': demandes,
+            'toutes_demandes': toutes_demandes,  # Ajouter toutes les demandes pour le résumé
             'total_demandes': demandes.count(),
-            'total_a_payer': sum(demande.reste_a_payer for demande in demandes),
+            'total_a_payer': total_a_payer,
+            'total_initial': total_initial,
+            'total_deja_paye': total_deja_paye,
+            'total_releve': total_releve,
+            'devise_releve': devise_releve,
+            'comptes_bancaires': comptes_bancaires,
         }
         
         return render(request, 'demandes/paiement_releve_detail.html', context)
     
+    def payer_demande(self, request, pk, demande_pk):
+        """Méthode pour payer une seule demande"""
+        releve_depense = get_object_or_404(ReleveDepense.objects, pk=pk)
+        demande = get_object_or_404(DemandePaiement.objects, pk=demande_pk)
+        
+        # Vérifier que la demande appartient au relevé
+        if demande not in releve_depense.demandes.all():
+            messages.error(request, "Cette demande n'appartient pas à ce relevé.")
+            return redirect('demandes:paiement_releve_detail', pk=pk)
+        
+        # Récupérer les données du formulaire
+        montant_key = f'montant_{demande.pk}'
+        beneficiaire_key = f'beneficiaire_{demande.pk}'
+        observations_key = f'observations_{demande.pk}'
+        
+        try:
+            # Nettoyer la valeur avant conversion
+            montant_str = request.POST.get(montant_key, '0.00').strip().replace(',', '.').replace(' ', '')
+            if not montant_str:
+                montant_str = '0.00'
+            
+            montant = Decimal(montant_str)
+            beneficiaire = request.POST.get(beneficiaire_key, '').strip()
+            observations = request.POST.get(observations_key, '').strip()
+            
+            if montant <= 0:
+                messages.error(request, f"Le montant doit être supérieur à 0 pour la demande {demande.reference}.")
+                return redirect('demandes:paiement_releve_detail', pk=pk)
+            
+            if not beneficiaire:
+                messages.error(request, f"Veuillez spécifier le bénéficiaire pour la demande {demande.reference}.")
+                return redirect('demandes:paiement_releve_detail', pk=pk)
+            
+            # Vérifier que le montant ne dépasse pas le reste à payer
+            if montant > demande.reste_a_payer:
+                messages.error(request, f"Le montant ({montant}) ne peut pas dépasser le reste à payer ({demande.reste_a_payer}) pour la demande {demande.reference}.")
+                return redirect('demandes:paiement_releve_detail', pk=pk)
+            
+            # Le compte bancaire n'est plus requis pour le paiement
+            # Créer le paiement
+            with transaction.atomic():
+                paiement = Paiement.objects.create(
+                    demande=demande,
+                    releve_depense=releve_depense,
+                    paiement_par=request.user,
+                    montant_paye=montant,
+                    devise=demande.devise,
+                    beneficiaire=beneficiaire,
+                    observations=observations or f"Paiement pour la demande {demande.reference}"
+                )
+                
+                # Le compte bancaire n'est plus utilisé pour le paiement
+                # La mise à jour du solde bancaire doit être faite manuellement si nécessaire
+                
+                # Mettre à jour la demande
+                demande.montant_deja_paye += montant
+                
+                # S'assurer que reste_a_payer est un Decimal valide avant l'opération
+                if demande.reste_a_payer is None:
+                    demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                else:
+                    try:
+                        demande.reste_a_payer = Decimal(str(demande.reste_a_payer)) - montant
+                    except (ValueError, TypeError, Exception):
+                        demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                
+                if demande.reste_a_payer <= 0:
+                    demande.statut = 'PAYEE'
+                    demande.reste_a_payer = Decimal('0.00')
+                
+                demande.save()
+            
+            messages.success(request, f"Paiement de {montant} {demande.devise} enregistré avec succès pour la demande {demande.reference}.")
+            
+        except (ValueError, TypeError, Exception) as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erreur lors du paiement de la demande {demande.pk}: {e}")
+            messages.error(request, f"Une erreur est survenue lors de l'enregistrement du paiement: {str(e)}")
+        
+        return redirect('demandes:paiement_releve_detail', pk=pk)
+    
     def post(self, request, pk):
+        # Vérifier si c'est un paiement individuel
+        demande_pk = request.POST.get('demande_pk')
+        if demande_pk:
+            return self.payer_demande(request, pk, demande_pk)
+        
+        # Sinon, traitement du paiement multiple
         releve_depense = get_object_or_404(
             ReleveDepense.objects,
             pk=pk
@@ -2554,22 +2827,33 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
             
             if montant_key in request.POST:
                 try:
-                    montant = Decimal(request.POST.get(montant_key, '0.00'))
+                    # Nettoyer la valeur avant conversion (enlever espaces, remplacer virgule par point)
+                    montant_str = request.POST.get(montant_key, '0.00').strip().replace(',', '.').replace(' ', '')
+                    if not montant_str:
+                        montant_str = '0.00'
+                    
+                    montant = Decimal(montant_str)
                     beneficiaire = request.POST.get(beneficiaire_key, '').strip()
                     observations = request.POST.get(observations_key, '').strip()
                     
                     if montant > 0 and beneficiaire:  # Exiger le bénéficiaire
+                        # Le compte bancaire n'est plus requis pour le paiement
                         paiements_data[demande.pk] = {
                             'montant': montant,
                             'demande': demande,
                             'beneficiaire': beneficiaire,
-                            'observations': observations
+                            'observations': observations,
+                            'compte_bancaire': None  # Plus utilisé
                         }
                         total_paye += montant
                     elif montant > 0 and not beneficiaire:
                         messages.error(request, f"Veuillez spécifier le bénéficiaire pour la demande {demande.reference}.")
                         return self.get(request, pk)
-                except (ValueError, TypeError):
+                except (ValueError, TypeError, Exception) as e:
+                    # Logger l'erreur pour le débogage
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Erreur de conversion Decimal pour {montant_key}: {e}, valeur: {request.POST.get(montant_key, 'N/A')}")
                     continue
         
         if not paiements_data:
@@ -2583,8 +2867,19 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
                 montant = paiement_data['montant']
                 beneficiaire = paiement_data['beneficiaire']
                 observations = paiement_data['observations']
+                compte_bancaire = paiement_data.get('compte_bancaire')
                 
                 # Créer le paiement
+                # Rafraîchir le solde une dernière fois avant la déduction pour éviter les problèmes de concurrence
+                if compte_bancaire:
+                    compte_bancaire.refresh_from_db()
+                    solde_avant_paiement = compte_bancaire.solde_courant
+                    
+                    # Vérifier à nouveau le solde dans la transaction
+                    if solde_avant_paiement < montant:
+                        messages.error(request, f"Solde insuffisant. Solde disponible: {solde_avant_paiement} {compte_bancaire.devise}, Montant requis: {montant} {demande.devise} pour la demande {demande.reference}.")
+                        return self.get(request, pk)
+                
                 paiement = Paiement.objects.create(
                     demande=demande,
                     releve_depense=releve_depense,  # Associer au relevé de dépenses
@@ -2595,9 +2890,20 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
                     observations=observations or f"Paiement par rapport au relevé {releve_depense.periode}"
                 )
                 
+                # Le compte bancaire n'est plus utilisé pour le paiement
+                # La mise à jour du solde bancaire doit être faite manuellement si nécessaire
+                
                 # Mettre à jour la demande
                 demande.montant_deja_paye += montant
-                demande.reste_a_payer -= montant
+                
+                # S'assurer que reste_a_payer est un Decimal valide avant l'opération
+                if demande.reste_a_payer is None:
+                    demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                else:
+                    try:
+                        demande.reste_a_payer = Decimal(str(demande.reste_a_payer)) - montant
+                    except (ValueError, TypeError, Exception):
+                        demande.reste_a_payer = demande.montant - demande.montant_deja_paye
                 
                 if demande.reste_a_payer <= 0:
                     demande.statut = 'PAYEE'
@@ -2606,7 +2912,89 @@ class PaiementReleveDetailView(LoginRequiredMixin, View):
                 demande.save()
         
         messages.success(request, f"{len(paiements_data)} paiement(s) effectué(s) avec succès pour un total de {total_paye} {paiements_data[next(iter(paiements_data))]['demande'].devise}.")
-        return redirect('demandes:paiement_liste')
+        return redirect('demandes:paiement_releve_detail', pk=pk)
+    
+    def payer_demande(self, request, pk, demande_pk):
+        """Méthode pour payer une seule demande"""
+        releve_depense = get_object_or_404(ReleveDepense.objects, pk=pk)
+        demande = get_object_or_404(DemandePaiement.objects, pk=demande_pk)
+        
+        # Vérifier que la demande appartient au relevé
+        if demande not in releve_depense.demandes.all():
+            messages.error(request, "Cette demande n'appartient pas à ce relevé.")
+            return redirect('demandes:paiement_releve_detail', pk=pk)
+        
+        # Récupérer les données du formulaire
+        montant_key = f'montant_{demande.pk}'
+        beneficiaire_key = f'beneficiaire_{demande.pk}'
+        observations_key = f'observations_{demande.pk}'
+        
+        try:
+            # Nettoyer la valeur avant conversion
+            montant_str = request.POST.get(montant_key, '0.00').strip().replace(',', '.').replace(' ', '')
+            if not montant_str:
+                montant_str = '0.00'
+            
+            montant = Decimal(montant_str)
+            beneficiaire = request.POST.get(beneficiaire_key, '').strip()
+            observations = request.POST.get(observations_key, '').strip()
+            
+            if montant <= 0:
+                messages.error(request, f"Le montant doit être supérieur à 0 pour la demande {demande.reference}.")
+                return redirect('demandes:paiement_releve_detail', pk=pk)
+            
+            if not beneficiaire:
+                messages.error(request, f"Veuillez spécifier le bénéficiaire pour la demande {demande.reference}.")
+                return redirect('demandes:paiement_releve_detail', pk=pk)
+            
+            # Vérifier que le montant ne dépasse pas le reste à payer
+            if montant > demande.reste_a_payer:
+                messages.error(request, f"Le montant ({montant}) ne peut pas dépasser le reste à payer ({demande.reste_a_payer}) pour la demande {demande.reference}.")
+                return redirect('demandes:paiement_releve_detail', pk=pk)
+            
+            # Le compte bancaire n'est plus requis pour le paiement
+            # Créer le paiement
+            with transaction.atomic():
+                paiement = Paiement.objects.create(
+                    demande=demande,
+                    releve_depense=releve_depense,
+                    paiement_par=request.user,
+                    montant_paye=montant,
+                    devise=demande.devise,
+                    beneficiaire=beneficiaire,
+                    observations=observations or f"Paiement pour la demande {demande.reference}"
+                )
+                
+                # Le compte bancaire n'est plus utilisé pour le paiement
+                # La mise à jour du solde bancaire doit être faite manuellement si nécessaire
+                
+                # Mettre à jour la demande
+                demande.montant_deja_paye += montant
+                
+                # S'assurer que reste_a_payer est un Decimal valide avant l'opération
+                if demande.reste_a_payer is None:
+                    demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                else:
+                    try:
+                        demande.reste_a_payer = Decimal(str(demande.reste_a_payer)) - montant
+                    except (ValueError, TypeError, Exception):
+                        demande.reste_a_payer = demande.montant - demande.montant_deja_paye
+                
+                if demande.reste_a_payer <= 0:
+                    demande.statut = 'PAYEE'
+                    demande.reste_a_payer = Decimal('0.00')
+                
+                demande.save()
+            
+            messages.success(request, f"Paiement de {montant} {demande.devise} enregistré avec succès pour la demande {demande.reference}.")
+            
+        except (ValueError, TypeError, Exception) as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Erreur lors du paiement de la demande {demande.pk}: {e}")
+            messages.error(request, f"Une erreur est survenue lors de l'enregistrement du paiement: {str(e)}")
+        
+        return redirect('demandes:paiement_releve_detail', pk=pk)
 
 
 class PaiementDetailView(LoginRequiredMixin, DetailView):

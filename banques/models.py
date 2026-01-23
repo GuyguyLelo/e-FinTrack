@@ -48,6 +48,12 @@ class CompteBancaire(models.Model):
         decimal_places=2, 
         default=Decimal('0.00')
     )
+    date_solde_courant = models.DateTimeField(
+        null=True, 
+        blank=True,
+        verbose_name="Date de mise à jour du solde courant",
+        help_text="Date de la dernière mise à jour du solde courant"
+    )
     date_ouverture = models.DateField()
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -64,9 +70,15 @@ class CompteBancaire(models.Model):
     
     def mettre_a_jour_solde(self, montant, operation='depense'):
         """Met à jour le solde courant du compte"""
+        from django.utils import timezone
+        
         if operation == 'depense':
             self.solde_courant -= montant
         elif operation == 'recette':
             self.solde_courant += montant
-        self.save(update_fields=['solde_courant', 'date_modification'])
+        
+        # Mettre à jour la date du solde courant
+        self.date_solde_courant = timezone.now()
+        
+        self.save(update_fields=['solde_courant', 'date_solde_courant', 'date_modification'])
 
