@@ -279,7 +279,7 @@
                             </div>
                             <div class="col-md-2">
                                 <button type="button" 
-                                        onclick="payerDemande({{ demande.pk }})"
+                                        onclick="payerDemande({{ demande.pk }}, '{{ demande.devise }}')"
                                         id="btn_payer_{{ demande.pk }}"
                                         class="btn btn-success w-100">
                                     <i class="fas fa-check me-1"></i> Payer
@@ -308,7 +308,7 @@
 {% block extra_js %}
 <script>
 // Définir payerDemande dans le scope global pour qu'elle soit accessible depuis onclick
-function payerDemande(demandePk) {
+function payerDemande(demandePk, devise) {
         // Récupérer les valeurs du formulaire pour cette demande
         const montantInput = document.getElementById('montant_' + demandePk);
         const beneficiaireInput = document.getElementById('beneficiaire_' + demandePk);
@@ -337,7 +337,13 @@ function payerDemande(demandePk) {
         }
         
         // Afficher la modale de confirmation
-        const modal = new bootstrap.Modal(document.getElementById('confirmerPaiementModal'));
+        const modalElement = document.getElementById('confirmerPaiementModal');
+        if (!modalElement) {
+            alert('Erreur: Modale de confirmation introuvable.');
+            return;
+        }
+        
+        const modal = new bootstrap.Modal(modalElement);
         
         // Remplir les informations dans la modale
         document.getElementById('paiement-montant').textContent = parseFloat(montant).toFixed(2) + ' ' + devise;
@@ -354,61 +360,85 @@ function payerDemande(demandePk) {
         
         // Afficher la modale
         modal.show();
-    }
-    
-    // Gestionnaire pour le bouton de confirmation dans la modale
-    document.getElementById('confirmerPaiementBtn').addEventListener('click', function() {
-        if (!window.paiementData) {
-            return;
-        }
-        
-        const { demandePk, montant, beneficiaire, devise } = window.paiementData;
-        
-        // Fermer la modale
-        bootstrap.Modal.getInstance(document.getElementById('confirmerPaiementModal')).hide();
-        
-        // Créer un formulaire temporaire pour soumettre le paiement individuel
-        const form = document.getElementById('paiementMultipleForm');
-        if (!form) {
-            alert('Erreur: Formulaire introuvable.');
-            return;
-        }
-        
-        // S'assurer que le champ demande_pk existe
-        let demandePkInput = document.getElementById('demande_pk');
-        if (!demandePkInput) {
-            // Créer le champ s'il n'existe pas
-            demandePkInput = document.createElement('input');
-            demandePkInput.type = 'hidden';
-            demandePkInput.name = 'demande_pk';
-            demandePkInput.id = 'demande_pk';
-            form.appendChild(demandePkInput);
-        }
-        demandePkInput.value = demandePk;
-        
-        // S'assurer que les valeurs sont bien dans le formulaire
-        // Les champs avec les noms montant_{pk}, beneficiaire_{pk}, etc. sont déjà dans le formulaire
-        // donc ils seront automatiquement inclus lors de la soumission
-        
-        // Vérifier que le formulaire a bien le token CSRF
-        const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]');
-        if (!csrfToken) {
-            alert('Erreur: Token CSRF manquant. Veuillez recharger la page.');
-            return;
-        }
-        
-        // Soumettre le formulaire
-        try {
-            form.submit();
-        } catch (error) {
-            console.error('Erreur lors de la soumission du formulaire:', error);
-            alert('Erreur lors de la soumission du formulaire. Veuillez réessayer.');
-        }
-    });
 }
 
 // Code exécuté au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM chargé - Initialisation des gestionnaires d\'événements');
+    
+    // Vérifier que Bootstrap est disponible
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap n\'est pas chargé!');
+        return;
+    }
+    
+    // Ajouter le gestionnaire pour le bouton de confirmation dans la modale
+    const confirmerBtn = document.getElementById('confirmerPaiementBtn');
+    console.log('Bouton confirmerPaiementBtn trouvé:', !!confirmerBtn);
+    
+    if (confirmerBtn) {
+        confirmerBtn.addEventListener('click', function() {
+            console.log('Clic sur le bouton confirmerPaiementBtn');
+            
+            if (!window.paiementData) {
+                alert('Erreur: Données de paiement non trouvées.');
+                return;
+            }
+            
+            const { demandePk, montant, beneficiaire, devise } = window.paiementData;
+            console.log('Données de paiement:', { demandePk, montant, beneficiaire, devise });
+            
+            // Fermer la modale
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('confirmerPaiementModal'));
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            // Créer un formulaire temporaire pour soumettre le paiement individuel
+            const form = document.getElementById('paiementMultipleForm');
+            if (!form) {
+                alert('Erreur: Formulaire introuvable.');
+                return;
+            }
+            
+            // S'assurer que le champ demande_pk existe
+            let demandePkInput = document.getElementById('demande_pk');
+            if (!demandePkInput) {
+                // Créer le champ s'il n'existe pas
+                demandePkInput = document.createElement('input');
+                demandePkInput.type = 'hidden';
+                demandePkInput.name = 'demande_pk';
+                demandePkInput.id = 'demande_pk';
+                form.appendChild(demandePkInput);
+            }
+            demandePkInput.value = demandePk;
+            
+            // S'assurer que les valeurs sont bien dans le formulaire
+            // Les champs avec les noms montant_{pk}, beneficiaire_{pk}, etc. sont déjà dans le formulaire
+            // donc ils seront automatiquement inclus lors de la soumission
+            
+            // Vérifier que le formulaire a bien le token CSRF
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfToken) {
+                alert('Erreur: Token CSRF manquant. Veuillez recharger la page.');
+                return;
+            }
+            
+            console.log('Soumission du formulaire...');
+            // Soumettre le formulaire
+            try {
+                form.submit();
+            } catch (error) {
+                console.error('Erreur lors de la soumission du formulaire:', error);
+                alert('Erreur lors de la soumission du formulaire. Veuillez réessayer.');
+            }
+        });
+        
+        console.log('Gestionnaire d\'événements attaché au bouton confirmerPaiementBtn');
+    } else {
+        console.error('Bouton confirmerPaiementBtn non trouvé!');
+    }
+    
     const montantInputs = document.querySelectorAll('input[name^="montant_"]');
     
     function validateMontant(input) {
