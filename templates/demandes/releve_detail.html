@@ -14,12 +14,9 @@
     </h2>
     <div class="btn-group" role="group">
         {% if not releve.depenses_validees and user.peut_valider_depense %}
-        <form method="post" action="{% url 'demandes:releve_valider_depenses' releve.pk %}" class="d-inline">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-warning" onclick="return confirm('Êtes-vous sûr de vouloir valider les dépenses de ce relevé ? Cette action créera des objets Dépense à partir des demandes.');">
-                <i class="bi bi-check-circle"></i> Valider les dépenses
-            </button>
-        </form>
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#validerDepensesModal">
+            <i class="bi bi-check-circle"></i> Valider les dépenses
+        </button>
         {% elif releve.depenses_validees %}
         <span class="badge bg-success">
             <i class="bi bi-check-circle"></i> Dépenses validées
@@ -182,6 +179,56 @@
                 </tfoot>
                 {% endif %}
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de validation des dépenses -->
+<div class="modal fade" id="validerDepensesModal" tabindex="-1" aria-labelledby="validerDepensesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="validerDepensesModalLabel">
+                    <i class="bi bi-check-circle"></i> Valider les dépenses
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Action importante</strong>
+                </div>
+                <p>Êtes-vous sûr de vouloir valider les dépenses de ce relevé ?</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Relevé:</strong> {{ releve.numero|default:"Nouveau" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Période:</strong> {{ releve.periode|date:"F Y" }}
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <strong>Nombre de demandes:</strong> {{ releve.demandes.count }}
+                    </div>
+                </div>
+                <hr>
+                <p class="text-muted mb-0">
+                    <small><i class="bi bi-info-circle"></i> 
+                    Cette action créera des objets Dépense à partir des demandes et ne pourra pas être annulée.</small>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Annuler
+                </button>
+                <form method="post" action="{% url 'demandes:releve_valider_depenses' releve.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-check-circle"></i> Confirmer la validation
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

@@ -101,7 +101,8 @@
                                 <th>Banque</th>
                                 <th class="text-end">Solde USD</th>
                                 <th class="text-end">Solde CDF</th>
-
+                                <th class="text-end">Total (USD)</th>
+                                <th>Statut</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -124,10 +125,16 @@
                                     <span class="text-muted">0,00 CDF</span>
                                     {% endif %}
                                 </td>
-
+                                <td class="text-end">
+                                    {% if banque_data.solde_usd > 0 %}
+                                    <strong class="text-success">{{ banque_data.solde_usd|floatformat:2|intcomma }} USD</strong>
+                                    {% else %}
+                                    <span class="text-muted">0,00 USD</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if banque_data.solde_usd > 0 or banque_data.solde_cdf > 0 %}
-
+                                    <span class="badge bg-success">Actif</span>
                                     {% else %}
                                     <span class="badge bg-secondary">Solde nul</span>
                                     {% endif %}

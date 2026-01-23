@@ -73,28 +73,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['total_banques'] = Banque.objects.filter(active=True).count()
             context['total_comptes'] = CompteBancaire.objects.filter(actif=True).count()
             
-            # Solde consolidé par devise : calculé à partir de toutes les recettes moins les paiements effectués
-            # Total de toutes les recettes (validées ou non, toutes périodes confondues)
-            total_recettes_usd = Recette.objects.filter(
-                montant_usd__gt=0
-            ).aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+            # Solde consolidé par devise : calculé à partir des soldes actuels des comptes bancaires
+            comptes_usd = CompteBancaire.objects.filter(devise='USD', actif=True)
+            comptes_cdf = CompteBancaire.objects.filter(devise='CDF', actif=True)
             
-            total_recettes_cdf = Recette.objects.filter(
-                montant_cdf__gt=0
-            ).aggregate(total=Sum('montant_cdf'))['total'] or Decimal('0.00')
-            
-            # Total des paiements effectués (pour déduire des recettes)
-            total_paiements_usd = Paiement.objects.filter(
-                devise='USD'
-            ).aggregate(total=Sum('montant_paye'))['total'] or Decimal('0.00')
-            
-            total_paiements_cdf = Paiement.objects.filter(
-                devise='CDF'
-            ).aggregate(total=Sum('montant_paye'))['total'] or Decimal('0.00')
-            
-            # Solde consolidé = Recettes validées - Paiements effectués
-            solde_usd = total_recettes_usd - total_paiements_usd
-            solde_cdf = total_recettes_cdf - total_paiements_cdf
+            solde_usd = sum(c.solde_courant for c in comptes_usd) or Decimal('0.00')
+            solde_cdf = sum(c.solde_courant for c in comptes_cdf) or Decimal('0.00')
             
             context['solde_consolide_usd'] = float(solde_usd)  # Convertir en float pour le template
             context['solde_consolide_cdf'] = float(solde_cdf)  # Convertir en float pour le template

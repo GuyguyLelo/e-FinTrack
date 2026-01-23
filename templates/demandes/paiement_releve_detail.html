@@ -336,10 +336,36 @@ function payerDemande(demandePk) {
             return;
         }
         
-        // Confirmation
-        if (!confirm(`Confirmer le paiement de ${parseFloat(montant).toFixed(2)} pour cette demande ?`)) {
+        // Afficher la modale de confirmation
+        const modal = new bootstrap.Modal(document.getElementById('confirmerPaiementModal'));
+        
+        // Remplir les informations dans la modale
+        document.getElementById('paiement-montant').textContent = parseFloat(montant).toFixed(2) + ' ' + devise;
+        document.getElementById('paiement-beneficiaire').textContent = beneficiaire;
+        document.getElementById('paiement-demande').textContent = demandePk;
+        
+        // Stocker les données pour la confirmation
+        window.paiementData = {
+            demandePk: demandePk,
+            montant: montant,
+            beneficiaire: beneficiaire,
+            devise: devise
+        };
+        
+        // Afficher la modale
+        modal.show();
+    }
+    
+    // Gestionnaire pour le bouton de confirmation dans la modale
+    document.getElementById('confirmerPaiementBtn').addEventListener('click', function() {
+        if (!window.paiementData) {
             return;
         }
+        
+        const { demandePk, montant, beneficiaire, devise } = window.paiementData;
+        
+        // Fermer la modale
+        bootstrap.Modal.getInstance(document.getElementById('confirmerPaiementModal')).hide();
         
         // Créer un formulaire temporaire pour soumettre le paiement individuel
         const form = document.getElementById('paiementMultipleForm');
@@ -378,6 +404,7 @@ function payerDemande(demandePk) {
             console.error('Erreur lors de la soumission du formulaire:', error);
             alert('Erreur lors de la soumission du formulaire. Veuillez réessayer.');
         }
+    });
 }
 
 // Code exécuté au chargement de la page
@@ -431,4 +458,51 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- Modal de confirmation de paiement -->
+<div class="modal fade" id="confirmerPaiementModal" tabindex="-1" aria-labelledby="confirmerPaiementModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="confirmerPaiementModalLabel">
+                    <i class="bi bi-cash-coin"></i> Confirmer le paiement
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Confirmation de paiement</strong>
+                </div>
+                <p>Êtes-vous sûr de vouloir effectuer ce paiement ?</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Montant:</strong> <span id="paiement-montant" class="text-success fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Bénéficiaire:</strong> <span id="paiement-beneficiaire" class="fw-bold"></span>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12">
+                        <strong>Demande:</strong> <span id="paiement-demande"></span>
+                    </div>
+                </div>
+                <hr>
+                <p class="text-muted mb-0">
+                    <small><i class="bi bi-exclamation-triangle"></i> 
+                    Cette action enregistrera le paiement et mettra à jour les soldes bancaires.</small>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-success" id="confirmerPaiementBtn">
+                    <i class="bi bi-cash-coin"></i> Confirmer le paiement
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

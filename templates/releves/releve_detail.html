@@ -115,7 +115,7 @@
                         <td>{{ mouvement.beneficiaire_ou_source|default:"-" }}</td>
                         {% if not releve.valide %}
                         <td>
-                            <a href="{% url 'releves:mouvement_supprimer' mouvement.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Êtes-vous sûr ?')">
+                            <a href="{% url 'releves:mouvement_supprimer' mouvement.pk %}" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#supprimerMouvementModal">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </td>
