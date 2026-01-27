@@ -23,7 +23,9 @@ def format_montant(value, devise=''):
             value = Decimal(str(value))
         elif isinstance(value, str):
             # Nettoyer la chaîne avant conversion
-            value = value.strip().replace(',', '.').replace(' ', '')
+            value = value.strip()
+            value = value.replace(',', '.')
+            value = value.replace(' ', '')
             if not value:
                 return "0,00"
             value = Decimal(value)
@@ -37,7 +39,8 @@ def format_montant(value, devise=''):
         decimal_part = abs(value) - integer_part
         
         # Formater la partie entière avec séparateurs de milliers (espaces)
-        integer_str = f"{integer_part:,}".replace(',', ' ')
+        integer_str = f"{integer_part:,}"
+        integer_str = integer_str.replace(',', ' ')
         
         # Formater la partie décimale (2 décimales)
         decimal_str = f"{decimal_part:.2f}".split('.')[1]
@@ -87,7 +90,8 @@ def format_montant_simple(value):
         
         # Formater avec séparateurs de milliers (espaces)
         # Utiliser la méthode française avec espaces
-        formatted = f"{num_value:,}".replace(',', ' ')
+        formatted = f"{num_value:,}"
+        formatted = formatted.replace(',', ' ')
         return formatted
     except (ValueError, TypeError, AttributeError, OverflowError, ZeroDivisionError):
         # En cas d'erreur, retourner "0" par défaut

@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Liste des états générés{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-list me-2"></i>États générés
+                </h1>
+                <a href="{% url 'etats:selection' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Nouvel état
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-filter me-2"></i>Filtres
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <select name="type_etat" class="form-select">
+                                <option value="">Tous les types</option>
+                                {% for type, label in types_etat %}
+                                    <option value="{{ type }}" {% if request.GET.type_etat == type %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="statut" class="form-select">
+                                <option value="">Tous les statuts</option>
+                                {% for statut, label in statuts %}
+                                    <option value="{{ statut }}" {% if request.GET.statut == statut %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="date_debut" class="form-control" placeholder="Date début" value="{{ request.GET.date_debut }}">
+                        </div>
+                        <div class="col-md-2">
+                            <input type="date" name="date_fin" class="form-control" placeholder="Date fin" value="{{ request.GET.date_fin }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-search me-1"></i>Filtrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des états -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-table me-2"></i>Liste des états
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if etats %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="etatsTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>Titre</th>
+                                        <th>Type</th>
+                                        <th>Période</th>
+                                        <th>Total général</th>
+                                        <th>Statut</th>
+                                        <th>Généré par</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for etat in etats %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ etat.titre }}</strong>
+                                                {% if etat.description %}
+                                                    <br><small class="text-muted">{{ etat.description|truncatechars:50 }}</small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ etat.get_type_etat_display }}</span>
+                                            </td>
+                                            <td>
+                                                <small>{{ etat.date_debut }} au {{ etat.date_fin }}</small>
+                                                <br><small class="text-muted">{{ etat.get_periodicite_display }}</small>
+                                            </td>
+                                            <td>
+                                                <strong>{{ etat.total_general|floatformat:2 }}</strong>
+                                                <br><small class="text-muted">
+                                                    USD: {{ etat.total_usd|floatformat:2 }}<br>
+                                                    CDF: {{ etat.total_cdf|floatformat:2 }}
+                                                </small>
+                                            </td>
+                                            <td>
+                                                {% if etat.statut == 'GENERE' %}
+                                                    <span class="badge bg-success">Généré</span>
+                                                {% elif etat.statut == 'GENERATION' %}
+                                                    <span class="badge bg-warning">En cours</span>
+                                                {% elif etat.statut == 'ERREUR' %}
+                                                    <span class="badge bg-danger">Erreur</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {{ etat.genere_par.get_full_name|default:etat.genere_par.username }}
+                                            </td>
+                                            <td>
+                                                {{ etat.date_generation|date:"d/m/Y H:i" }}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a href="{% url 'etats:detail' etat.pk %}" class="btn btn-sm btn-outline-primary" title="Voir les détails">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    {% if etat.statut == 'GENERE' %}
+                                                        {% if etat.fichier_pdf %}
+                                                            <a href="{% url 'etats:telecharger' etat.pk 'pdf' %}" class="btn btn-sm btn-outline-danger" title="Télécharger PDF">
+                                                                <i class="fas fa-file-pdf"></i>
+                                                            </a>
+                                                        {% endif %}
+                                                        {% if etat.fichier_excel %}
+                                                            <a href="{% url 'etats:telecharger' etat.pk 'excel' %}" class="btn btn-sm btn-outline-success" title="Télécharger Excel">
+                                                                <i class="fas fa-file-excel"></i>
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if is_paginated %}
+                            <nav aria-label="Pagination des états">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Premier</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Précédent</a>
+                                        </li>
+                                    {% endif %}
+
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Suivant</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Dernier</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-gray-300 mb-3"></i>
+                            <h5 class="text-gray-600">Aucun état trouvé</h5>
+                            <p class="text-gray-500">Commencez par générer votre premier état.</p>
+                            <a href="{% url 'etats:selection' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Générer un état
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser DataTable pour un meilleur affichage
+    $('#etatsTable').DataTable({
+        "language": {
+            "search": "Rechercher:",
+            "lengthMenu": "Afficher _MENU_ éléments",
+            "info": "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
+            "paginate": {
+                "first": "Premier",
+                "last": "Dernier",
+                "next": "Suivant",
+                "previous": "Précédent"
+            }
+        },
+        "order": [[6, "desc"]], // Trier par date de génération
+        "pageLength": 25
+    });
+});
+</script>
+{% endblock %}

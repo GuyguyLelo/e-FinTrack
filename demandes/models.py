@@ -47,7 +47,6 @@ class DemandePaiement(models.Model):
     STATUT_CHOICES = [
         ('EN_ATTENTE', 'En attente'),
         ('VALIDEE_DG', 'Validée par le DG'),
-        ('VALIDEE_DF', 'Validée par le DF'),
         ('PAYEE', 'Payée'),
         ('REJETEE', 'Rejetée'),
     ]

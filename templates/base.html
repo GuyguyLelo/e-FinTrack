@@ -212,6 +212,9 @@
                     <a class="nav-link {% if request.resolver_match.app_name == 'releves' %}active{% endif %}" href="{% url 'releves:liste' %}">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Relevés bancaires
                     </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'etats' %}active{% endif %}" href="{% url 'etats:liste' %}">
+                        <i class="bi bi-file-earmark-pdf"></i> États et rapports
+                    </a>
                     <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:consolide' %}">
                         <i class="bi bi-graph-up"></i> Rapports consolidés
                     </a>
@@ -244,6 +247,8 @@
         </div>
     </div>
 
+    <!-- jQuery (nécessaire pour Bootstrap) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap 5 JS -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
     <!-- Chart.js -->

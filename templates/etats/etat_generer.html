@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Génération de l'état{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+                <div class="text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Génération en cours...</span>
+                    </div>
+                    <h4 class="text-gray-800">Génération de l'état en cours...</h4>
+                    <p class="text-muted">Veuillez patienter pendant que nous générons votre état "{{ etat.titre }}"</p>
+                    
+                    <div class="mt-4">
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            Type: {{ etat.get_type_etat_display }} | 
+                            Période: {{ etat.date_debut }} au {{ etat.date_fin }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Redirection automatique après 2 secondes pour éviter les problèmes de timeout
+setTimeout(function() {
+    window.location.href = "{% url 'etats:detail' etat.pk %}";
+}, 2000);
+</script>
+{% endblock %}

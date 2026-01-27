@@ -14,6 +14,7 @@ urlpatterns = [
     path('demandes/', include('demandes.urls')),
     path('recettes/', include('recettes.urls')),
     path('releves/', include('releves.urls')),
+    path('etats/', include('etats.urls')),
 ]
 
 # Serve media files in development

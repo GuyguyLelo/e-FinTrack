@@ -1,0 +1,503 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Générer un état{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-file-earmark-pdf"></i> Génération d'États Professionnels
+            </h2>
+        </div>
+    </div>
+
+    <!-- Section des Filtres -->
+    <div class="row">
+        <div class="col-12">
+            <div class="filter-section">
+                <h5 class="mb-4">
+                    <i class="bi bi-funnel"></i> Critères de Consultation
+                </h5>
+                
+                <form id="filterForm">
+                    <div class="row">
+                        <!-- Type d'état -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_type_etat" class="form-label">Type d'État</label>
+                            <select name="type_etat" id="id_type_etat" class="form-select" required>
+                                <option value="">-- Sélectionner --</option>
+                                {% for value, label in form.type_etat.field.choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Périodicité -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_periodicite" class="form-label">Périodicité</label>
+                            <select name="periodicite" id="id_periodicite" class="form-select">
+                                <option value="PERSONNALISE">Personnalisée</option>
+                                <option value="JOURNALIER">Journalier</option>
+                                <option value="HEBDOMADAIRE">Hebdomadaire</option>
+                                <option value="MENSUEL">Mensuel</option>
+                                <option value="TRIMESTRIEL">Trimestriel</option>
+                                <option value="ANNUEL">Annuel</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Date de début -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_date_debut" class="form-label">Date Début</label>
+                            <input type="date" name="date_debut" id="id_date_debut" class="form-control" required>
+                        </div>
+                        
+                        <!-- Date de fin -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_date_fin" class="form-label">Date Fin</label>
+                            <input type="date" name="date_fin" id="id_date_fin" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Services -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_services" class="form-label">Services</label>
+                            <select name="services" id="id_services" class="form-select" multiple>
+                                {% for service in form.services.field.queryset %}
+                                    <option value="{{ service.pk }}">{{ service.nom_service }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Natures économiques -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_natures_economiques" class="form-label">Natures Économiques</label>
+                            <select name="natures_economiques" id="id_natures_economiques" class="form-select" multiple>
+                                {% for nature in form.natures_economiques.field.queryset %}
+                                    <option value="{{ nature.pk }}">{{ nature.code }} - {{ nature.libelle }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Banques -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_banques" class="form-label">Banques</label>
+                            <select name="banques" id="id_banques" class="form-select" multiple>
+                                {% for banque in form.banques.field.queryset %}
+                                    <option value="{{ banque.pk }}">{{ banque.nom_banque }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Comptes bancaires -->
+                        <div class="col-md-3 mb-3">
+                            <label for="id_comptes_bancaires" class="form-label">Comptes Bancaires</label>
+                            <select name="comptes_bancaires" id="id_comptes_bancaires" class="form-select" multiple>
+                                {% for compte in form.comptes_bancaires.field.queryset %}
+                                    <option value="{{ compte.pk }}">{{ compte.intitule_compte }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="button" class="btn btn-light me-2" onclick="applyFilters()">
+                                <i class="bi bi-search"></i> Appliquer les filtres
+                            </button>
+                            <button type="button" class="btn btn-outline-light" onclick="resetFilters()">
+                                <i class="bi bi-arrow-clockwise"></i> Réinitialiser
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section des Résultats -->
+    <div class="row">
+        <div class="col-12">
+            <div class="results-section">
+                <!-- Statistiques -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h6>Total Enregistrements</h6>
+                            <h3 id="totalRecords">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h6>Total USD</h6>
+                            <h3 id="totalUSD">0.00</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h6>Total CDF</h6>
+                            <h3 id="totalCDF">0.00</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <h6>Dernière Mise à Jour</h6>
+                            <h6 id="lastUpdate">-</h6>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tableau des résultats -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="resultsTable">
+                        <thead>
+                            <tr id="tableHeaders">
+                                <th colspan="100%" class="text-center text-muted">
+                                    <i class="bi bi-info-circle"></i> 
+                                    Sélectionnez un type d'état et appliquez les filtres pour voir les résultats
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td colspan="100%" class="text-center text-muted">
+                                    Aucune donnée à afficher
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Actions -->
+                <div class="row mt-4">
+                    <div class="col-12 text-center">
+                        <button type="button" class="btn btn-generate me-2" onclick="generateState('PDF')" id="generatePDF" disabled>
+                            <i class="bi bi-file-pdf"></i> Générer PDF
+                        </button>
+                        <button type="button" class="btn btn-success me-2" onclick="generateState('EXCEL')" id="generateExcel" disabled>
+                            <i class="bi bi-file-excel"></i> Générer Excel
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="generateState('LES_DEUX')" id="generateBoth" disabled>
+                            <i class="bi bi-files"></i> Générer les deux
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="text-center text-white">
+        <div class="spinner-border mb-3" style="width: 3rem; height: 3rem;"></div>
+        <h4>Génération en cours...</h4>
+        <p>Veuillez patienter</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Configuration des en-têtes de tableau par type d'état
+const tableHeaders = {
+    'DEMANDE_PAIEMENT': ['Référence', 'Service', 'Nature Économique', 'Description', 'Montant', 'Devise', 'Statut', 'Date'],
+    'RECETTE': ['Référence', 'Banque', 'Source', 'Description', 'Montant USD', 'Montant CDF', 'Date'],
+    'DEPENSE': ['Code', 'Libellé', 'Banque', 'Montant USD', 'Montant CDF', 'Date'],
+    'PAIEMENT': ['Référence', 'Demande', 'Montant Payé', 'Devise', 'Date', 'Bénéficiaire'],
+    'RELEVE_DEPENSE': ['Numéro', 'Période', 'Net USD', 'Net CDF', 'Validé par', 'Date création'],
+    'SOLDE_BANCAIRE': ['Banque', 'Compte', 'Devise', 'Solde', 'Dernière MàJ'],
+    'Bilan': ['Type', 'Catégorie', 'Montant USD', 'Montant CDF', 'Pourcentage'],
+    'SITUATION_FINANCIERE': ['Indicateur', 'Valeur Actuelle', 'Valeur Précédente', 'Variation']
+};
+
+let currentData = [];
+
+// Gestion de la périodicité
+document.getElementById('id_periodicite').addEventListener('change', function() {
+    const periodicite = this.value;
+    const dateDebut = document.getElementById('id_date_debut');
+    const dateFin = document.getElementById('id_date_fin');
+    
+    if (periodicite !== 'PERSONNALISE') {
+        const today = new Date();
+        let debut, fin;
+        
+        switch(periodicite) {
+            case 'JOURNALIER':
+                debut = fin = today;
+                break;
+            case 'HEBDOMADAIRE':
+                debut = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                fin = today;
+                break;
+            case 'MENSUEL':
+                debut = new Date(today.getFullYear(), today.getMonth(), 1);
+                fin = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                break;
+            case 'TRIMESTRIEL':
+                debut = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
+                fin = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3 + 3, 0);
+                break;
+            case 'ANNUEL':
+                debut = new Date(today.getFullYear(), 0, 1);
+                fin = new Date(today.getFullYear(), 11, 31);
+                break;
+        }
+        
+        dateDebut.value = formatDate(debut);
+        dateFin.value = formatDate(fin);
+    }
+});
+
+function formatDate(date) {
+    return date.toISOString().split('T')[0];
+}
+
+// Appliquer les filtres
+function applyFilters() {
+    const typeEtat = document.getElementById('id_type_etat').value;
+    if (!typeEtat) {
+        alert('Veuillez sélectionner un type d\'état');
+        return;
+    }
+    
+    const formData = new FormData(document.getElementById('filterForm'));
+    
+    fetch(`/etats/preview/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        updateTable(data);
+        updateStats(data);
+        enableGenerateButtons();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la récupération des données');
+    });
+}
+
+// Mettre à jour le tableau
+function updateTable(data) {
+    const typeEtat = document.getElementById('id_type_etat').value;
+    const headers = tableHeaders[typeEtat] || [];
+    
+    // Mettre à jour les en-têtes
+    const headerRow = document.getElementById('tableHeaders');
+    headerRow.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+    
+    // Mettre à jour le corps
+    const tbody = document.getElementById('tableBody');
+    if (data.lignes && data.lignes.length > 0) {
+        tbody.innerHTML = data.lignes.map(item => formatTableRow(item, typeEtat)).join('');
+    } else {
+        tbody.innerHTML = `<tr><td colspan="${headers.length}" class="text-center text-muted">Aucune donnée trouvée</td></tr>`;
+    }
+    
+    currentData = data;
+}
+
+// Formater une ligne de tableau selon le type
+function formatTableRow(item, typeEtat) {
+    switch(typeEtat) {
+        case 'DEMANDE_PAIEMENT':
+            return `<tr>
+                <td>${item.reference}</td>
+                <td>${item.service_demandeur?.nom_service || ''}</td>
+                <td>${item.nature_economique?.code || ''}</td>
+                <td>${item.description}</td>
+                <td class="text-end">${item.montant}</td>
+                <td>${item.devise}</td>
+                <td><span class="badge bg-info">${item.statut}</span></td>
+                <td>${item.date_soumission}</td>
+            </tr>`;
+        case 'RELEVE_DEPENSE':
+            return `<tr>
+                <td>${item.numero}</td>
+                <td>${item.periode}</td>
+                <td class="text-end">${item.net_a_payer_usd}</td>
+                <td class="text-end">${item.net_a_payer_cdf}</td>
+                <td>${item.valide_par?.get_full_name || ''}</td>
+                <td>${item.date_creation}</td>
+            </tr>`;
+        // Ajouter d'autres cas selon besoin
+        default:
+            return `<tr><td colspan="100%">Format non implémenté</td></tr>`;
+    }
+}
+
+// Mettre à jour les statistiques
+function updateStats(data) {
+    document.getElementById('totalRecords').textContent = data.count || 0;
+    document.getElementById('totalUSD').textContent = formatNumber(data.total_usd || 0);
+    document.getElementById('totalCDF').textContent = formatNumber(data.total_cdf || 0);
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+}
+
+function formatNumber(num) {
+    return new Intl.NumberFormat('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(num);
+}
+
+// Activer les boutons de génération
+function enableGenerateButtons() {
+    document.getElementById('generatePDF').disabled = false;
+    document.getElementById('generateExcel').disabled = false;
+    document.getElementById('generateBoth').disabled = false;
+}
+
+// Réinitialiser les filtres
+function resetFilters() {
+    document.getElementById('filterForm').reset();
+    document.getElementById('tableHeaders').innerHTML = '<th colspan="100%" class="text-center text-muted"><i class="bi bi-info-circle"></i> Sélectionnez un type d\'état et appliquez les filtres pour voir les résultats</th>';
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="100%" class="text-center text-muted">Aucune donnée à afficher</td></tr>';
+    document.getElementById('totalRecords').textContent = '0';
+    document.getElementById('totalUSD').textContent = '0.00';
+    document.getElementById('totalCDF').textContent = '0.00';
+    
+    // Désactiver les boutons
+    document.getElementById('generatePDF').disabled = true;
+    document.getElementById('generateExcel').disabled = true;
+    document.getElementById('generateBoth').disabled = true;
+}
+
+// Générer l'état
+function generateState(format) {
+    const formData = new FormData(document.getElementById('filterForm'));
+    formData.append('format_sortie', format);
+    formData.append('titre', generateTitle());
+    formData.append('description', '');
+    
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    
+    fetch('/etats/create/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = `/etats/generer/${data.etat_id}/`;
+        } else {
+            alert('Erreur: ' + data.error);
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Erreur lors de la génération');
+        document.getElementById('loadingOverlay').style.display = 'none';
+    });
+}
+
+// Générer le titre automatiquement
+function generateTitle() {
+    const typeEtat = document.getElementById('id_type_etat').value;
+    const typeLabel = document.getElementById('id_type_etat').options[document.getElementById('id_type_etat').selectedIndex].text;
+    const dateDebut = document.getElementById('id_date_debut').value;
+    const dateFin = document.getElementById('id_date_fin').value;
+    
+    if (dateDebut === dateFin) {
+        return `${typeLabel} du ${formatDateFr(dateDebut)}`;
+    } else {
+        return `${typeLabel} du ${formatDateFr(dateDebut)} au ${formatDateFr(dateFin)}`;
+    }
+}
+
+function formatDateFr(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'});
+}
+
+// Helper pour obtenir le CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    // Mettre la date du jour par défaut
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('id_date_debut').value = today;
+    document.getElementById('id_date_fin').value = today;
+            
+            switch(this.value) {
+                case 'JOURNALIER':
+                    dateDebut = today;
+                    dateFin = today;
+                    break;
+                case 'HEBDOMADAIRE':
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay());
+                    const endOfWeek = new Date(startOfWeek);
+                    endOfWeek.setDate(startOfWeek.getDate() + 6);
+                    dateDebut = startOfWeek;
+                    dateFin = endOfWeek;
+                    break;
+                case 'MENSUEL':
+                    dateDebut = new Date(today.getFullYear(), today.getMonth(), 1);
+                    dateFin = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    break;
+                case 'TRIMESTRIEL':
+                    const quarter = Math.floor(today.getMonth() / 3);
+                    dateDebut = new Date(today.getFullYear(), quarter * 3, 1);
+                    dateFin = new Date(today.getFullYear(), quarter * 3 + 3, 0);
+                    break;
+                case 'ANNUEL':
+                    dateDebut = new Date(today.getFullYear(), 0, 1);
+                    dateFin = new Date(today.getFullYear(), 11, 31);
+                    break;
+            }
+            
+            if (dateDebut && dateFin) {
+                dateDebutInput.value = dateDebut.toISOString().split('T')[0];
+                dateFinInput.value = dateFin.toISOString().split('T')[0];
+            }
+        }
+    });
+    
+    // Validation du formulaire
+    const form = document.getElementById('etatForm');
+    form.addEventListener('submit', function(e) {
+        const dateDebut = new Date(dateDebutInput.value);
+        const dateFin = new Date(dateFinInput.value);
+        
+        if (dateDebut > dateFin) {
+            e.preventDefault();
+            alert('La date de début doit être antérieure à la date de fin.');
+            return false;
+        }
+        
+        // Vérifier la période maximale (1 an)
+        const diffTime = Math.abs(dateFin - dateDebut);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays > 365) {
+            e.preventDefault();
+            alert('La période ne peut pas dépasser 1 an.');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

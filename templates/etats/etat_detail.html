@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Détails de l'état - {{ etat.titre }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-file-alt me-2"></i>Détails de l'état
+                </h1>
+                <div>
+                    <a href="{% url 'etats:liste' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Retour
+                    </a>
+                    {% if etat.statut == 'ERREUR' %}
+                        <a href="{% url 'etats:generer' etat.pk %}" class="btn btn-warning">
+                            <i class="fas fa-redo me-1"></i>Regénérer
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations générales -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>Informations générales
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-secondary">Titre</h6>
+                            <p class="mb-3"><strong>{{ etat.titre }}</strong></p>
+                            
+                            <h6 class="text-secondary">Type d'état</h6>
+                            <p class="mb-3">
+                                <span class="badge bg-info">{{ etat.get_type_etat_display }}</span>
+                            </p>
+                            
+                            <h6 class="text-secondary">Période</h6>
+                            <p class="mb-3">
+                                Du <strong>{{ etat.date_debut }}</strong> au <strong>{{ etat.date_fin }}</strong>
+                                <br><small class="text-muted">Périodicité: {{ etat.get_periodicite_display }}</small>
+                            </p>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-secondary">Statut</h6>
+                            <p class="mb-3">
+                                {% if etat.statut == 'GENERE' %}
+                                    <span class="badge bg-success">Généré avec succès</span>
+                                {% elif etat.statut == 'GENERATION' %}
+                                    <span class="badge bg-warning">En cours de génération</span>
+                                {% elif etat.statut == 'ERREUR' %}
+                                    <span class="badge bg-danger">Erreur de génération</span>
+                                {% endif %}
+                            </p>
+                            
+                            <h6 class="text-secondary">Généré par</h6>
+                            <p class="mb-3">{{ etat.genere_par.get_full_name|default:etat.genere_par.username }}</p>
+                            
+                            <h6 class="text-secondary">Date de génération</h6>
+                            <p class="mb-3">{{ etat.date_generation|date:"d/m/Y H:i:s" }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if etat.description %}
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-secondary">Description</h6>
+                                <p class="mb-0">{{ etat.description }}</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-calculator me-2"></i>Totaux
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="text-primary">{{ etat.total_general|floatformat:2 }}</h4>
+                        <p class="text-muted mb-0">Total général</p>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <h6 class="text-secondary">USD</h6>
+                            <p class="mb-0"><strong>{{ etat.total_usd|floatformat:2 }}</strong></p>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-secondary">CDF</h6>
+                            <p class="mb-0"><strong>{{ etat.total_cdf|floatformat:2 }}</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fichiers générés -->
+                <div class="card shadow mt-3">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-download me-2"></i>Téléchargements
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if etat.statut == 'GENERE' %}
+                            {% if etat.fichier_pdf %}
+                                <a href="{% url 'etats:telecharger' etat.pk 'pdf' %}" class="btn btn-outline-danger btn-sm w-100 mb-2">
+                                    <i class="fas fa-file-pdf me-1"></i>Télécharger PDF
+                                </a>
+                            {% endif %}
+                            {% if etat.fichier_excel %}
+                                <a href="{% url 'etats:telecharger' etat.pk 'excel' %}" class="btn btn-outline-success btn-sm w-100">
+                                    <i class="fas fa-file-excel me-1"></i>Télécharger Excel
+                                </a>
+                            {% endif %}
+                            {% if not etat.fichier_pdf and not etat.fichier_excel %}
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Les fichiers n'ont pas été générés correctement. Essayez de regénérer l'état.
+                                </div>
+                                <a href="{% url 'etats:generer' etat.pk %}" class="btn btn-warning btn-sm w-100">
+                                    <i class="fas fa-redo me-1"></i>Regénérer
+                                </a>
+                            {% endif %}
+                        {% elif etat.statut == 'ERREUR' %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle me-2"></i>
+                                Erreur lors de la génération. Vérifiez les logs du serveur pour plus de détails.
+                            </div>
+                            <a href="{% url 'etats:generer' etat.pk %}" class="btn btn-warning btn-sm w-100">
+                                <i class="fas fa-redo me-1"></i>Réessayer
+                            </a>
+                        {% else %}
+                            <p class="text-muted text-center mb-0">
+                                <i class="fas fa-clock me-1"></i>
+                                Fichiers en cours de génération...
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Filtres appliqués -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-filter me-2"></i>Filtres appliqués
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6 class="text-secondary">Services</h6>
+                            {% if etat.services.all %}
+                                {% for service in etat.services.all %}
+                                    <span class="badge bg-light text-dark me-1">{{ service.nom_service }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">Tous</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <h6 class="text-secondary">Natures économiques</h6>
+                            {% if etat.natures_economiques.all %}
+                                {% for nature in etat.natures_economiques.all %}
+                                    <span class="badge bg-light text-dark me-1">{{ nature.code }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">Toutes</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <h6 class="text-secondary">Banques</h6>
+                            {% if etat.banques.all %}
+                                {% for banque in etat.banques.all %}
+                                    <span class="badge bg-light text-dark me-1">{{ banque.nom_banque }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">Toutes</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <h6 class="text-secondary">Comptes bancaires</h6>
+                            {% if etat.comptes_bancaires.all %}
+                                {% for compte in etat.comptes_bancaires.all %}
+                                    <span class="badge bg-light text-dark me-1">{{ compte.intitule_compte }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">Tous</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Filtres supplémentaires -->
+                    {% if etat.filtres_supplementaires %}
+                        <hr>
+                        <h6 class="text-secondary mb-3">Filtres avancés</h6>
+                        <div class="row">
+                            {% if etat.filtres_supplementaires.statut_demande %}
+                                <div class="col-md-3">
+                                    <strong>Statut demande:</strong> {{ etat.filtres_supplementaires.statut_demande }}
+                                </div>
+                            {% endif %}
+                            {% if etat.filtres_supplementaires.devise %}
+                                <div class="col-md-3">
+                                    <strong>Devise:</strong> {{ etat.filtres_supplementaires.devise }}
+                                </div>
+                            {% endif %}
+                            {% if etat.filtres_supplementaires.source_recette %}
+                                <div class="col-md-3">
+                                    <strong>Source recette:</strong> {{ etat.filtres_supplementaires.source_recette }}
+                                </div>
+                            {% endif %}
+                            {% if etat.filtres_supplementaires.montant_min %}
+                                <div class="col-md-3">
+                                    <strong>Montant min:</strong> {{ etat.filtres_supplementaires.montant_min }}
+                                </div>
+                            {% endif %}
+                            {% if etat.filtres_supplementaires.montant_max %}
+                                <div class="col-md-3">
+                                    <strong>Montant max:</strong> {{ etat.filtres_supplementaires.montant_max }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Paramètres d'affichage -->
+                    {% if etat.parametres_affichage %}
+                        <hr>
+                        <h6 class="text-secondary mb-3">Paramètres d'affichage</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Format:</strong> {{ etat.parametres_affichage.format_sortie }}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Tri:</strong> {{ etat.parametres_affichage.tri_par }} ({{ etat.parametres_affichage.ordre_tri }})
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Détails:</strong> 
+                                {% if etat.parametres_affichage.inclure_details %}Oui{% else %}Non{% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Graphiques:</strong> 
+                                {% if etat.parametres_affichage.inclure_graphiques %}Oui{% else %}Non{% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-history me-2"></i>Historique des actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if historique %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Action</th>
+                                        <th>Utilisateur</th>
+                                        <th>Détails</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for action in historique %}
+                                        <tr>
+                                            <td>{{ action.date_action|date:"d/m/Y H:i:s" }}</td>
+                                            <td>
+                                                {% if action.action == 'GENERATION' %}
+                                                    <span class="badge bg-info">Génération</span>
+                                                {% elif action.action == 'VISUALISATION' %}
+                                                    <span class="badge bg-primary">Visualisation</span>
+                                                {% elif action.action == 'TELECHARGEMENT' %}
+                                                    <span class="badge bg-success">Téléchargement</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ action.utilisateur.get_full_name|default:action.utilisateur.username }}</td>
+                                            <td>
+                                                {% if action.details %}
+                                                    <small class="text-muted">
+                                                        {% for key, value in action.details.items %}
+                                                            {{ key }}: {{ value }}<br>
+                                                        {% endfor %}
+                                                    </small>
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center mb-0">Aucune action enregistrée</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
