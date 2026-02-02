@@ -8,19 +8,46 @@ from accounts.models import User
 from banques.models import Banque, CompteBancaire
 
 
+class SourceRecette(models.Model):
+    """Modèle pour gérer les sources des recettes"""
+    code = models.CharField(max_length=30, unique=True)
+    nom = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    active = models.BooleanField(default=True)
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Source de recette"
+        verbose_name_plural = "Sources de recettes"
+        ordering = ['nom']
+    
+    def __str__(self):
+        return f"{self.nom} ({self.code})"
+    
+    @classmethod
+    def get_sources_par_defaut(cls):
+        """Crée les sources par défaut si elles n'existent pas"""
+        sources_defaut = [
+            ('DROITS_ADMINISTRATIFS', 'Droits administratifs', 'Frais administratifs et droits divers'),
+            ('REDEVANCES', 'Redevances', 'Revenus des redevances et royalties'),
+            ('PARTICIPATIONS', 'Participations', 'Revenus de participation et dividendes'),
+            ('AUTRES', 'Autres', 'Autres sources de revenus non classifiées'),
+        ]
+        
+        for code, nom, description in sources_defaut:
+            cls.objects.get_or_create(
+                code=code,
+                defaults={'nom': nom, 'description': description}
+            )
+
 class Recette(models.Model):
     """Modèle pour les recettes encaissées"""
-    SOURCE_CHOICES = [
-        ('DROITS_ADMINISTRATIFS', 'Droits administratifs'),
-        ('REDEVANCES', 'Redevances'),
-        ('PARTICIPATIONS', 'Participations'),
-        ('AUTRES', 'Autres'),
-    ]
     
     reference = models.CharField(max_length=50, unique=True, editable=False)
     banque = models.ForeignKey(Banque, on_delete=models.PROTECT, related_name='recettes')
     compte_bancaire = models.ForeignKey(CompteBancaire, on_delete=models.PROTECT, related_name='recettes', null=True, blank=True)
-    source_recette = models.CharField(max_length=30, choices=SOURCE_CHOICES)
+    source_recette = models.ForeignKey(SourceRecette, on_delete=models.PROTECT, related_name='recettes')
     description = models.TextField()
     montant_usd = models.DecimalField(
         max_digits=15, 

@@ -190,7 +190,7 @@
                         {% if form.service_demandeur.errors %}
                             <div class="text-danger small mt-1">{{ form.service_demandeur.errors }}</div>
                         {% endif %}
-                        {% if user.is_chef_service and user.service %}
+                        {% if user.role == 'CHEF_SERVICE' and user.service %}  {# Ancien rôle à adapter #}
                             <small class="form-text text-muted">
                                 <i class="bi bi-info-circle"></i> Votre service est automatiquement sélectionné
                             </small>

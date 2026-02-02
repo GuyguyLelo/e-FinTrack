@@ -8,18 +8,20 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
+from accounts.permissions import RoleRequiredMixin
 
 from banques.models import Banque, CompteBancaire
-from demandes.models import DemandePaiement, ReleveDepense, Depense, Paiement, Paiement
+from demandes.models import DemandePaiement, ReleveDepense, Depense, Paiement
 from recettes.models import Recette
 from releves.models import ReleveBancaire, MouvementBancaire
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
+class DashboardView(RoleRequiredMixin, TemplateView):
     """Tableau de bord principal avec statistiques consolidées"""
     template_name = 'rapports/dashboard.html'
+    permission_function = 'peut_voir_tableau_bord'
     
     def dispatch(self, request, *args, **kwargs):
         """Gérer la requête avec gestion d'erreur pour éviter les problèmes de session"""

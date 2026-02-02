@@ -1,5 +1,5 @@
 """
-Admin pour les banques avec permissions spécifiques
+Admin personnalisé pour les banques avec permissions spécifiques
 """
 from django.contrib import admin
 from .models import Banque, CompteBancaire
@@ -7,10 +7,6 @@ from .models import Banque, CompteBancaire
 
 class ReadOnlyAdminMixin:
     """Mixin pour rendre les admin en lecture seule pour l'admin simple"""
-    
-    def has_view_permission(self, request, obj=None):
-        # L'admin simple peut voir tous les modèles
-        return True
     
     def has_add_permission(self, request):
         # L'admin simple peut ajouter
@@ -33,9 +29,9 @@ class ReadOnlyAdminMixin:
 
 @admin.register(Banque)
 class BanqueAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
-    list_display = ['nom_banque', 'code_swift', 'active', 'date_creation']
-    list_filter = ['active']
-    search_fields = ['nom_banque', 'code_swift']
+    list_display = ['nom_banque', 'code_banque', 'actif', 'date_creation']
+    list_filter = ['actif']
+    search_fields = ['nom_banque', 'code_banque']
 
 
 @admin.register(CompteBancaire)
@@ -43,4 +39,3 @@ class CompteBancaireAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['intitule_compte', 'banque', 'devise', 'solde_courant', 'actif']
     list_filter = ['banque', 'devise', 'actif']
     search_fields = ['intitule_compte', 'banque__nom_banque']
-    readonly_fields = ['solde_courant', 'date_solde_courant', 'date_creation', 'date_modification']

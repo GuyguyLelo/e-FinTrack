@@ -9,16 +9,18 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Q, Sum
+from accounts.permissions import RoleRequiredMixin
 from .models import Recette
 from .forms import RecetteForm
 from banques.models import CompteBancaire, Banque
 
 
-class RecetteListView(LoginRequiredMixin, ListView):
+class RecetteListView(RoleRequiredMixin, ListView):
     model = Recette
     template_name = 'recettes/recette_liste.html'
     context_object_name = 'recettes'
     paginate_by = 50
+    permission_function = 'peut_voir_menu_recettes'
     
     def get_queryset(self):
         queryset = Recette.objects.select_related('banque', 'compte_bancaire', 'enregistre_par', 'valide_par')
@@ -48,6 +50,8 @@ class RecetteListView(LoginRequiredMixin, ListView):
         valide = self.request.GET.get('valide')
         if valide is not None:
             queryset = queryset.filter(valide=valide == 'true')
+        
+        return queryset.order_by('-date_encaissement', '-date_creation')
         
         # Filtrage par devise (montant > 0)
         devise = self.request.GET.get('devise')
@@ -94,11 +98,12 @@ class RecetteListView(LoginRequiredMixin, ListView):
         return context
 
 
-class RecetteCreateView(LoginRequiredMixin, CreateView):
+class RecetteCreateView(RoleRequiredMixin, CreateView):
     model = Recette
     form_class = RecetteForm
     template_name = 'recettes/recette_form.html'
     success_url = reverse_lazy('recettes:liste')
+    permission_function = 'peut_saisir_demandes_recettes'
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()

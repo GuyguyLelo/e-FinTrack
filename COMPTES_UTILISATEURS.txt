@@ -1,0 +1,57 @@
+COMPTES UTILISATEURS - e-FinTrack
+=====================================
+
+MOTS DE PASSE PAR DÉFAUT DÉFINIS
+---------------------------------
+
+Username         Password         Rôle Actuel      Statut
+---------------------------------------------------------
+admin            admin123         DG               Actif
+dg               dg123            DG               Actif
+daf              daf123           DAF              Actif
+df               df123            DF               Actif
+comptable1       finance123       COMPTABLE        Actif
+comptable2       finance123       COMPTABLE        Actif
+operateur1       saisie123        OPERATEUR_SAISIE  Actif
+operateur2       payeur123        OPERATEUR_SAISIE  Actif
+auditeur         audit123         AUDITEUR          Actif
+
+NOTE: L'utilisateur chef.service n'a pas été trouvé dans la base.
+
+INSTRUCTIONS DE CONNEXION
+--------------------------
+
+1. Super Admin (actuellement DG) :
+   - URL: http://127.0.0.1:8001/admin/
+   - Username: admin
+   - Password: admin123
+
+2. Test des permissions :
+   - DG: dg / dg123
+   - DAF: daf / daf123  
+   - DF: df / df123
+   - Comptables: comptable1 / finance123
+   - Opérateur: operateur1 / saisie123
+   - Agent Payeur: operateur2 / payeur123
+
+MISE À JOUR DES RÔLES RECOMMANDÉE
+----------------------------------
+
+Pour appliquer les nouveaux rôles :
+
+python manage.py shell
+>>> from accounts.models import User
+>>> User.objects.filter(username='admin').update(role='SUPER_ADMIN')
+>>> User.objects.filter(username='daf').update(role='ADMIN')
+>>> User.objects.filter(username='dg').update(role='DG')
+>>> User.objects.filter(username__in=['df', 'auditeur']).update(role='DF')
+>>> User.objects.filter(username__in=['comptable1', 'comptable2']).update(role='CD_FINANCE')
+>>> User.objects.filter(username='operateur1').update(role='OPERATEUR_SAISIE')
+>>> User.objects.filter(username='operateur2').update(role='AGENT_PAYEUR')
+
+SÉCURITÉ
+--------
+
+⚠️  Changez ces mots de passe par défaut après la première connexion !
+⚠️  Utilisez des mots de passe forts en production !
+⚠️  Désactivez les comptes non utilisés !

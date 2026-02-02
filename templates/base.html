@@ -181,50 +181,96 @@
     <div class="container-fluid">
         <div class="row">
             {% if user.is_authenticated %}
+            <!-- Redirection automatique pour l'admin simple -->
+            {% if user.role == 'ADMIN' %}
+            <script>
+                window.location.href = '/admin/';
+            </script>
+            {% endif %}
+            
             <!-- Sidebar -->
             <div class="col-md-2 sidebar">
+                {% if user.peut_acceder_admin_django and not user.peut_voir_tableau_bord %}
+                <!-- Admin simple : seulement accès à l'admin Django -->
                 <nav class="nav flex-column">
+                    {% if user.peut_acceder_admin_django %}
+                    <hr style="border-color: rgba(255,255,255,0.2);">
+                    <a class="nav-link" href="/admin/">
+                        <i class="bi bi-gear"></i> Administration Django
+                    </a>
+                    {% endif %}
+                </nav>
+                {% else %}
+                <!-- Autres rôles : menu complet selon permissions -->
+                <nav class="nav flex-column">
+                    {% if user.peut_voir_tableau_bord %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="/">
                         <i class="bi bi-speedometer2"></i> Tableau de bord
                     </a>
+                    {% endif %}
+                    
+                    {% if user.peut_voir_menu_banques %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'banques' %}active{% endif %}" href="{% url 'banques:liste' %}">
                         <i class="bi bi-bank"></i> Banques
                     </a>
                     <a class="nav-link {% if request.resolver_match.app_name == 'banques' %}active{% endif %}" href="{% url 'banques:comptes_liste' %}">
                         <i class="bi bi-wallet2"></i> Comptes bancaires
                     </a>
+                    {% endif %}
+                    
+                    {% if user.peut_voir_menu_demandes %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'liste' %}active{% endif %}" href="{% url 'demandes:liste' %}">
                         <i class="bi bi-file-earmark-text"></i> Demandes de paiement
                     </a>
+                    {% endif %}
+                    
+                    {% if user.peut_creer_releves %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'releves_liste' %}active{% endif %}" href="{% url 'demandes:releves_liste' %}">
                         <i class="bi bi-file-earmark-spreadsheet-fill"></i> Relevés de dépenses
                     </a>
+                    {% endif %}
+                    
+                    {% if user.peut_voir_menu_paiements %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'paiement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:paiement_liste' %}">
                         <i class="bi bi-credit-card"></i> Paiements
                     </a>
-                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
-                        <i class="bi bi-list-ul"></i> Dépenses
-                    </a>
+                    {% endif %}
                     
+                    {% if user.peut_consulter_depenses %}
+                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
+                        <i class="bi bi-list-ul"></i>Consultation Dépenses
+                    </a>
+                    {% endif %}
+                    
+                    {% if user.peut_voir_menu_recettes %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'recettes' %}active{% endif %}" href="{% url 'recettes:liste' %}">
                         <i class="bi bi-cash-coin"></i> Recettes
                     </a>
+                    {% endif %}
+                    
+                    {% if user.peut_voir_tout_sans_modification %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'releves' %}active{% endif %}" href="{% url 'releves:liste' %}">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Relevés bancaires
                     </a>
+                    {% endif %}
+                    
+                    {% if user.peut_voir_menu_etats %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'etats' %}active{% endif %}" href="{% url 'etats:liste' %}">
                         <i class="bi bi-file-earmark-pdf"></i> États et rapports
                     </a>
                     <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:consolide' %}">
                         <i class="bi bi-graph-up"></i> Rapports consolidés
                     </a>
-                    {% if user.is_superuser %}
+                    {% endif %}
+                    
+                    {% if user.peut_acceder_admin_django %}
                     <hr style="border-color: rgba(255,255,255,0.2);">
                     <a class="nav-link" href="/admin/">
-                        <i class="bi bi-gear"></i> Administration
+                        <i class="bi bi-gear"></i> Administration Django
                     </a>
                     {% endif %}
                 </nav>
+                {% endif %}
             </div>
             {% endif %}
             

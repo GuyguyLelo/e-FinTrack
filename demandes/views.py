@@ -25,13 +25,15 @@ from accounts.models import Service
 from banques.models import Banque, CompteBancaire
 from releves.models import ReleveBancaire
 from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
+from accounts.permissions import RoleRequiredMixin
 
 
-class DemandePaiementListView(LoginRequiredMixin, ListView):
+class DemandePaiementListView(RoleRequiredMixin, ListView):
     model = DemandePaiement
     template_name = 'demandes/demande_liste.html'
     context_object_name = 'demandes'
     paginate_by = 20
+    permission_function = 'peut_voir_menu_demandes'
     
     def get_queryset(self):
         queryset = DemandePaiement.objects.select_related(
@@ -39,9 +41,10 @@ class DemandePaiementListView(LoginRequiredMixin, ListView):
         ).prefetch_related('releves_depense')
         
         # Filtrage selon le rôle
-        if not self.request.user.peut_consulter_tout():
-            if self.request.user.is_chef_service:
-                queryset = queryset.filter(service_demandeur=self.request.user.service)
+        if not self.request.user.peut_voir_tout_sans_modification():
+            # Pour l'instant, on désactive le filtrage par service car le rôle CHEF_SERVICE n'existe plus
+            # TODO: Adapter selon les nouveaux rôles si nécessaire
+            pass
         
         # Filtrage par statut
         statut = self.request.GET.get('statut')
@@ -70,16 +73,17 @@ class DemandePaiementListView(LoginRequiredMixin, ListView):
         return context
 
 
-class DemandePaiementCreateView(LoginRequiredMixin, CreateView):
+class DemandePaiementCreateView(RoleRequiredMixin, CreateView):
     model = DemandePaiement
     form_class = DemandePaiementForm
     template_name = 'demandes/demande_form.html'
     success_url = reverse_lazy('demandes:liste')
+    permission_function = 'peut_saisir_demandes_recettes'
     
     def dispatch(self, request, *args, **kwargs):
-        # Vérifier que l'utilisateur peut créer une demande (chef de service ou autres rôles autorisés)
-        if not request.user.is_chef_service and not request.user.peut_consulter_tout():
-            messages.error(request, 'Vous n\'avez pas la permission de créer une demande de paiement. Seuls les chefs de service peuvent créer des demandes.')
+        # Vérifier que l'utilisateur peut créer une demande
+        if not request.user.peut_saisir_demandes_recettes():
+            messages.error(request, 'Vous n\'avez pas la permission de créer une demande de paiement.')
             return redirect('demandes:liste')
         return super().dispatch(request, *args, **kwargs)
     
@@ -142,7 +146,7 @@ class DemandePaiementValidationView(LoginRequiredMixin, FormView):
         self.demande = get_object_or_404(DemandePaiement, pk=kwargs['pk'])
         
         # Vérifier les permissions
-        if not request.user.peut_valider_depense():
+        if not request.user.peut_valider_demandes():
             messages.error(request, 'Vous n\'avez pas la permission de valider cette demande.')
             return redirect('demandes:detail', pk=self.demande.pk)
         
@@ -192,7 +196,7 @@ class ReleveDepenseGenererPDFView(LoginRequiredMixin, DetailView):
     
     def dispatch(self, request, *args, **kwargs):
         # Vérifier les permissions
-        if not request.user.peut_consulter_tout():
+        if not request.user.peut_voir_tout_sans_modification():
             messages.error(request, 'Vous n\'avez pas la permission de générer un PDF de relevé.')
             return redirect('demandes:releves_liste')
         return super().dispatch(request, *args, **kwargs)
@@ -337,9 +341,10 @@ class ReleveDepensePDFView(LoginRequiredMixin, ListView):
         )
         
         # Filtrage selon le rôle
-        if not self.request.user.peut_consulter_tout():
-            if self.request.user.is_chef_service:
-                queryset = queryset.filter(service_demandeur=self.request.user.service)
+        if not self.request.user.peut_voir_tout_sans_modification():
+            # Pour l'instant, on désactive le filtrage par service car le rôle CHEF_SERVICE n'existe plus
+            # TODO: Adapter selon les nouveaux rôles si nécessaire
+            pass
         
         # Trier par code de nature économique, puis par date
         return queryset.order_by('nature_economique__code', '-date_soumission')
@@ -692,9 +697,10 @@ class ReleveDepenseExcelView(LoginRequiredMixin, ListView):
         )
         
         # Filtrage selon le rôle
-        if not self.request.user.peut_consulter_tout():
-            if self.request.user.is_chef_service:
-                queryset = queryset.filter(service_demandeur=self.request.user.service)
+        if not self.request.user.peut_voir_tout_sans_modification():
+            # Pour l'instant, on désactive le filtrage par service car le rôle CHEF_SERVICE n'existe plus
+            # TODO: Adapter selon les nouveaux rôles si nécessaire
+            pass
         
         # Trier par code de nature économique, puis par date
         return queryset.order_by('nature_economique__code', '-date_soumission')
@@ -1876,9 +1882,10 @@ class ReleveDepenseOldListView(LoginRequiredMixin, ListView):
         )
         
         # Filtrage selon le rôle
-        if not self.request.user.peut_consulter_tout():
-            if self.request.user.is_chef_service:
-                queryset = queryset.filter(service_demandeur=self.request.user.service)
+        if not self.request.user.peut_voir_tout_sans_modification():
+            # Pour l'instant, on désactive le filtrage par service car le rôle CHEF_SERVICE n'existe plus
+            # TODO: Adapter selon les nouveaux rôles si nécessaire
+            pass
         
         # Trier par code de nature économique, puis par date
         return queryset.order_by('nature_economique__code', '-date_soumission')
@@ -1955,8 +1962,8 @@ class ReleveDepenseCreateView(LoginRequiredMixin, View):
     """Vue pour créer automatiquement un relevé avec toutes les demandes validées"""
     
     def post(self, request, *args, **kwargs):
-        # Vérifier les permissions (seuls DAF et DG peuvent créer des relevés)
-        if not request.user.peut_valider_depense():
+        # Vérifier les permissions (seuls SUPER_ADMIN et CD_FINANCE peuvent créer des relevés)
+        if not request.user.peut_creer_releves():
             messages.error(request, 'Vous n\'avez pas la permission de créer un relevé de dépense.')
             return redirect('demandes:releves_liste_old')
         
@@ -2129,8 +2136,8 @@ class ReleveDepenseAutoCreateView(LoginRequiredMixin, FormView):
     success_url = reverse_lazy('demandes:releves_liste')
     
     def dispatch(self, request, *args, **kwargs):
-        # Vérifier les permissions (seuls DAF et DG peuvent générer des relevés)
-        if not request.user.peut_valider_depense():
+        # Vérifier les permissions (seuls SUPER_ADMIN et CD_FINANCE peuvent générer des relevés)
+        if not request.user.peut_creer_releves():
             messages.error(request, 'Vous n\'avez pas la permission de générer un relevé de dépense.')
             return redirect('demandes:releves_liste')
         return super().dispatch(request, *args, **kwargs)
@@ -2490,12 +2497,13 @@ class NatureEconomiqueDetailView(LoginRequiredMixin, DetailView):
 
 # ==================== VUES DE PAIEMENT ====================
 
-class PaiementCreateView(LoginRequiredMixin, CreateView):
+class PaiementCreateView(RoleRequiredMixin, CreateView):
     """Vue pour créer un paiement pour une demande"""
     model = Paiement
     form_class = PaiementForm
     template_name = 'demandes/paiement_form.html'
     success_url = reverse_lazy('demandes:paiement_liste')
+    permission_function = 'peut_effectuer_paiements'
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -2537,12 +2545,13 @@ class PaiementCreateView(LoginRequiredMixin, CreateView):
         return context
 
 
-class PaiementListView(LoginRequiredMixin, ListView):
+class PaiementListView(RoleRequiredMixin, ListView):
     """Vue pour lister les paiements"""
     model = Paiement
     template_name = 'demandes/paiement_liste.html'
     context_object_name = 'paiements'
     paginate_by = 20
+    permission_function = 'peut_voir_paiements'
     
     def get_queryset(self):
         queryset = Paiement.objects.select_related(

@@ -5,8 +5,34 @@ from django.contrib import admin
 from .models import DemandePaiement, ReleveDepense, NomenclatureDepense, Depense, NatureEconomique, Paiement
 
 
+class ReadOnlyAdminMixin:
+    """Mixin pour les permissions de l'admin simple"""
+    
+    def has_view_permission(self, request, obj=None):
+        # L'admin simple peut voir tous les modèles
+        return True
+    
+    def has_add_permission(self, request):
+        # L'admin simple ne peut ajouter que NatureEconomique
+        if request.user.role == 'ADMIN':
+            return self.model.__name__ in ['NatureEconomique']
+        return super().has_add_permission(request)
+    
+    def has_change_permission(self, request, obj=None):
+        # L'admin simple ne peut modifier que NatureEconomique
+        if request.user.role == 'ADMIN':
+            return self.model.__name__ in ['NatureEconomique']
+        return super().has_change_permission(request, obj)
+    
+    def has_delete_permission(self, request, obj=None):
+        # L'admin simple ne peut rien supprimer
+        if request.user.role == 'ADMIN':
+            return False
+        return super().has_delete_permission(request, obj)
+
+
 @admin.register(DemandePaiement)
-class DemandePaiementAdmin(admin.ModelAdmin):
+class DemandePaiementAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['reference', 'service_demandeur', 'nomenclature', 'nature_economique', 'montant', 
                    'montant_deja_paye', 'reste_a_payer', 'devise', 'statut', 'date_soumission', 'cree_par']
     list_filter = ['statut', 'devise', 'service_demandeur', 'date_soumission', 'nomenclature', 'nature_economique']
@@ -22,14 +48,14 @@ class DemandePaiementAdmin(admin.ModelAdmin):
 
 
 @admin.register(ReleveDepense)
-class ReleveDepenseAdmin(admin.ModelAdmin):
+class ReleveDepenseAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['periode', 'devise', 'total', 'valide_par', 'date_validation']
     list_filter = ['devise', 'periode']
     filter_horizontal = ['demandes']
 
 
 @admin.register(NomenclatureDepense)
-class NomenclatureDepenseAdmin(admin.ModelAdmin):
+class NomenclatureDepenseAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['id', 'annee', 'date_publication', 'statut']
     list_filter = ['statut', 'annee', 'date_publication']
     search_fields = ['annee']
@@ -39,19 +65,18 @@ class NomenclatureDepenseAdmin(admin.ModelAdmin):
 
 
 @admin.register(Depense)
-class DepenseAdmin(admin.ModelAdmin):
-    list_display = ['code_depense', 'date_depense', 'annee', 'mois', 'nomenclature', 'banque', 
-                   'montant_fc', 'montant_usd', 'libelle_depenses']
-    list_filter = ['annee', 'mois', 'banque', 'nomenclature', 'date_depense']
-    search_fields = ['code_depense', 'libelle_depenses', 'observation', 'banque__nom_banque']
+class DepenseAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    list_display = ['code_depense', 'libelle_depenses', 'montant_fc', 'montant_usd', 'date_depense', 'banque']
+    list_filter = ['date_depense', 'banque', 'mois', 'annee']
+    search_fields = ['code_depense', 'libelle_depenses']
     readonly_fields = ['date_creation', 'date_modification']
     date_hierarchy = 'date_depense'
-    ordering = ['-date_depense', '-annee', '-mois']
+    ordering = ['-date_depense']
     list_per_page = 50
 
 
 @admin.register(NatureEconomique)
-class NatureEconomiqueAdmin(admin.ModelAdmin):
+class NatureEconomiqueAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['code', 'titre', 'parent', 'description']
     list_filter = ['parent']
     search_fields = ['code', 'titre', 'description']

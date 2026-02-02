@@ -5,7 +5,7 @@ from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit
 from decimal import Decimal
-from .models import Recette
+from .models import Recette, SourceRecette
 from banques.models import Banque, CompteBancaire
 
 
@@ -20,11 +20,19 @@ class RecetteForm(forms.ModelForm):
             'piece_jointe': forms.FileInput(attrs={'accept': '.pdf,.jpg,.jpeg,.png'}),
             'montant_usd': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
             'montant_cdf': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+            'source_recette': forms.Select(attrs={'class': 'form-select'}),
         }
     
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Initialiser les sources par défaut si nécessaire
+        SourceRecette.get_sources_par_defaut()
+        
+        # Filtrer les sources actives
+        self.fields['source_recette'].queryset = SourceRecette.objects.filter(active=True)
+        self.fields['source_recette'].empty_label = "Sélectionner une source de recette"
         
         self.helper = FormHelper()
         self.helper.layout = Layout(

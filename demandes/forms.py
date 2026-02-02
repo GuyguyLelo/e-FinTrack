@@ -27,7 +27,7 @@ class DemandePaiementForm(forms.ModelForm):
         
         # Filtrer les services selon le rôle de l'utilisateur
         if self.user:
-            if self.user.is_chef_service and self.user.service:
+            if self.user.role == 'CHEF_SERVICE' and self.user.service:  # Ancien rôle à adapter
                 # Le chef de service ne peut créer que pour son propre service
                 self.fields['service_demandeur'].queryset = Service.objects.filter(pk=self.user.service.pk)
                 self.fields['service_demandeur'].initial = self.user.service

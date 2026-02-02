@@ -1,0 +1,53 @@
+COMPTES UTILISATEURS - e-FinTrack
+=================================
+
+IDENTIFIANTS DE CONNEXION RAPIDES
+------------------------------
+
+Super Admin:
+Username: superadmin
+Password: superadmin123
+Rôle: SUPER_ADMIN
+Permissions: Tout faire et tout voir
+
+Admin:
+Username: admin  
+Password: admin123
+Rôle: ADMIN
+Permissions: Créer entités base, tout voir sans modification
+
+DG (Directeur Général):
+Username: dg
+Password: dg123
+Rôle: DG
+Permissions: Voir tableau bord, demandes, paiements, valider demandes
+
+DF (Directeur Financier):
+Username: df
+Password: df123
+Rôle: DF
+Permissions: Tout voir sans modification
+
+CD Finance:
+Username: cdfinance
+Password: cdfinance123
+Rôle: CD_FINANCE
+Permissions: Tout voir, créer relevés, consulter dépenses, créer états
+
+Opérateur de Saisie:
+Username: operateur
+Password: operateur123
+Rôle: OPERATEUR_SAISIE
+Permissions: Saisir demandes et recettes (pas tableau bord)
+
+Agent Payeur:
+Username: payeur
+Password: payeur123
+Rôle: AGENT_PAYEUR
+Permissions: Effectuer les paiements
+
+URLS DE TEST:
+- Application: http://127.0.0.1:8001/
+- Admin Django: http://127.0.0.1:8001/admin/
+
+⚠️  Changez ces mots de passe après première connexion !

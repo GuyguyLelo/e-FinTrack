@@ -26,13 +26,13 @@ class User(AbstractUser):
     Modèle utilisateur personnalisé avec rôles DGRAD
     """
     ROLE_CHOICES = [
+        ('SUPER_ADMIN', 'Super Admin'),
+        ('ADMIN', 'Admin'),
         ('DG', 'Directeur Général'),
-        ('DAF', 'Directeur Administratif et Financier'),
         ('DF', 'Directeur Financier'),
-        ('COMPTABLE', 'Comptable'),
-        ('CHEF_SERVICE', 'Chef de Service'),
-        ('AUDITEUR', 'Auditeur'),
+        ('CD_FINANCE', 'Chef de Division Finance'),
         ('OPERATEUR_SAISIE', 'Opérateur de Saisie'),
+        ('AGENT_PAYEUR', 'Agent Payeur'),
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='OPERATEUR_SAISIE')
@@ -51,46 +51,99 @@ class User(AbstractUser):
         return f"{self.username} ({self.get_role_display()})"
     
     @property
-    def is_dg(self):
-        return self.role == 'DG'
+    def is_super_admin(self):
+        return self.role == 'SUPER_ADMIN'
     
     @property
-    def is_daf(self):
-        return self.role == 'DAF'
+    def is_admin(self):
+        return self.role == 'ADMIN'
+    
+    @property
+    def is_dg(self):
+        return self.role == 'DG'
     
     @property
     def is_df(self):
         return self.role == 'DF'
     
     @property
-    def is_comptable(self):
-        return self.role == 'COMPTABLE'
-    
-    @property
-    def is_chef_service(self):
-        return self.role == 'CHEF_SERVICE'
-    
-    @property
-    def is_auditeur(self):
-        return self.role == 'AUDITEUR'
+    def is_cd_finance(self):
+        return self.role == 'CD_FINANCE'
     
     @property
     def is_operateur_saisie(self):
         return self.role == 'OPERATEUR_SAISIE'
     
+    @property
+    def is_agent_payeur(self):
+        return self.role == 'AGENT_PAYEUR'
+    
+    # Permissions d'accès
+    def peut_voir_tableau_bord(self):
+        """Vérifie si l'utilisateur peut voir le tableau de bord"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE']
+    
+    def peut_creer_entites_base(self):
+        """Vérifie si l'utilisateur peut créer les entités de base (banques, comptes, utilisateurs, services, nature économique)"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
+    
+    def peut_voir_tout_sans_modification(self):
+        """Vérifie si l'utilisateur peut tout voir sans modification"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF']
+    
+    def peut_valider_demandes(self):
+        """Vérifie si l'utilisateur peut valider les demandes"""
+        return self.role in ['SUPER_ADMIN', 'DG']
+    
     def peut_valider_depense(self):
-        """Vérifie si l'utilisateur peut valider une dépense"""
-        return self.role in ['DG', 'DAF', 'DF']
+        """Vérifie si l'utilisateur peut valider les dépenses dans les relevés"""
+        return self.role in ['SUPER_ADMIN', 'DG']
     
-    def peut_valider_releve(self):
-        """Vérifie si l'utilisateur peut valider un relevé bancaire"""
-        return self.role in ['COMPTABLE', 'DF']
+    def peut_effectuer_paiements(self):
+        """Vérifie si l'utilisateur peut effectuer les paiements"""
+        return self.role in ['SUPER_ADMIN', 'AGENT_PAYEUR']
     
-    def peut_valider_rapprochement(self):
-        """Vérifie si l'utilisateur peut valider un rapprochement"""
-        return self.role == 'AUDITEUR'
+    def peut_voir_paiements(self):
+        """Vérifie si l'utilisateur peut voir les paiements"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR']
     
-    def peut_consulter_tout(self):
-        """Vérifie si l'utilisateur peut tout consulter"""
-        return self.role in ['DG', 'DAF', 'DF', 'AUDITEUR']
+    def peut_creer_releves(self):
+        """Vérifie si l'utilisateur peut créer des relevés"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_consulter_depenses(self):
+        """Vérifie si l'utilisateur peut consulter les dépenses"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE']
+    
+    def peut_creer_etats(self):
+        """Vérifie si l'utilisateur peut créer des états"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_saisir_demandes_recettes(self):
+        """Vérifie si l'utilisateur peut saisir des demandes et recettes"""
+        return self.role in ['SUPER_ADMIN', 'OPERATEUR_SAISIE']
+    
+    def peut_acceder_admin_django(self):
+        """Vérifie si l'utilisateur peut accéder à l'administration Django"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
+    
+    def peut_voir_menu_demandes(self):
+        """Vérifie si l'utilisateur peut voir le menu demandes"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR', 'OPERATEUR_SAISIE']
+    
+    def peut_voir_menu_paiements(self):
+        """Vérifie si l'utilisateur peut voir le menu paiements"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR']
+    
+    def peut_voir_menu_recettes(self):
+        """Vérifie si l'utilisateur peut voir le menu recettes"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE', 'OPERATEUR_SAISIE']
+    
+    def peut_voir_menu_etats(self):
+        """Vérifie si l'utilisateur peut voir le menu états"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_voir_menu_banques(self):
+        """Vérifie si l'utilisateur peut voir le menu banques"""
+        return self.role in ['SUPER_ADMIN']
 
