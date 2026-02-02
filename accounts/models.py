@@ -137,11 +137,11 @@ class User(AbstractUser):
     
     def peut_voir_menu_recettes(self):
         """Vérifie si l'utilisateur peut voir le menu recettes"""
-        return self.role in ['SUPER_ADMIN', 'CD_FINANCE', 'OPERATEUR_SAISIE']
+        return self.role in ['SUPER_ADMIN', 'DG', 'CD_FINANCE', 'OPERATEUR_SAISIE']
     
     def peut_voir_menu_etats(self):
         """Vérifie si l'utilisateur peut voir le menu états"""
-        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+        return self.role in ['SUPER_ADMIN', 'DG', 'CD_FINANCE']
     
     def peut_voir_menu_banques(self):
         """Vérifie si l'utilisateur peut voir le menu banques"""

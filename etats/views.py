@@ -18,6 +18,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
+from accounts.permissions import RoleRequiredMixin
 from reportlab.platypus.frames import Frame
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -65,9 +66,10 @@ class EtatListView(LoginRequiredMixin, ListView):
         return context
 
 
-class EtatCreateView(LoginRequiredMixin, View):
+class EtatCreateView(RoleRequiredMixin, View):
     """Vue pour créer un nouvel état"""
     template_name = 'etats/etat_selection.html'
+    permission_function = 'peut_creer_etats'
     
     def get(self, request, *args, **kwargs):
         form = EtatSelectionForm()
