@@ -7,9 +7,11 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-cash-coin"></i> Recettes</h2>
     <div class="d-flex align-items-center gap-3">
+        {% if user.peut_saisir_demandes_recettes %}
         <a href="{% url 'recettes:creer' %}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Ajouter une recette
         </a>
+        {% endif %}
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-info fs-5 px-3 py-2">
                 <strong>Total CDF:</strong> {{ total_cdf|format_montant }} CDF
