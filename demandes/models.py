@@ -328,7 +328,7 @@ class Depense(models.Model):
     libelle_depenses = models.TextField(verbose_name="Libellé des dépenses")
     banque = models.ForeignKey(
         Banque,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='depenses',
@@ -381,9 +381,70 @@ class Depense(models.Model):
         return self.montant_usd
     
     @property
-    def has_amount(self):
-        """Vérifie si la dépense a un montant (CDF ou USD)"""
+    def has_montant(self):
+        """Vérifie si au moins un montant est renseigné"""
         return self.montant_fc > Decimal('0.00') or self.montant_usd > Decimal('0.00')
+    
+    def delete(self, *args, **kwargs):
+        """Surcharge de la méthode delete pour mettre à jour le solde du compte bancaire"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Si la dépense est associée à une banque, on met à jour le solde en ajoutant les montants
+        # (car la suppression d'une dépense augmente le solde disponible)
+        if self.banque:
+            from django.db import transaction
+            from banques.models import CompteBancaire
+            try:
+                with transaction.atomic():
+                    # Pour les dépenses USD
+                    if self.montant_usd > 0:
+                        try:
+                            compte_usd = CompteBancaire.objects.select_for_update().filter(
+                                banque=self.banque, 
+                                devise='USD', 
+                                actif=True
+                            ).first()
+                        except Exception:
+                            compte_usd = CompteBancaire.objects.filter(
+                                banque=self.banque, 
+                                devise='USD', 
+                                actif=True
+                            ).first()
+                        
+                        if compte_usd:
+                            compte_usd.refresh_from_db()
+                            solde_avant = compte_usd.solde_courant
+                            # Ajouter le montant au solde (opération inverse de la dépense)
+                            compte_usd.mettre_a_jour_solde(self.montant_usd, operation='recette')
+                            logger.info(f"Suppression dépense {self.code_depense}: Solde USD mis à jour de {solde_avant} à {compte_usd.solde_courant} pour le compte {compte_usd.intitule_compte}")
+                    
+                    # Pour les dépenses CDF
+                    if self.montant_fc > 0:
+                        try:
+                            compte_cdf = CompteBancaire.objects.select_for_update().filter(
+                                banque=self.banque, 
+                                devise='CDF', 
+                                actif=True
+                            ).first()
+                        except Exception:
+                            compte_cdf = CompteBancaire.objects.filter(
+                                banque=self.banque, 
+                                devise='CDF', 
+                                actif=True
+                            ).first()
+                        
+                        if compte_cdf:
+                            compte_cdf.refresh_from_db()
+                            solde_avant = compte_cdf.solde_courant
+                            # Ajouter le montant au solde (opération inverse de la dépense)
+                            compte_cdf.mettre_a_jour_solde(self.montant_fc, operation='recette')
+                            logger.info(f"Suppression dépense {self.code_depense}: Solde CDF mis à jour de {solde_avant} à {compte_cdf.solde_courant} pour le compte {compte_cdf.intitule_compte}")
+            except Exception as e:
+                logger.error(f"Erreur lors de la mise à jour du solde pour la suppression de la dépense {self.code_depense}: {str(e)}", exc_info=True)
+        
+        # Appel de la méthode delete originale
+        super().delete(*args, **kwargs)
 
 
 class NatureEconomique(models.Model):

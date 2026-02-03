@@ -45,9 +45,9 @@ class Recette(models.Model):
     """Modèle pour les recettes encaissées"""
     
     reference = models.CharField(max_length=50, unique=True, editable=False)
-    banque = models.ForeignKey(Banque, on_delete=models.PROTECT, related_name='recettes')
-    compte_bancaire = models.ForeignKey(CompteBancaire, on_delete=models.PROTECT, related_name='recettes', null=True, blank=True)
-    source_recette = models.ForeignKey(SourceRecette, on_delete=models.PROTECT, related_name='recettes')
+    banque = models.ForeignKey(Banque, on_delete=models.CASCADE, related_name='recettes')
+    compte_bancaire = models.ForeignKey(CompteBancaire, on_delete=models.CASCADE, related_name='recettes', null=True, blank=True)
+    source_recette = models.ForeignKey(SourceRecette, on_delete=models.PROTECT, related_name='recettes', null=True, blank=True)
     description = models.TextField()
     montant_usd = models.DecimalField(
         max_digits=15, 
@@ -225,4 +225,31 @@ class Recette(models.Model):
                         compte.mettre_a_jour_solde(self.montant_usd, operation='depense')
                     elif self.montant_cdf > 0 and compte.devise == 'CDF':
                         compte.mettre_a_jour_solde(self.montant_cdf, operation='depense')
+    
+    def delete(self, *args, **kwargs):
+        """Surcharge de la méthode delete pour mettre à jour le solde du compte bancaire"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Si la recette est validée, on met à jour le solde en retirant les montants
+        if self.valide and self.compte_bancaire:
+            from django.db import transaction
+            try:
+                with transaction.atomic():
+                    compte = CompteBancaire.objects.select_for_update().get(pk=self.compte_bancaire.pk)
+                    compte.refresh_from_db()
+                    solde_avant = compte.solde_courant
+                    
+                    # Retirer les montants du solde (opération inverse de la création)
+                    if self.montant_usd > 0 and compte.devise == 'USD':
+                        compte.mettre_a_jour_solde(self.montant_usd, operation='depense')
+                        logger.info(f"Suppression recette {self.reference}: Solde USD mis à jour de {solde_avant} à {compte.solde_courant} pour le compte {compte.intitule_compte}")
+                    elif self.montant_cdf > 0 and compte.devise == 'CDF':
+                        compte.mettre_a_jour_solde(self.montant_cdf, operation='depense')
+                        logger.info(f"Suppression recette {self.reference}: Solde CDF mis à jour de {solde_avant} à {compte.solde_courant} pour le compte {compte.intitule_compte}")
+            except Exception as e:
+                logger.error(f"Erreur lors de la mise à jour du solde pour la suppression de la recette {self.reference}: {str(e)}", exc_info=True)
+        
+        # Appel de la méthode delete originale
+        super().delete(*args, **kwargs)
 
