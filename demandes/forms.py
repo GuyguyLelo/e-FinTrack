@@ -2,6 +2,7 @@
 Formulaires pour la gestion des demandes de paiement
 """
 from django import forms
+from django.utils.safestring import mark_safe
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, HTML
 from .models import DemandePaiement, ReleveDepense, Depense, NatureEconomique, Cheque, Paiement
@@ -11,7 +12,29 @@ from releves.models import ReleveBancaire
 from datetime import datetime
 
 
+class StyledSelectWidget(forms.Select):
+    """Widget personnalisé qui permet le rendu HTML dans les options"""
+    
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        if label and label.startswith('<span'):
+            # Permettre le rendu HTML pour les labels stylisés
+            option['label'] = mark_safe(label)
+        return option
+
+
 class DemandePaiementForm(forms.ModelForm):
+    service_demandeur = forms.ModelChoiceField(
+        queryset=Service.objects.none(),
+        label="Service demandeur",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    nature_economique = forms.ModelChoiceField(
+        queryset=NatureEconomique.objects.none(),
+        label="Nature économique",
+        widget=StyledSelectWidget(attrs={'class': 'form-select'})
+    )
+    
     class Meta:
         model = DemandePaiement
         fields = ['service_demandeur', 'nomenclature', 'nature_economique', 'date_demande', 'description', 'montant', 'devise', 'pieces_justificatives']
@@ -35,6 +58,17 @@ class DemandePaiementForm(forms.ModelForm):
             else:
                 # Les autres rôles peuvent voir tous les services
                 self.fields['service_demandeur'].queryset = Service.objects.filter(actif=True)
+        else:
+            self.fields['service_demandeur'].queryset = Service.objects.filter(actif=True)
+        
+        # Filtrer les natures économiques pour n'afficher que les actives
+        # comme dans le formulaire d'état
+        natures_queryset = NatureEconomique.objects.filter(active=True).order_by('code')
+        self.fields['nature_economique'].queryset = natures_queryset
+        
+        # Personnaliser les choices avec style pour différencier les niveaux
+        choices = self._get_styled_choices()
+        self.fields['nature_economique'].choices = choices
         
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -70,6 +104,34 @@ class DemandePaiementForm(forms.ModelForm):
                 ),
             ),
         )
+    
+    def _get_styled_choices(self):
+        """Génère les choices avec style CSS pour différencier les niveaux hiérarchiques"""
+        choices = [('', '--- Sélectionner une nature économique ---')]
+        
+        # Récupérer toutes les natures actives organisées par hiérarchie
+        natures = NatureEconomique.objects.filter(active=True).order_by('code')
+        
+        # Organiser par niveau
+        level_0 = [n for n in natures if n.parent is None]  # Niveau 1
+        level_1 = [n for n in natures if n.parent and n.parent.parent is None]  # Niveau 2
+        level_2 = [n for n in natures if n.parent and n.parent.parent and n.parent.parent.parent is None]  # Niveau 3
+        
+        # Afficher niveau 1 (style principal)
+        for i, nature in enumerate(level_0):
+            choices.append((nature.pk, f'<span style="color: #2c3e50; font-weight: bold; font-size: 14px;">📁 {nature.code} - {nature.titre}</span>'))
+            
+            # Afficher niveau 2 (style secondaire)
+            children_level_1 = [n for n in level_1 if n.parent_id == nature.pk]
+            for child in children_level_1:
+                choices.append((child.pk, f'<span style="color: #34495e; font-weight: 600; font-size: 13px; margin-left: 20px;">📂 {child.code} - {child.titre}</span>'))
+                
+                # Afficher niveau 3 (style tertiaire)
+                children_level_2 = [n for n in level_2 if n.parent_id == child.pk]
+                for grandchild in children_level_2:
+                    choices.append((grandchild.pk, f'<span style="color: #7f8c8d; font-weight: normal; font-size: 12px; margin-left: 40px;">📄 {grandchild.code} - {grandchild.titre}</span>'))
+        
+        return choices
 
 
 class DemandePaiementValidationForm(forms.ModelForm):
@@ -258,21 +320,24 @@ class DepenseForm(forms.ModelForm):
 class NatureEconomiqueForm(forms.ModelForm):
     class Meta:
         model = NatureEconomique
-        fields = ['code', 'titre', 'parent']
+        fields = ['code', 'titre', 'code_parent', 'parent', 'active']
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 1.1.1'}),
             'titre': forms.TextInput(attrs={'class': 'form-control'}),
+            'code_parent': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code du parent (ex: 1 pour 1-171)'}),
             'parent': forms.Select(attrs={'class': 'form-select'}),
+            'active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         # Exclure l'instance actuelle du queryset du parent pour éviter les références circulaires
+        # Et filtrer pour n'afficher que les natures actives
         if self.instance and self.instance.pk:
-            self.fields['parent'].queryset = NatureEconomique.objects.exclude(pk=self.instance.pk)
+            self.fields['parent'].queryset = NatureEconomique.objects.exclude(pk=self.instance.pk).filter(active=True)
         else:
-            self.fields['parent'].queryset = NatureEconomique.objects.all()
+            self.fields['parent'].queryset = NatureEconomique.objects.filter(active=True)
         
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -282,7 +347,12 @@ class NatureEconomiqueForm(forms.ModelForm):
                 css_class='mb-3'
             ),
             Row(
-                Column('parent', css_class='col-12'),
+                Column('code_parent', css_class='col-md-6'),
+                Column('parent', css_class='col-md-6'),
+                css_class='mb-3'
+            ),
+            Row(
+                Column('active', css_class='col-12'),
                 css_class='mb-3'
             ),
             Row(

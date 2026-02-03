@@ -2327,8 +2327,8 @@ class DepenseListView(LoginRequiredMixin, ListView):
         ).exclude(date_demande__isnull=True).values_list('date_demande__year', flat=True).distinct().order_by('-date_demande__year')
         context['annees'] = list(annees)
         
-        # Liste des natures économiques
-        context['natures_economiques'] = NatureEconomique.objects.all().order_by('code')
+        # Liste des natures économiques actives
+        context['natures_economiques'] = NatureEconomique.objects.filter(active=True).order_by('code')
         
         # Liste des services
         from accounts.models import Service
@@ -2431,7 +2431,7 @@ class NatureEconomiqueListView(LoginRequiredMixin, ListView):
     paginate_by = 50
     
     def get_queryset(self):
-        queryset = NatureEconomique.objects.select_related('parent').all()
+        queryset = NatureEconomique.objects.select_related('parent').filter(active=True)
         
         # Recherche textuelle
         search = self.request.GET.get('search')
@@ -2452,8 +2452,8 @@ class NatureEconomiqueListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Liste des natures parentes (racines)
-        context['parents'] = NatureEconomique.objects.filter(parent__isnull=True).order_by('code')
+        # Liste des natures parentes (racines) actives
+        context['parents'] = NatureEconomique.objects.filter(parent__isnull=True, active=True).order_by('code')
         
         # Paramètres de filtrage actuels
         context['filtres'] = {

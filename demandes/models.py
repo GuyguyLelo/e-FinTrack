@@ -451,6 +451,8 @@ class NatureEconomique(models.Model):
     code = models.CharField(max_length=20, unique=True)
     titre = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    code_parent = models.CharField(max_length=20, blank=True, null=True, verbose_name="Code parent")
+    active = models.BooleanField(default=True, verbose_name="Actif")
     parent = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
