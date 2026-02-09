@@ -21,6 +21,12 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# Force HTTP en développement
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+
 
 # Application definition
 
@@ -47,6 +53,7 @@ INSTALLED_APPS = [
     'releves',
     'rapports',
     'etats',
+    'tableau_bord_feuilles',
 ]
 
 MIDDLEWARE = [

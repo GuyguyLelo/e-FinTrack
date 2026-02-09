@@ -263,6 +263,12 @@
                     </a>
                     {% endif %}
                     
+                    <!-- Tableau de bord feuilles -->
+                    <hr style="border-color: rgba(255,255,255,0.2);">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <i class="bi bi-chart-line"></i> Tableau de bord feuilles
+                    </a>
+                    
                     {% if user.peut_acceder_admin_django %}
                     <hr style="border-color: rgba(255,255,255,0.2);">
                     <a class="nav-link" href="/admin/">

@@ -1,0 +1,430 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Tableau de Bord - Feuilles DEPENSES/RECETTES{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.card-stat {
+    border-left: 4px solid #007bff;
+}
+.card-stat.success {
+    border-left-color: #28a745;
+}
+.card-stat.danger {
+    border-left-color: #dc3545;
+}
+.card-stat.warning {
+    border-left-color: #ffc107;
+}
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+.operation-badge {
+    font-size: 0.8rem;
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-chart-line me-2"></i>
+            Tableau de Bord - Feuilles DEPENSES/RECETTES
+        </h1>
+        <div class="btn-group" role="group">
+            <a href="{% url 'tableau_bord_feuilles:detail_operations' %}" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i> Voir les opérations
+            </a>
+            <button type="button" class="btn btn-outline-secondary" onclick="exportData()">
+                <i class="fas fa-download me-1"></i> Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="annee" class="form-label">Année</label>
+                    <select name="annee" id="annee" class="form-select">
+                        {% for annee in annees_disponibles %}
+                        <option value="{{ annee }}" {% if annee_filter == annee %}selected{% endif %}>{{ annee }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="mois" class="form-label">Mois</label>
+                    <select name="mois" id="mois" class="form-select">
+                        <option value="">Tous les mois</option>
+                        {% for value, label in mois_choices %}
+                        <option value="{{ value }}" {% if mois_filter == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="banque" class="form-label">Banque</label>
+                    <select name="banque" id="banque" class="form-select">
+                        <option value="">Toutes les banques</option>
+                        {% for banque in banques %}
+                        <option value="{{ banque.id }}" {% if banque_filter == banque.id|stringformat:"s" %}selected{% endif %}>{{ banque.nom_banque }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="fas fa-filter me-1"></i> Filtrer
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cartes statistiques -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Dépenses</h6>
+                            <h4 class="card-title">{{ total_depenses_cdf|floatformat:2 }} CDF</h4>
+                            <small class="text-muted">{{ total_depenses_usd|floatformat:2 }} USD</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-arrow-down text-danger fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-danger">{{ nb_depenses }} opérations</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Recettes</h6>
+                            <h4 class="card-title">{{ total_recettes_cdf|floatformat:2 }} CDF</h4>
+                            <small class="text-muted">{{ total_recettes_usd|floatformat:2 }} USD</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-arrow-up text-success fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-success">{{ nb_recettes }} opérations</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat h-100 {% if solde_cdf >= 0 %}success{% else %}danger{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Solde Net</h6>
+                            <h4 class="card-title">{{ solde_cdf|floatformat:2 }} CDF</h4>
+                            <small class="text-muted">{{ solde_usd|floatformat:2 }} USD</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-balance-scale {% if solde_cdf >= 0 %}text-success{% else %}text-danger{% endif %} fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge {% if solde_cdf >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if solde_cdf >= 0 %}Excédent{% else %}Déficit{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat warning h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Opérations</h6>
+                            <h4 class="card-title">{{ nb_depenses|add:nb_recettes }}</h4>
+                            <small class="text-muted">{{ stats_par_banque|length }} banques</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exchange-alt text-warning fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-info">{{ current_year }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-area me-2"></i>
+                        Évolution Mensuelle
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="evolutionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Répartition par Banque
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="banqueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableaux par banque -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-university me-2"></i>
+                        Statistiques par Banque
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Banque</th>
+                                    <th>Dépenses CDF</th>
+                                    <th>Recettes CDF</th>
+                                    <th>Solde CDF</th>
+                                    <th>Dépenses USD</th>
+                                    <th>Recettes USD</th>
+                                    <th>Solde USD</th>
+                                    <th>Opérations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in stats_par_banque %}
+                                <tr>
+                                    <td><strong>{{ stat.banque.nom_banque }}</strong></td>
+                                    <td class="text-danger">{{ stat.total_depenses_cdf|floatformat:2 }}</td>
+                                    <td class="text-success">{{ stat.total_recettes_cdf|floatformat:2 }}</td>
+                                    <td class="{% if stat.solde_cdf >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ stat.solde_cdf|floatformat:2 }}
+                                    </td>
+                                    <td class="text-danger">{{ stat.total_depenses_usd|floatformat:2 }}</td>
+                                    <td class="text-success">{{ stat.total_recettes_usd|floatformat:2 }}</td>
+                                    <td class="{% if stat.solde_usd >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ stat.solde_usd|floatformat:2 }}
+                                    </td>
+                                    <td><span class="badge bg-info">{{ stat.nb_operations }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top opérations -->
+    <div class="row">
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-down text-danger me-2"></i>
+                        Top 10 Dépenses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Libellé</th>
+                                    <th>Banque</th>
+                                    <th>Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dep in top_depenses %}
+                                <tr>
+                                    <td>{{ dep.date|date:"d/m/Y" }}</td>
+                                    <td>{{ dep.libelle_depenses|truncatechars:30 }}</td>
+                                    <td>{{ dep.banque.nom_banque|default:"N/A" }}</td>
+                                    <td class="text-danger">{{ dep.montant_fc|floatformat:2 }} CDF</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-up text-success me-2"></i>
+                        Top 10 Recettes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Libellé</th>
+                                    <th>Banque</th>
+                                    <th>Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rec in top_recettes %}
+                                <tr>
+                                    <td>{{ rec.date|date:"d/m/Y" }}</td>
+                                    <td>{{ rec.libelle_recette|truncatechars:30 }}</td>
+                                    <td>{{ rec.banque.nom_banque|default:"N/A" }}</td>
+                                    <td class="text-success">{{ rec.montant_fc|floatformat:2 }} CDF</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Données pour les graphiques
+const graphData = {{ graph_data|safe }};
+
+// Graphique d'évolution mensuelle
+const evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
+new Chart(evolutionCtx, {
+    type: 'line',
+    data: {
+        labels: graphData.evolution_mensuelle.map(item => item.mois_nom),
+        datasets: [{
+            label: 'Dépenses CDF',
+            data: graphData.evolution_mensuelle.map(item => item.depenses_cdf),
+            borderColor: '#dc3545',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'Recettes CDF',
+            data: graphData.evolution_mensuelle.map(item => item.recettes_cdf),
+            borderColor: '#28a745',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'Solde CDF',
+            data: graphData.evolution_mensuelle.map(item => item.solde_cdf),
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString() + ' CDF';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Graphique par banque
+const banqueCtx = document.getElementById('banqueChart').getContext('2d');
+new Chart(banqueCtx, {
+    type: 'doughnut',
+    data: {
+        labels: graphData.stats_par_banque.map(item => item.banque),
+        datasets: [{
+            label: 'Total opérations CDF',
+            data: graphData.stats_par_banque.map(item => item.depenses_cdf + item.recettes_cdf),
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40',
+                '#FF6384',
+                '#C9CBCF'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+            }
+        }
+    }
+});
+
+// Fonction d'exportation
+function exportData() {
+    // Implémenter l'exportation CSV/Excel
+    alert('Fonction d\'exportation à implémenter');
+}
+</script>
+{% endblock %}

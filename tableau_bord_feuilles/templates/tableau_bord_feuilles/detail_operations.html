@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Détail des Opérations - Feuilles{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+.operation-badge {
+    font-size: 0.8rem;
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,0.05);
+}
+.filter-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+.text-nowrap {
+    white-space: nowrap;
+}
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="fas fa-list me-2"></i>
+            Détail des Opérations - Feuilles DEPENSES/RECETTES
+        </h1>
+        <div class="btn-group" role="group">
+            <a href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-1"></i> Tableau de bord
+            </a>
+            <button type="button" class="btn btn-outline-secondary" onclick="exportOperations()">
+                <i class="fas fa-download me-1"></i> Exporter
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card filter-section mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label for="annee" class="form-label">Année</label>
+                    <select name="annee" id="annee" class="form-select form-select-sm">
+                        <option value="">Toutes</option>
+                        {% for annee in annees_disponibles %}
+                        <option value="{{ annee }}" {% if annee_filter == annee|stringformat:"s" %}selected{% endif %}>{{ annee }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="mois" class="form-label">Mois</label>
+                    <select name="mois" id="mois" class="form-select form-select-sm">
+                        <option value="">Tous</option>
+                        {% for value, label in mois_choices %}
+                        <option value="{{ value }}" {% if mois_filter == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="banque" class="form-label">Banque</label>
+                    <select name="banque" id="banque" class="form-select form-select-sm">
+                        <option value="">Toutes</option>
+                        {% for banque in banques %}
+                        <option value="{{ banque.id }}" {% if banque_filter == banque.id|stringformat:"s" %}selected{% endif %}>{{ banque.nom_banque }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="type" class="form-label">Type</label>
+                    <select name="type" id="type" class="form-select form-select-sm">
+                        <option value="">Tous</option>
+                        <option value="depense" {% if type_filter == 'depense' %}selected{% endif %}>Dépenses</option>
+                        <option value="recette" {% if type_filter == 'recette' %}selected{% endif %}>Recettes</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="search" class="form-label">Recherche</label>
+                    <input type="text" name="search" id="search" class="form-control form-control-sm" 
+                           value="{{ search }}" placeholder="Libellé, banque...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-filter me-1"></i> Filtrer
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-times me-1"></i> Réinit.
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-arrow-down text-danger fa-2x mb-2"></i>
+                    <h5 class="card-title">{{ page_obj.paginator.count|default:"0" }}</h5>
+                    <p class="card-text">Opérations totales</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-file-alt text-info fa-2x mb-2"></i>
+                    <h5 class="card-title">{{ page_obj.number }}</h5>
+                    <p class="card-text">Page {{ page_obj.num_pages }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-filter text-warning fa-2x mb-2"></i>
+                    <h5 class="card-title">
+                        {% if annee_filter %}{{ annee_filter }}{% endif %}
+                        {% if mois_filter %}- 
+                            {% for value, label in mois_choices %}
+                                {% if value|stringformat:"s" == mois_filter %}{{ label }}{% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </h5>
+                    <p class="card-text">Période active</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <i class="fas fa-university text-success fa-2x mb-2"></i>
+                    <h5 class="card-title">
+                        {% if banque_filter %}
+                            {% for banque in banques %}
+                                {% if banque.id|stringformat:"s" == banque_filter %}{{ banque.nom_banque }}{% endif %}
+                            {% endfor %}
+                        {% else %}
+                            Toutes
+                        {% endif %}
+                    </h5>
+                    <p class="card-text">Banque active</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des opérations -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-table me-2"></i>
+                Liste des Opérations
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-nowrap">Date</th>
+                            <th>Type</th>
+                            <th>Libellé</th>
+                            <th>Banque</th>
+                            <th class="text-nowrap">Montant CDF</th>
+                            <th class="text-nowrap">Montant USD</th>
+                            <th>Nature</th>
+                            <th>Service</th>
+                            <th>Observation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for operation in page_obj %}
+                        <tr>
+                            <td class="text-nowrap">{{ operation.date|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge {% if operation.type == 'dépense' %}bg-danger{% else %}bg-success{% endif %} operation-badge">
+                                    <i class="fas {% if operation.type == 'dépense' %}fa-arrow-down{% else %}fa-arrow-up{% endif %} me-1"></i>
+                                    {{ operation.type|title }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong>{{ operation.libelle|truncatechars:40 }}</strong>
+                            </td>
+                            <td class="text-nowrap">{{ operation.banque }}</td>
+                            <td class="text-nowrap {% if operation.type == 'dépense' %}text-danger{% else %}text-success{% endif %}">
+                                {{ operation.montant_cdf|floatformat:2 }}
+                            </td>
+                            <td class="text-nowrap {% if operation.type == 'dépense' %}text-danger{% else %}text-success{% endif %}">
+                                {{ operation.montant_usd|floatformat:2 }}
+                            </td>
+                            <td class="text-nowrap">{{ operation.nature|truncatechars:20 }}</td>
+                            <td class="text-nowrap">{{ operation.service|truncatechars:15 }}</td>
+                            <td>{{ operation.observation|truncatechars:30 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Pagination des opérations">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Aucune opération trouvée</h5>
+                <p class="text-muted">Essayez de modifier vos filtres pour voir des résultats.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Fonction d'exportation
+function exportOperations() {
+    // Implémenter l'exportation CSV
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('export', 'csv');
+    window.open(currentUrl.toString(), '_blank');
+}
+
+// Auto-soumission des filtres
+document.querySelectorAll('#annee, #mois, #banque, #type').forEach(select => {
+    select.addEventListener('change', function() {
+        if (this.value !== '') {
+            this.form.submit();
+        }
+    });
+});
+
+// Recherche avec délai
+let searchTimeout;
+document.getElementById('search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        if (this.value.length >= 2 || this.value.length === 0) {
+            this.form.submit();
+        }
+    }, 500);
+});
+</script>
+{% endblock %}
