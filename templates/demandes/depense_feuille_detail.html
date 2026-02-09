@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Détail dépense (feuille) - e-FinTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+.detail-depense-card {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+}
+.detail-depense-card .card-header {
+    background: linear-gradient(135deg, #1a4d6e 0%, #2d6a8f 50%, #1a4d6e 100%);
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+}
+.detail-depense-card .card-header h4 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+.detail-depense-card .card-body {
+    padding: 0.75rem 1rem;
+    background: #fafbfc;
+}
+.detail-depense-card .detail-section {
+    background: white;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e8ecef;
+}
+.detail-depense-card .detail-section:last-child {
+    margin-bottom: 0;
+}
+.detail-depense-card .detail-section-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #1a4d6e;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #e8ecef;
+}
+.detail-depense-card .detail-row {
+    display: flex;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+}
+.detail-depense-card .detail-label {
+    font-weight: 500;
+    color: #6c757d;
+    width: 160px;
+    flex-shrink: 0;
+}
+.detail-depense-card .detail-value { color: #212529; }
+.detail-depense-card .montants-box { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.detail-depense-card .montant-item {
+    background: #f8f9fa;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    border-left: 3px solid #1a4d6e;
+}
+.detail-depense-card .montant-item .montant-label { font-size: 0.75rem; color: #6c757d; }
+.detail-depense-card .montant-item .montant-value { font-size: 1.1rem; font-weight: 700; color: #1a4d6e; }
+.detail-depense-card .libelle-box {
+    background: #f8f9fa;
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    border-left: 3px solid #1a4d6e;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h4 mb-0"><i class="bi bi-file-earmark-spreadsheet"></i> Ligne dépense (feuille)</h2>
+    <div class="d-flex gap-2">
+        {% if user.peut_saisir_demandes_recettes %}
+        <a href="{% url 'demandes:depense_feuille_modifier' ligne.pk %}" class="btn btn-warning btn-sm"><i class="bi bi-pencil me-1"></i> Modifier</a>
+        {% endif %}
+        <a href="{% url 'demandes:depense_feuille_liste' %}" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Retour</a>
+    </div>
+</div>
+
+<div class="card detail-depense-card">
+    <div class="card-header">
+        <h4><i class="bi bi-calendar3 me-2"></i> {{ ligne.date|date:"d/m/Y" }} — {{ ligne.libelle_depenses|truncatewords:8 }}</h4>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-5">
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-building me-1"></i> Infos générales</div>
+                    <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">{{ ligne.date|date:"d/m/Y" }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Service bénéficiaire</span><span class="detail-value">{{ ligne.service_beneficiaire.nom_service|default:"—" }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Nature économique</span><span class="detail-value">{{ ligne.nature_economique|default:"—" }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Banque</span><span class="detail-value">{{ ligne.banque.nom_banque|default:"—" }}</span></div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-clock-history me-1"></i> Traçabilité</div>
+                    <div class="detail-row"><span class="detail-label">Créé</span><span class="detail-value">{{ ligne.date_creation|date:"d/m/Y H:i" }}</span></div>
+                    <div class="detail-row"><span class="detail-label">Modifié</span><span class="detail-value">{{ ligne.date_modification|date:"d/m/Y H:i" }}</span></div>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-receipt me-1"></i> Libellé dépenses</div>
+                    <div class="libelle-box">{{ ligne.libelle_depenses|default:"—" }}</div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-currency-exchange me-1"></i> Montants</div>
+                    <div class="montants-box">
+                        <div class="montant-item">
+                            <div class="montant-label">Montant FC</div>
+                            <div class="montant-value">{{ ligne.montant_fc|format_montant }} FC</div>
+                        </div>
+                        <div class="montant-item">
+                            <div class="montant-label">Montant $us</div>
+                            <div class="montant-value">{{ ligne.montant_usd|format_montant }} $us</div>
+                        </div>
+                    </div>
+                </div>
+                {% if ligne.observation %}
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-chat-left-text me-1"></i> Observation</div>
+                    <div class="libelle-box">{{ ligne.observation }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

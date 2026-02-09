@@ -2,7 +2,7 @@
 Admin pour les modèles demandes
 """
 from django.contrib import admin
-from .models import DemandePaiement, ReleveDepense, NomenclatureDepense, Depense, NatureEconomique, Paiement
+from .models import DemandePaiement, ReleveDepense, NomenclatureDepense, Depense, NatureEconomique, Paiement, DepenseFeuille
 
 
 class ReadOnlyAdminMixin:
@@ -107,4 +107,12 @@ class PaiementAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'demande', 'releve_depense', 'paiement_par'
         ).prefetch_related('demande__service_demandeur')
+
+
+@admin.register(DepenseFeuille)
+class DepenseFeuilleAdmin(admin.ModelAdmin):
+    list_display = ['date', 'mois', 'annee', 'nature_economique', 'service_beneficiaire', 'libelle_depenses', 'banque', 'montant_fc', 'montant_usd']
+    list_filter = ['annee', 'mois', 'banque', 'nature_economique', 'service_beneficiaire']
+    search_fields = ['libelle_depenses', 'banque__nom_banque', 'nature_economique__code', 'nature_economique__titre', 'service_beneficiaire__nom_service']
+    date_hierarchy = 'date'
 

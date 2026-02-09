@@ -25,6 +25,9 @@
         {% endif %}
     </div>
     <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'demandes:depense_feuille_liste' %}" class="btn btn-outline-secondary" title="Structure feuille Excel DEPENSES">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Vue Feuille (Excel)
+        </a>
         <span class="badge bg-info fs-5 px-3 py-2">
             <strong>Total CDF:</strong> {{ total_fc|format_montant }} CDF
         </span>

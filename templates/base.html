@@ -236,9 +236,9 @@
                     </a>
                     {% endif %}
                     
-                    {% if user.peut_consulter_depenses %}
+                    {% if user.peut_voir_menu_depenses %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
-                        <i class="bi bi-list-ul"></i>Consultation Dépenses
+                        <i class="bi bi-list-ul"></i> Dépenses
                     </a>
                     {% endif %}
                     

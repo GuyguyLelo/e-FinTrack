@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load format_filters %}
+
+{% block title %}Détail recette (feuille) - e-FinTrack{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-spreadsheet"></i> Ligne recette (feuille)</h2>
+    <div>
+        {% if user.peut_saisir_demandes_recettes %}
+        <a href="{% url 'recettes:feuille_modifier' ligne.pk %}" class="btn btn-warning"><i class="bi bi-pencil"></i> Modifier</a>
+        {% endif %}
+        <a href="{% url 'recettes:feuille_liste' %}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <table class="table table-bordered">
+            <tr><th style="width: 25%;">Mois</th><td>{{ ligne.mois|mois_en_lettres }}</td></tr>
+            <tr><th>Année</th><td>{{ ligne.annee }}</td></tr>
+            <tr><th>Date</th><td>{{ ligne.date|date:"d/m/Y" }}</td></tr>
+            <tr><th>Libellé recette</th><td>{{ ligne.libelle_recette }}</td></tr>
+            <tr><th>Banque</th><td>{{ ligne.banque.nom_banque|default:"—" }}</td></tr>
+            <tr><th>Montant FC</th><td>{{ ligne.montant_fc|format_montant }} FC</td></tr>
+            <tr><th>Montant $us</th><td>{{ ligne.montant_usd|format_montant }} $us</td></tr>
+            <tr><th>Créé le</th><td>{{ ligne.date_creation|date:"d/m/Y H:i" }}</td></tr>
+            <tr><th>Modifié le</th><td>{{ ligne.date_modification|date:"d/m/Y H:i" }}</td></tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

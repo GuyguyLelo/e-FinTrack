@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}Modifier{% else %}Ajouter{% endif %} une ligne dépense (feuille) - e-FinTrack{% endblock %}
+
+{% block extra_css %}
+<style>
+.depense-feuille-card {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+}
+.depense-feuille-card .card-header {
+    background: linear-gradient(135deg, #1a4d6e 0%, #2d6a8f 50%, #1a4d6e 100%);
+    color: white;
+    padding: 1rem 1.25rem;
+    border: none;
+}
+.depense-feuille-card .card-header h4 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.depense-feuille-card .card-header h4 i {
+    opacity: 0.95;
+}
+.depense-feuille-card .card-body {
+    padding: 1.5rem 1.5rem 1.5rem;
+    background: #fafbfc;
+}
+.depense-feuille-card .form-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1.25rem 1.25rem 1rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e8ecef;
+}
+.depense-feuille-card .form-section:last-of-type {
+    margin-bottom: 0;
+}
+.depense-feuille-card .form-section-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1a4d6e;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e8ecef;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.depense-feuille-card .form-section-title i {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+.depense-feuille-card .form-label {
+    font-weight: 500;
+    color: #495057;
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+}
+.depense-feuille-card .form-control,
+.depense-feuille-card .form-select {
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+    min-height: 2.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.depense-feuille-card .form-select {
+    padding: 0.5rem 0.75rem;
+}
+.depense-feuille-card .form-control:focus,
+.depense-feuille-card .form-select:focus {
+    border-color: #1a4d6e;
+    box-shadow: 0 0 0 0.2rem rgba(26, 77, 110, 0.2);
+}
+.depense-feuille-card textarea.form-control {
+    min-height: 80px;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    resize: vertical;
+}
+.depense-feuille-card .btn-actions {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e8ecef;
+}
+.depense-feuille-card .btn-submit {
+    padding: 0.6rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 5px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.depense-feuille-card .btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 77, 110, 0.3);
+}
+.depense-feuille-card .btn-outline-back {
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+}
+.depense-feuille-card .invalid-feedback {
+    font-size: 0.8rem;
+}
+.depense-feuille-card .form-section-title i {
+    font-size: 1.1rem;
+}
+</style>
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2/dist/css/tom-select.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-11 offset-lg-0 col-xl-10 offset-xl-1">
+        <div class="card depense-feuille-card">
+            <div class="card-header">
+                <h4><i class="bi bi-file-earmark-spreadsheet"></i> {% if object %}Modifier{% else %}Ajouter{% endif %} une ligne – Feuille DEPENSES</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="form-section">
+                        <div class="form-section-title"><i class="bi bi-calendar3"></i> Période</div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="id_mois" class="form-label">Mois</label>
+                                {{ form.mois }}
+                                {% if form.mois.errors %}<div class="invalid-feedback d-block">{{ form.mois.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="id_annee" class="form-label">Année</label>
+                                {{ form.annee }}
+                                {% if form.annee.errors %}<div class="invalid-feedback d-block">{{ form.annee.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label for="id_date" class="form-label">Date</label>
+                                {{ form.date }}
+                                <div id="date-coherence-msg" class="invalid-feedback d-block" style="display: none;"></div>
+                                {% if form.date.errors %}<div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title"><i class="bi bi-building"></i> Bénéficiaire, nature, banque et montants</div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="id_service_beneficiaire" class="form-label">Service bénéficiaire</label>
+                                {{ form.service_beneficiaire }}
+                                {% if form.service_beneficiaire.errors %}<div class="invalid-feedback d-block">{{ form.service_beneficiaire.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_nature_economique" class="form-label">Nature économique</label>
+                                {{ form.nature_economique }}
+                                {% if form.nature_economique.errors %}<div class="invalid-feedback d-block">{{ form.nature_economique.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-0">
+                            <div class="col-md-6">
+                                <label for="id_banque" class="form-label">Banque</label>
+                                {{ form.banque }}
+                                {% if form.banque.errors %}<div class="invalid-feedback d-block">{{ form.banque.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="id_montant_fc" class="form-label">Montant FC</label>
+                                {{ form.montant_fc }}
+                                {% if form.montant_fc.errors %}<div class="invalid-feedback d-block">{{ form.montant_fc.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label for="id_montant_usd" class="form-label">Montant $us</label>
+                                {{ form.montant_usd }}
+                                {% if form.montant_usd.errors %}<div class="invalid-feedback d-block">{{ form.montant_usd.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="id_libelle_depenses" class="form-label">Libellé dépenses</label>
+                                {{ form.libelle_depenses }}
+                                {% if form.libelle_depenses.errors %}<div class="invalid-feedback d-block">{{ form.libelle_depenses.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-12">
+                                <label for="id_observation" class="form-label">Observation</label>
+                                {{ form.observation }}
+                                {% if form.observation.errors %}<div class="invalid-feedback d-block">{{ form.observation.errors.0 }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-actions d-flex flex-wrap gap-2 align-items-center">
+                        <button type="submit" class="btn btn-primary btn-submit"><i class="bi bi-check-circle me-1"></i> Enregistrer</button>
+                        <a href="{% url 'demandes:depense_feuille_liste' %}" class="btn btn-secondary btn-submit">Annuler</a>
+                        <a href="{% url 'demandes:depense_feuille_liste' %}" class="btn btn-outline-secondary btn-outline-back"><i class="bi bi-arrow-left me-1"></i> Retour à la liste</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var moisEl = document.getElementById('id_mois');
+    var anneeEl = document.getElementById('id_annee');
+    var dateEl = document.getElementById('id_date');
+    var msgEl = document.getElementById('date-coherence-msg');
+    var formEl = dateEl && dateEl.closest('form');
+
+    function checkDateCoherence() {
+        if (!moisEl || !anneeEl || !dateEl || !msgEl) return true;
+        var mois = parseInt(moisEl.value, 10);
+        var annee = parseInt(anneeEl.value, 10);
+        var dateStr = dateEl.value;
+        if (!dateStr || isNaN(mois) || isNaN(annee) || mois < 1 || mois > 12) {
+            msgEl.style.display = 'none';
+            dateEl.classList.remove('is-invalid');
+            return true;
+        }
+        var d = new Date(dateStr);
+        if (isNaN(d.getTime())) {
+            msgEl.style.display = 'none';
+            return true;
+        }
+        var dateMois = d.getMonth() + 1;
+        var dateAnnee = d.getFullYear();
+        if (dateMois !== mois || dateAnnee !== annee) {
+            msgEl.textContent = 'La date doit correspondre au mois et à l\'année choisis (mois ' + mois + ' / année ' + annee + ').';
+            msgEl.style.display = 'block';
+            dateEl.classList.add('is-invalid');
+            return false;
+        }
+        msgEl.style.display = 'none';
+        dateEl.classList.remove('is-invalid');
+        return true;
+    }
+
+    if (dateEl) {
+        dateEl.addEventListener('change', checkDateCoherence);
+        dateEl.addEventListener('input', checkDateCoherence);
+    }
+    if (moisEl) moisEl.addEventListener('change', checkDateCoherence);
+    if (anneeEl) anneeEl.addEventListener('change', checkDateCoherence);
+
+    if (formEl) {
+        formEl.addEventListener('submit', function(e) {
+            if (!checkDateCoherence()) {
+                e.preventDefault();
+                dateEl.focus();
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var el = document.getElementById('id_nature_economique');
+    if (el && typeof TomSelect !== 'undefined') {
+        new TomSelect(el, {
+            create: false,
+            placeholder: 'Rechercher ou choisir une nature...',
+            allowEmptyOption: true,
+            maxOptions: null,
+            searchField: ['text'],
+            render: {
+                no_results: function() { return 'Aucun résultat'; }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

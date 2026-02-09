@@ -2,7 +2,7 @@
 Admin pour les modèles recettes
 """
 from django.contrib import admin
-from .models import Recette, SourceRecette
+from .models import Recette, SourceRecette, RecetteFeuille
 
 
 class ReadOnlyAdminMixin:
@@ -44,4 +44,12 @@ class RecetteAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     search_fields = ['reference', 'description', 'banque__nom_banque']
     readonly_fields = ['reference', 'date_creation', 'date_modification']
     date_hierarchy = 'date_encaissement'
+
+
+@admin.register(RecetteFeuille)
+class RecetteFeuilleAdmin(admin.ModelAdmin):
+    list_display = ['date', 'mois', 'annee', 'libelle_recette', 'banque', 'montant_fc', 'montant_usd']
+    list_filter = ['annee', 'mois', 'banque']
+    search_fields = ['libelle_recette', 'banque']
+    date_hierarchy = 'date'
 

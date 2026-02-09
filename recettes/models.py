@@ -253,3 +253,49 @@ class Recette(models.Model):
         # Appel de la méthode delete originale
         super().delete(*args, **kwargs)
 
+
+class RecetteFeuille(models.Model):
+    """
+    Ligne de recette correspondant à la feuille RECETTES du fichier Excel (DATADAF).
+    Structure : MOIS, ANNEE, DATE, LIBELLE RECETTE, BANQUE, MONTANT FC, MONTANT $us
+    """
+    MOIS_CHOICES = [(i, str(i)) for i in range(1, 13)]
+
+    mois = models.PositiveSmallIntegerField(choices=MOIS_CHOICES, verbose_name="Mois")
+    annee = models.PositiveIntegerField(verbose_name="Année")
+    date = models.DateField(verbose_name="Date")
+    libelle_recette = models.CharField(max_length=500, verbose_name="Libellé recette")
+    banque = models.ForeignKey(
+        Banque,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recette_feuilles',
+        verbose_name="Banque"
+    )
+    montant_fc = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Montant FC"
+    )
+    montant_usd = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Montant $us"
+    )
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Recette (feuille)"
+        verbose_name_plural = "Recettes (feuille)"
+        ordering = ['-date', '-date_creation']
+
+    def __str__(self):
+        nom_banque = self.banque.nom_banque if self.banque else ""
+        return f"{self.date} - {self.libelle_recette[:50]} - {nom_banque}"
+

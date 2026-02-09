@@ -5,7 +5,7 @@ from django import forms
 from django.utils.safestring import mark_safe
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, HTML
-from .models import DemandePaiement, ReleveDepense, Depense, NatureEconomique, Cheque, Paiement
+from .models import DemandePaiement, ReleveDepense, Depense, NatureEconomique, Cheque, Paiement, DepenseFeuille
 from accounts.models import Service
 from banques.models import Banque
 from releves.models import ReleveBancaire
@@ -515,3 +515,63 @@ class PaiementMultipleForm(forms.Form):
             'releve_depense',
             Submit('submit', 'Voir les demandes à payer', css_class='btn btn-primary')
         )
+
+
+from decimal import Decimal
+
+MOIS_FEUILLE = [
+    (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'), (5, 'Mai'), (6, 'Juin'),
+    (7, 'Juillet'), (8, 'Août'), (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre'),
+]
+
+
+class DepenseFeuilleForm(forms.ModelForm):
+    """Formulaire correspondant à la feuille DEPENSES (MOIS, ANNEE, DATE, NATURE ECONOMIQUE, LIBELLE, BANQUE, MONTANT FC, MONTANT $us, OBSERVATION)."""
+    class Meta:
+        model = DepenseFeuille
+        fields = ['mois', 'annee', 'date', 'service_beneficiaire', 'nature_economique', 'libelle_depenses', 'banque', 'montant_fc', 'montant_usd', 'observation']
+        widgets = {
+            'mois': forms.Select(choices=MOIS_FEUILLE, attrs={'class': 'form-select'}),
+            'annee': forms.NumberInput(attrs={'class': 'form-control', 'min': 2000, 'max': 2100}),
+            'date': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+            'service_beneficiaire': forms.Select(attrs={'class': 'form-select'}),
+            'nature_economique': forms.Select(attrs={'class': 'form-select'}),
+            'libelle_depenses': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'banque': forms.Select(attrs={'class': 'form-select'}),
+            'montant_fc': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'class': 'form-control'}),
+            'montant_usd': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'class': 'form-control'}),
+            'observation': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['mois'].choices = MOIS_FEUILLE
+        # Mois et année en cours par défaut à l'ajout
+        if not self.instance or not self.instance.pk:
+            now = datetime.now()
+            self.fields['mois'].initial = now.month
+            self.fields['annee'].initial = now.year
+        self.fields['nature_economique'].queryset = NatureEconomique.objects.filter(active=True).order_by('code')
+        self.fields['nature_economique'].empty_label = "Sélectionner une nature économique"
+        self.fields['service_beneficiaire'].queryset = Service.objects.filter(actif=True).order_by('nom_service')
+        self.fields['service_beneficiaire'].empty_label = "Sélectionner un service bénéficiaire"
+        self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')
+        self.fields['banque'].empty_label = "Sélectionner une banque"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        montant_fc = cleaned_data.get('montant_fc') or Decimal('0.00')
+        montant_usd = cleaned_data.get('montant_usd') or Decimal('0.00')
+        if montant_fc <= 0 and montant_usd <= 0:
+            raise forms.ValidationError('Renseignez au moins un montant (FC ou $us).')
+
+        # La date doit correspondre au mois et à l'année saisis
+        date_val = cleaned_data.get('date')
+        mois_val = cleaned_data.get('mois')
+        annee_val = cleaned_data.get('annee')
+        if date_val is not None and mois_val is not None and annee_val is not None:
+            if date_val.month != mois_val or date_val.year != annee_val:
+                raise forms.ValidationError({
+                    'date': 'La date doit correspondre au mois et à l\'année choisis (mois {} / année {}).'.format(mois_val, annee_val)
+                })
+        return cleaned_data

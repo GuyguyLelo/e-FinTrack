@@ -1,11 +1,12 @@
 """
 Formulaires pour la gestion des recettes
 """
+from datetime import datetime
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit
 from decimal import Decimal
-from .models import Recette, SourceRecette
+from .models import Recette, SourceRecette, RecetteFeuille
 from banques.models import Banque, CompteBancaire
 
 
@@ -64,5 +65,57 @@ class RecetteForm(forms.ModelForm):
                 'Vous devez renseigner au moins un montant (USD ou CDF).'
             )
         
+        return cleaned_data
+
+
+# Mois pour la feuille recettes (structure Excel) – noms en français
+MOIS_FEUILLE = [
+    (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'), (5, 'Mai'), (6, 'Juin'),
+    (7, 'Juillet'), (8, 'Août'), (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre'),
+]
+
+
+class RecetteFeuilleForm(forms.ModelForm):
+    """Formulaire correspondant à la feuille RECETTES (MOIS, ANNEE, DATE, LIBELLE, BANQUE, MONTANT FC, MONTANT $us)."""
+    class Meta:
+        model = RecetteFeuille
+        fields = ['mois', 'annee', 'date', 'libelle_recette', 'banque', 'montant_fc', 'montant_usd']
+        widgets = {
+            'mois': forms.Select(choices=MOIS_FEUILLE, attrs={'class': 'form-select'}),
+            'annee': forms.NumberInput(attrs={'class': 'form-control', 'min': 2000, 'max': 2100}),
+            'date': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+            'libelle_recette': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'banque': forms.Select(attrs={'class': 'form-select'}),
+            'montant_fc': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'class': 'form-control'}),
+            'montant_usd': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['mois'].choices = MOIS_FEUILLE
+        # Mois et année en cours par défaut à l'ajout
+        if not self.instance or not self.instance.pk:
+            now = datetime.now()
+            self.fields['mois'].initial = now.month
+            self.fields['annee'].initial = now.year
+        self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')
+        self.fields['banque'].empty_label = "Sélectionner une banque"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        montant_fc = cleaned_data.get('montant_fc') or Decimal('0.00')
+        montant_usd = cleaned_data.get('montant_usd') or Decimal('0.00')
+        if montant_fc <= 0 and montant_usd <= 0:
+            raise forms.ValidationError('Renseignez au moins un montant (FC ou $us).')
+
+        # La date doit correspondre au mois et à l'année saisis
+        date_val = cleaned_data.get('date')
+        mois_val = cleaned_data.get('mois')
+        annee_val = cleaned_data.get('annee')
+        if date_val is not None and mois_val is not None and annee_val is not None:
+            if date_val.month != mois_val or date_val.year != annee_val:
+                raise forms.ValidationError({
+                    'date': 'La date doit correspondre au mois et à l\'année choisis (mois {} / année {}).'.format(mois_val, annee_val)
+                })
         return cleaned_data
 

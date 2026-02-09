@@ -10,8 +10,8 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.db.models import Q, Sum
 from accounts.permissions import RoleRequiredMixin
-from .models import Recette
-from .forms import RecetteForm
+from .models import Recette, RecetteFeuille
+from .forms import RecetteForm, RecetteFeuilleForm
 from banques.models import CompteBancaire, Banque
 
 
@@ -186,4 +186,78 @@ def load_comptes(request):
         data = [{'id': c.id, 'intitule': str(c), 'devise': c.devise} for c in comptes]
         return JsonResponse(data, safe=False)
     return JsonResponse([], safe=False)
+
+
+# --- Recettes feuille (structure Excel RECETTES) ---
+
+class RecetteFeuilleListView(RoleRequiredMixin, ListView):
+    model = RecetteFeuille
+    template_name = 'recettes/recette_feuille_liste.html'
+    context_object_name = 'lignes'
+    paginate_by = 50
+    permission_function = 'peut_voir_menu_recettes'
+
+    def get_queryset(self):
+        qs = RecetteFeuille.objects.select_related('banque').order_by('-date', '-date_creation')
+        annee = self.request.GET.get('annee')
+        if annee:
+            try:
+                qs = qs.filter(annee=int(annee))
+            except ValueError:
+                pass
+        mois = self.request.GET.get('mois')
+        if mois:
+            try:
+                qs = qs.filter(mois=int(mois))
+            except ValueError:
+                pass
+        banque = self.request.GET.get('banque', '').strip()
+        if banque:
+            qs = qs.filter(banque__icontains=banque)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from django.db.models import Sum
+        qs = self.get_queryset()
+        context['total_fc'] = qs.aggregate(t=Sum('montant_fc'))['t'] or 0
+        context['total_usd'] = qs.aggregate(t=Sum('montant_usd'))['t'] or 0
+        context['annees'] = RecetteFeuille.objects.values_list('annee', flat=True).distinct().order_by('-annee')
+        context['banques'] = Banque.objects.filter(active=True).order_by('nom_banque')
+        context['filtres'] = {
+            'annee': self.request.GET.get('annee', ''),
+            'mois': self.request.GET.get('mois', ''),
+            'banque': self.request.GET.get('banque', ''),
+        }
+        return context
+
+
+class RecetteFeuilleCreateView(RoleRequiredMixin, CreateView):
+    model = RecetteFeuille
+    form_class = RecetteFeuilleForm
+    template_name = 'recettes/recette_feuille_form.html'
+    success_url = reverse_lazy('recettes:feuille_liste')
+    permission_function = 'peut_saisir_demandes_recettes'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Ligne recette (feuille) enregistrée.')
+        return super().form_valid(form)
+
+
+class RecetteFeuilleUpdateView(LoginRequiredMixin, UpdateView):
+    model = RecetteFeuille
+    form_class = RecetteFeuilleForm
+    template_name = 'recettes/recette_feuille_form.html'
+    success_url = reverse_lazy('recettes:feuille_liste')
+    context_object_name = 'object'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Ligne recette (feuille) mise à jour.')
+        return super().form_valid(form)
+
+
+class RecetteFeuilleDetailView(LoginRequiredMixin, DetailView):
+    model = RecetteFeuille
+    template_name = 'recettes/recette_feuille_detail.html'
+    context_object_name = 'ligne'
 

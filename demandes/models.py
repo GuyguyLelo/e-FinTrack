@@ -660,3 +660,67 @@ class Paiement(models.Model):
         if toutes_payees:
             # Archiver le relevé de dépenses (ajouter un champ archive si nécessaire)
             print(f"Toutes les demandes du relevé {releve.periode} sont payées")
+
+
+class DepenseFeuille(models.Model):
+    """
+    Ligne de dépense correspondant à la feuille DEPENSES du fichier Excel (DATADAF).
+    Structure : MOIS, ANNEE, DATE, ARTICLE LITTERA (→ nature_economique), LIBELLE DEPENSES, BANQUE, MONTANT EN Fc, MONTANT EN $us, OBSERVATION
+    """
+    MOIS_CHOICES = [(i, str(i)) for i in range(1, 13)]
+
+    mois = models.PositiveSmallIntegerField(choices=MOIS_CHOICES, verbose_name="Mois")
+    annee = models.PositiveIntegerField(verbose_name="Année")
+    date = models.DateField(verbose_name="Date")
+    nature_economique = models.ForeignKey(
+        NatureEconomique,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='depense_feuilles',
+        verbose_name="Nature économique"
+    )
+    service_beneficiaire = models.ForeignKey(
+        Service,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='depense_feuilles',
+        verbose_name="Service bénéficiaire",
+    )
+    libelle_depenses = models.CharField(max_length=500, verbose_name="Libellé dépenses")
+    banque = models.ForeignKey(
+        Banque,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='depense_feuilles',
+        verbose_name="Banque",
+    )
+    montant_fc = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Montant en Fc"
+    )
+    montant_usd = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name="Montant en $us"
+    )
+    observation = models.TextField(blank=True, verbose_name="Observation")
+    date_creation = models.DateTimeField(auto_now_add=True)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Dépense (feuille)"
+        verbose_name_plural = "Dépenses (feuille)"
+        ordering = ['-date', '-date_creation']
+
+    def __str__(self):
+        nat = f"{self.nature_economique}" if self.nature_economique else ""
+        banq = self.banque.nom_banque if self.banque else ""
+        return f"{self.date} - {self.libelle_depenses[:50]} - {banq}" + (f" ({nat})" if nat else "")

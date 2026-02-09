@@ -78,6 +78,11 @@ class User(AbstractUser):
     def is_agent_payeur(self):
         return self.role == 'AGENT_PAYEUR'
     
+    @property
+    def is_comptable(self):
+        """Rôles pouvant valider les recettes (CD Finance, DF, DG, Admin)."""
+        return self.role in ['SUPER_ADMIN', 'ADMIN', 'DG', 'DF', 'CD_FINANCE']
+    
     # Permissions d'accès
     def peut_voir_tableau_bord(self):
         """Vérifie si l'utilisateur peut voir le tableau de bord"""
@@ -113,7 +118,11 @@ class User(AbstractUser):
     
     def peut_consulter_depenses(self):
         """Vérifie si l'utilisateur peut consulter les dépenses"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE']
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'OPERATEUR_SAISIE']
+    
+    def peut_voir_menu_depenses(self):
+        """Vérifie si l'utilisateur peut voir le menu Dépenses (opérateur, CD Finance, DG, DF)"""
+        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'OPERATEUR_SAISIE']
     
     def peut_creer_etats(self):
         """Vérifie si l'utilisateur peut créer des états"""

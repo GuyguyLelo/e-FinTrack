@@ -32,6 +32,11 @@ urlpatterns = [
     path('depenses/creer/', views.DepenseCreateView.as_view(), name='depense_creer'),
     path('depenses/<int:pk>/', views.DepenseDetailView.as_view(), name='depense_detail'),
     path('depenses/<int:pk>/modifier/', views.DepenseUpdateView.as_view(), name='depense_modifier'),
+    # Feuille DEPENSES (structure Excel)
+    path('depenses/feuille/', views.DepenseFeuilleListView.as_view(), name='depense_feuille_liste'),
+    path('depenses/feuille/creer/', views.DepenseFeuilleCreateView.as_view(), name='depense_feuille_creer'),
+    path('depenses/feuille/<int:pk>/', views.DepenseFeuilleDetailView.as_view(), name='depense_feuille_detail'),
+    path('depenses/feuille/<int:pk>/modifier/', views.DepenseFeuilleUpdateView.as_view(), name='depense_feuille_modifier'),
     path('nomenclatures/', views.get_nomenclatures_by_year, name='nomenclatures_by_year'),
     path('natures/', views.NatureEconomiqueListView.as_view(), name='nature_liste'),
     path('natures/creer/', views.NatureEconomiqueCreateView.as_view(), name='nature_creer'),

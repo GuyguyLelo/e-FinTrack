@@ -20,11 +20,11 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
-from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense, NatureEconomique, Cheque, Paiement
+from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense, NatureEconomique, Cheque, Paiement, DepenseFeuille
 from accounts.models import Service
 from banques.models import Banque, CompteBancaire
 from releves.models import ReleveBancaire
-from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
+from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, DepenseFeuilleForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
 from accounts.permissions import RoleRequiredMixin
 
 
@@ -2395,6 +2395,79 @@ class DepenseDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'depense'
 
 
+# --- Dépenses feuille (structure Excel DEPENSES) ---
+
+class DepenseFeuilleListView(RoleRequiredMixin, ListView):
+    model = DepenseFeuille
+    template_name = 'demandes/depense_feuille_liste.html'
+    context_object_name = 'lignes'
+    paginate_by = 15
+    permission_function = 'peut_voir_menu_depenses'
+
+    def get_queryset(self):
+        qs = DepenseFeuille.objects.select_related('nature_economique', 'service_beneficiaire', 'banque').order_by('-date', '-date_creation')
+        annee = self.request.GET.get('annee')
+        if annee:
+            try:
+                qs = qs.filter(annee=int(annee))
+            except ValueError:
+                pass
+        mois = self.request.GET.get('mois')
+        if mois:
+            try:
+                qs = qs.filter(mois=int(mois))
+            except ValueError:
+                pass
+        banque_id = self.request.GET.get('banque')
+        if banque_id:
+            qs = qs.filter(banque_id=banque_id)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        qs = self.get_queryset()
+        context['total_fc'] = qs.aggregate(t=Sum('montant_fc'))['t'] or 0
+        context['total_usd'] = qs.aggregate(t=Sum('montant_usd'))['t'] or 0
+        context['annees'] = DepenseFeuille.objects.values_list('annee', flat=True).distinct().order_by('-annee')
+        context['banques'] = Banque.objects.filter(active=True).order_by('nom_banque')
+        context['filtres'] = {
+            'annee': self.request.GET.get('annee', ''),
+            'mois': self.request.GET.get('mois', ''),
+            'banque': self.request.GET.get('banque', ''),
+        }
+        return context
+
+
+class DepenseFeuilleCreateView(RoleRequiredMixin, CreateView):
+    model = DepenseFeuille
+    form_class = DepenseFeuilleForm
+    template_name = 'demandes/depense_feuille_form.html'
+    success_url = reverse_lazy('demandes:depense_feuille_liste')
+    permission_function = 'peut_saisir_demandes_recettes'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Ligne dépense (feuille) enregistrée.')
+        return super().form_valid(form)
+
+
+class DepenseFeuilleUpdateView(LoginRequiredMixin, UpdateView):
+    model = DepenseFeuille
+    form_class = DepenseFeuilleForm
+    template_name = 'demandes/depense_feuille_form.html'
+    success_url = reverse_lazy('demandes:depense_feuille_liste')
+    context_object_name = 'object'
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Ligne dépense (feuille) mise à jour.')
+        return super().form_valid(form)
+
+
+class DepenseFeuilleDetailView(LoginRequiredMixin, DetailView):
+    model = DepenseFeuille
+    template_name = 'demandes/depense_feuille_detail.html'
+    context_object_name = 'ligne'
+
+
 def get_nomenclatures_by_year(request):
     """API pour récupérer les nomenclatures par année"""
     from .models import NomenclatureDepense
@@ -2431,7 +2504,7 @@ class NatureEconomiqueListView(LoginRequiredMixin, ListView):
     paginate_by = 50
     
     def get_queryset(self):
-        queryset = NatureEconomique.objects.select_related('parent').filter(active=True)
+        queryset = NatureEconomique.objects.select_related('parent', 'parent__parent').filter(active=True)
         
         # Recherche textuelle
         search = self.request.GET.get('search')
