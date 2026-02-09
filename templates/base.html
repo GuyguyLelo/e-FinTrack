@@ -269,12 +269,12 @@
                         <i class="bi bi-chart-line"></i> Tableau de bord feuilles
                     </a>
                     
-                    {% if user.peut_acceder_admin_django %}
-                    <hr style="border-color: rgba(255,255,255,0.2);">
-                    <a class="nav-link" href="/admin/">
-                        <i class="bi bi-gear"></i> Administration Django
+                    <!-- Rapports feuilles -->
+                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and 'rapport' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'tableau_bord_feuilles:rapport_selection' %}">
+                        <i class="bi bi-file-pdf"></i> Rapports feuilles
                     </a>
-                    {% endif %}
+                    
+                    
                 </nav>
                 {% endif %}
             </div>

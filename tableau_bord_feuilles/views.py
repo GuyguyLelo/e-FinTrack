@@ -4,10 +4,24 @@ from django.db.models.functions import ExtractYear, ExtractMonth, TruncMonth
 from django.utils.timezone import now
 from django.core.paginator import Paginator
 from decimal import Decimal
+from django.contrib.humanize.templatetags.humanize import intcomma
 from demandes.models import DepenseFeuille
 from recettes.models import RecetteFeuille
 from banques.models import Banque
 import json
+
+
+def format_montant(montant):
+    """Formater un montant avec séparateurs de milliers"""
+    if montant:
+        return f"{intcomma(montant)}"
+    return "0"
+
+def format_montant_decimal(montant):
+    """Formater un montant décimal avec séparateurs de milliers"""
+    if montant:
+        return f"{intcomma(montant)}"
+    return "0,00"
 
 
 def tableau_bord_feuilles(request):
@@ -149,7 +163,10 @@ def tableau_bord_feuilles(request):
         'mois_filter': mois_filter,
         'banque_filter': banque_filter,
         'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],
-        'annees_disponibles': annees_disponibles
+        'annees_disponibles': annees_disponibles,
+        # Ajout des fonctions de formatage
+        'format_montant': format_montant,
+        'format_montant_decimal': format_montant_decimal,
     }
     
     return render(request, 'tableau_bord_feuilles/dashboard.html', context)
@@ -252,7 +269,10 @@ def detail_operations(request):
         'type_filter': type_filter,
         'search': search,
         'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],
-        'annees_disponibles': annees_disponibles
+        'annees_disponibles': annees_disponibles,
+        # Ajout des fonctions de formatage
+        'format_montant': format_montant,
+        'format_montant_decimal': format_montant_decimal,
     }
     
     return render(request, 'tableau_bord_feuilles/detail_operations.html', context)

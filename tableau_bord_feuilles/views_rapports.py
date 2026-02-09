@@ -1,0 +1,286 @@
+from django.shortcuts import render
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import View
+from django.http import HttpResponse
+from django.db.models import Sum, Q
+from django.utils import timezone
+from decimal import Decimal
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+import os
+from datetime import datetime
+from django.contrib.humanize.templatetags.humanize import intcomma
+
+from demandes.models import DepenseFeuille, NatureEconomique
+from recettes.models import RecetteFeuille
+from banques.models import Banque
+
+
+def format_montant_pdf(montant):
+    """Formater un montant pour le PDF avec séparateurs de milliers"""
+    if montant:
+        return f"{intcomma(montant)}"
+    return "0"
+
+
+class RapportFeuilleSelectionView(LoginRequiredMixin, View):
+    """Vue pour la sélection des rapports feuilles"""
+    template_name = 'tableau_bord_feuilles/rapport_selection.html'
+    
+    def get(self, request, *args, **kwargs):
+        # Récupérer les années disponibles
+        annees_depenses = list(DepenseFeuille.objects.values_list('annee', flat=True).distinct())
+        annees_recettes = list(RecetteFeuille.objects.values_list('annee', flat=True).distinct())
+        annees_disponibles = sorted(set(annees_depenses + annees_recettes), reverse=True)
+        
+        context = {
+            'annees_disponibles': annees_disponibles,
+            'mois_choices': [
+                (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'),
+                (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'),
+                (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')
+            ],
+            'current_year': timezone.now().year,
+            'current_month': timezone.now().month
+        }
+        
+        return render(request, self.template_name, context)
+
+
+class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
+    """Vue pour générer le PDF des recettes feuilles"""
+    
+    def post(self, request, *args, **kwargs):
+        annee = request.POST.get('annee')
+        mois = request.POST.get('mois')
+        
+        if not annee or not mois:
+            return HttpResponse("Veuillez sélectionner une année et un mois", status=400)
+        
+        annee = int(annee)
+        mois = int(mois)
+        
+        # Filtrer les recettes
+        recettes = RecetteFeuille.objects.filter(annee=annee, mois=mois).order_by('date')
+        
+        if not recettes.exists():
+            return HttpResponse("Aucune recette trouvée pour cette période", status=404)
+        
+        # Créer le PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"rapport_recettes_{annee}_{mois:02d}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Créer le document PDF en mode paysage
+        doc = SimpleDocTemplate(response, pagesize=landscape(A4), rightMargin=2*cm, leftMargin=2*cm, 
+                              topMargin=2*cm, bottomMargin=2*cm)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=colors.darkblue
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=20,
+            alignment=TA_CENTER
+        )
+        
+        # Contenu du PDF
+        story = []
+        
+        # Titre
+        mois_nom = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][mois-1]
+        story.append(Paragraph("RAPPORT DES RECETTES", title_style))
+        story.append(Paragraph(f"Période: {mois_nom} {annee}", subtitle_style))
+        story.append(Spacer(1, 20))
+        
+        # Statistiques (sans tableau)
+        total_cdf = recettes.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+        total_usd = recettes.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+        nombre_operations = recettes.count()
+        
+        # Informations de statistiques en texte simple
+        story.append(Paragraph(f"<b>Nombre d'opérations:</b> {nombre_operations}", subtitle_style))
+        story.append(Paragraph(f"<b>Total CDF:</b> {format_montant_pdf(total_cdf)} CDF", subtitle_style))
+        story.append(Paragraph(f"<b>Total USD:</b> {format_montant_pdf(total_usd)} USD", subtitle_style))
+        story.append(Spacer(1, 30))
+        
+        # Tableau détaillé des recettes
+        story.append(Paragraph("DÉTAIL DES RECETTES", subtitle_style))
+        story.append(Spacer(1, 12))
+        
+        # En-têtes du tableau
+        headers = ['Date', 'Libellé', 'Banque', 'Montant CDF', 'Montant USD']
+        data = [headers]
+        
+        # Données
+        for recette in recettes:
+            data.append([
+                recette.date.strftime('%d/%m/%Y'),
+                recette.libelle_recette[:50] + '...' if len(recette.libelle_recette) > 50 else recette.libelle_recette,
+                recette.banque.nom_banque if recette.banque else 'N/A',
+                format_montant_pdf(recette.montant_fc),
+                format_montant_pdf(recette.montant_usd)
+            ])
+        
+        # Créer le tableau avec plus de colonnes pour le mode paysage
+        table = Table(data, colWidths=[3*cm, 8*cm, 3*cm, 3*cm, 3*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+            ('ALIGN', (3, 1), (4, -1), 'RIGHT'),
+        ]))
+        
+        story.append(table)
+        
+        # Pied de page
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
+                             ParagraphStyle('Footer', parent=styles['Normal'], 
+                                           fontSize=8, alignment=TA_CENTER, textColor=colors.grey)))
+        
+        # Générer le PDF
+        doc.build(story)
+        
+        return response
+
+
+class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
+    """Vue pour générer le PDF des dépenses feuilles"""
+    
+    def post(self, request, *args, **kwargs):
+        annee = request.POST.get('annee')
+        mois = request.POST.get('mois')
+        
+        if not annee or not mois:
+            return HttpResponse("Veuillez sélectionner une année et un mois", status=400)
+        
+        annee = int(annee)
+        mois = int(mois)
+        
+        # Filtrer les dépenses
+        depenses = DepenseFeuille.objects.filter(annee=annee, mois=mois).order_by('date')
+        
+        if not depenses.exists():
+            return HttpResponse("Aucune dépense trouvée pour cette période", status=404)
+        
+        # Créer le PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"rapport_depenses_{annee}_{mois:02d}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Créer le document PDF en mode paysage
+        doc = SimpleDocTemplate(response, pagesize=landscape(A4), rightMargin=2*cm, leftMargin=2*cm, 
+                              topMargin=2*cm, bottomMargin=2*cm)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=colors.darkred
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=20,
+            alignment=TA_CENTER
+        )
+        
+        # Contenu du PDF
+        story = []
+        
+        # Titre
+        mois_nom = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][mois-1]
+        story.append(Paragraph("RAPPORT DES DÉPENSES", title_style))
+        story.append(Paragraph(f"Période: {mois_nom} {annee}", subtitle_style))
+        story.append(Spacer(1, 20))
+        
+        # Statistiques (sans tableau)
+        total_cdf = depenses.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+        total_usd = depenses.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+        nombre_operations = depenses.count()
+        
+        # Informations de statistiques en texte simple
+        story.append(Paragraph(f"<b>Nombre d'opérations:</b> {nombre_operations}", subtitle_style))
+        story.append(Paragraph(f"<b>Total CDF:</b> {format_montant_pdf(total_cdf)} CDF", subtitle_style))
+        story.append(Paragraph(f"<b>Total USD:</b> {format_montant_pdf(total_usd)} USD", subtitle_style))
+        story.append(Spacer(1, 30))
+        
+        # Tableau détaillé des dépenses
+        story.append(Paragraph("DÉTAIL DES DÉPENSES", subtitle_style))
+        story.append(Spacer(1, 12))
+        
+        # En-têtes du tableau
+        headers = ['Date', 'Libellé', 'Nature', 'Banque', 'Montant CDF', 'Montant USD']
+        data = [headers]
+        
+        # Données
+        for depense in depenses:
+            data.append([
+                depense.date.strftime('%d/%m/%Y'),
+                depense.libelle_depenses[:40] + '...' if len(depense.libelle_depenses) > 40 else depense.libelle_depenses,
+                depense.nature_economique.titre[:30] + '...' if depense.nature_economique and len(depense.nature_economique.titre) > 30 else (depense.nature_economique.titre if depense.nature_economique else 'N/A'),
+                depense.banque.nom_banque if depense.banque else 'N/A',
+                format_montant_pdf(depense.montant_fc),
+                format_montant_pdf(depense.montant_usd)
+            ])
+        
+        # Créer le tableau avec plus de colonnes pour le mode paysage
+        table = Table(data, colWidths=[3*cm, 6*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+            ('ALIGN', (4, 1), (5, -1), 'RIGHT'),
+        ]))
+        
+        story.append(table)
+        
+        # Pied de page
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
+                             ParagraphStyle('Footer', parent=styles['Normal'], 
+                                           fontSize=8, alignment=TA_CENTER, textColor=colors.grey)))
+        
+        # Générer le PDF
+        doc.build(story)
+        
+        return response

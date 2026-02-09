@@ -100,8 +100,8 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-subtitle mb-2">Total Dépenses</h6>
-                            <h4 class="card-title">{{ total_depenses_cdf|floatformat:2 }} CDF</h4>
-                            <small class="text-muted">{{ total_depenses_usd|floatformat:2 }} USD</small>
+                            <h4 class="card-title">{{ total_depenses_cdf|floatformat:0|intcomma }} CDF</h4>
+                            <small class="text-muted">{{ total_depenses_usd|floatformat:0|intcomma }} USD</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-arrow-down text-danger fa-2x"></i>
@@ -120,8 +120,8 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-subtitle mb-2">Total Recettes</h6>
-                            <h4 class="card-title">{{ total_recettes_cdf|floatformat:2 }} CDF</h4>
-                            <small class="text-muted">{{ total_recettes_usd|floatformat:2 }} USD</small>
+                            <h4 class="card-title">{{ total_recettes_cdf|floatformat:0|intcomma }} CDF</h4>
+                            <small class="text-muted">{{ total_recettes_usd|floatformat:0|intcomma }} USD</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-arrow-up text-success fa-2x"></i>
@@ -140,8 +140,8 @@
                     <div class="d-flex justify-content-between">
                         <div>
                             <h6 class="card-subtitle mb-2">Solde Net</h6>
-                            <h4 class="card-title">{{ solde_cdf|floatformat:2 }} CDF</h4>
-                            <small class="text-muted">{{ solde_usd|floatformat:2 }} USD</small>
+                            <h4 class="card-title">{{ solde_cdf|floatformat:0|intcomma }} CDF</h4>
+                            <small class="text-muted">{{ solde_usd|floatformat:0|intcomma }} USD</small>
                         </div>
                         <div class="align-self-center">
                             <i class="fas fa-balance-scale {% if solde_cdf >= 0 %}text-success{% else %}text-danger{% endif %} fa-2x"></i>
@@ -241,15 +241,15 @@
                                 {% for stat in stats_par_banque %}
                                 <tr>
                                     <td><strong>{{ stat.banque.nom_banque }}</strong></td>
-                                    <td class="text-danger">{{ stat.total_depenses_cdf|floatformat:2 }}</td>
-                                    <td class="text-success">{{ stat.total_recettes_cdf|floatformat:2 }}</td>
+                                    <td class="text-danger">{{ stat.total_depenses_cdf|floatformat:0|intcomma }}</td>
+                                    <td class="text-success">{{ stat.total_recettes_cdf|floatformat:0|intcomma }}</td>
                                     <td class="{% if stat.solde_cdf >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                        {{ stat.solde_cdf|floatformat:2 }}
+                                        {{ stat.solde_cdf|floatformat:0|intcomma }}
                                     </td>
-                                    <td class="text-danger">{{ stat.total_depenses_usd|floatformat:2 }}</td>
-                                    <td class="text-success">{{ stat.total_recettes_usd|floatformat:2 }}</td>
+                                    <td class="text-danger">{{ stat.total_depenses_usd|floatformat:0|intcomma }}</td>
+                                    <td class="text-success">{{ stat.total_recettes_usd|floatformat:0|intcomma }}</td>
                                     <td class="{% if stat.solde_usd >= 0 %}text-success{% else %}text-danger{% endif %}">
-                                        {{ stat.solde_usd|floatformat:2 }}
+                                        {{ stat.solde_usd|floatformat:0|intcomma }}
                                     </td>
                                     <td><span class="badge bg-info">{{ stat.nb_operations }}</span></td>
                                 </tr>
@@ -289,7 +289,7 @@
                                     <td>{{ dep.date|date:"d/m/Y" }}</td>
                                     <td>{{ dep.libelle_depenses|truncatechars:30 }}</td>
                                     <td>{{ dep.banque.nom_banque|default:"N/A" }}</td>
-                                    <td class="text-danger">{{ dep.montant_fc|floatformat:2 }} CDF</td>
+                                    <td class="text-danger">{{ dep.montant_fc|floatformat:0|intcomma }} CDF</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -324,7 +324,7 @@
                                     <td>{{ rec.date|date:"d/m/Y" }}</td>
                                     <td>{{ rec.libelle_recette|truncatechars:30 }}</td>
                                     <td>{{ rec.banque.nom_banque|default:"N/A" }}</td>
-                                    <td class="text-success">{{ rec.montant_fc|floatformat:2 }} CDF</td>
+                                    <td class="text-success">{{ rec.montant_fc|floatformat:0|intcomma }} CDF</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

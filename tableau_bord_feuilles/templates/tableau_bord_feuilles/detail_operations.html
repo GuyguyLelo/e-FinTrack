@@ -196,10 +196,10 @@
                             </td>
                             <td class="text-nowrap">{{ operation.banque }}</td>
                             <td class="text-nowrap {% if operation.type == 'dépense' %}text-danger{% else %}text-success{% endif %}">
-                                {{ operation.montant_cdf|floatformat:2 }}
+                                {{ operation.montant_cdf|floatformat:0|intcomma }}
                             </td>
                             <td class="text-nowrap {% if operation.type == 'dépense' %}text-danger{% else %}text-success{% endif %}">
-                                {{ operation.montant_usd|floatformat:2 }}
+                                {{ operation.montant_usd|floatformat:0|intcomma }}
                             </td>
                             <td class="text-nowrap">{{ operation.nature|truncatechars:20 }}</td>
                             <td class="text-nowrap">{{ operation.service|truncatechars:15 }}</td>
