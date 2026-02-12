@@ -561,31 +561,72 @@ function resetFilters() {
     console.log('ResetFilters exécuté, type état préservé:', typeEtat); // Debug
 }
 
-// Générer l'état
+// Soumettre le formulaire en POST vers l'URL du rapport (tous les paramètres sont envoyés)
+function submitReportForm(actionUrl) {
+    const form = document.getElementById('filterForm');
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.action = actionUrl;
+    f.target = '_blank';
+    f.style.display = 'none';
+    const csrf = form.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (csrf) {
+        const c = document.createElement('input');
+        c.name = 'csrfmiddlewaretoken';
+        c.value = csrf.value;
+        c.type = 'hidden';
+        f.appendChild(c);
+    }
+    const typeEtat = document.getElementById('id_type_etat').value;
+    const inputs = form.querySelectorAll('input, select');
+    inputs.forEach(function(el) {
+        if (!el.name) return;
+        const include = (typeEtat === 'DEPENSE_FEUILLE' && (el.name.includes('_depenses') || el.name === 'type_etat')) ||
+                        (typeEtat === 'RECETTE_FEUILLE' && (el.name.includes('_recettes') || el.name === 'type_etat'));
+        if (!include) return;
+        if (el.tagName === 'SELECT' && el.multiple) {
+            Array.from(el.selectedOptions).forEach(function(opt) {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = el.name;
+                inp.value = opt.value;
+                f.appendChild(inp);
+            });
+        } else {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = el.name;
+            inp.value = (el.value || '').toString();
+            f.appendChild(inp);
+        }
+    });
+    document.body.appendChild(f);
+    f.submit();
+    document.body.removeChild(f);
+}
+
+// Générer l'état (PDF ou Excel) : envoi de tous les paramètres en POST
 function generateState(format) {
     const typeEtat = document.getElementById('id_type_etat').value;
     
     document.getElementById('loadingOverlay').style.display = 'flex';
     
-    // Rediriger directement vers les URLs existantes selon le type et le format
     if (typeEtat === 'DEPENSE_FEUILLE') {
-        if (format === 'PDF') {
-            window.location.href = '/tableau-bord-feuilles/rapports/depense/pdf/';
-        } else if (format === 'EXCEL') {
-            // Pour l'Excel, on peut utiliser le même endpoint PDF pour l'instant
-            window.location.href = '/tableau-bord-feuilles/rapports/depense/pdf/';
+        const url = '/tableau-bord-feuilles/rapports/depense/pdf/';
+        if (format === 'PDF' || format === 'EXCEL') {
+            submitReportForm(url);
         }
     } else if (typeEtat === 'RECETTE_FEUILLE') {
-        if (format === 'PDF') {
-            window.location.href = '/tableau-bord-feuilles/rapports/recette/pdf/';
-        } else if (format === 'EXCEL') {
-            // Pour l'Excel, on peut utiliser le même endpoint PDF pour l'instant
-            window.location.href = '/tableau-bord-feuilles/rapports/recette/pdf/';
+        const url = '/tableau-bord-feuilles/rapports/recette/pdf/';
+        if (format === 'PDF' || format === 'EXCEL') {
+            submitReportForm(url);
         }
     } else {
         alert('Veuillez sélectionner un type d\'état');
         document.getElementById('loadingOverlay').style.display = 'none';
+        return;
     }
+    setTimeout(function() { document.getElementById('loadingOverlay').style.display = 'none'; }, 1500);
 }
 
 // Générer le titre automatiquement

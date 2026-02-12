@@ -29,6 +29,97 @@ def format_montant_pdf(montant):
     return "0"
 
 
+def _get_param(request, get_name, post_name):
+    """Récupère un paramètre depuis GET (priorité) ou POST (noms formulaire)."""
+    value = request.GET.get(get_name) or request.POST.get(post_name) or request.POST.get(get_name)
+    return value
+
+
+def _get_param_list(request, post_name, get_name=None):
+    """Récupère une liste (multi-select) depuis POST ou depuis GET (valeurs séparées par des virgules)."""
+    post_list = request.POST.getlist(post_name)
+    if post_list:
+        return post_list
+    get_val = request.GET.get(get_name or post_name)
+    if get_val:
+        return [x.strip() for x in str(get_val).split(',') if x.strip()]
+    return []
+
+
+def _queryset_depenses_filtre(request):
+    """Construit le queryset DepenseFeuille en appliquant tous les filtres (GET ou POST)."""
+    annee = _get_param(request, 'annee', 'annee_depenses')
+    mois_list = _get_param_list(request, 'mois_depenses', 'mois')
+    if mois_list:
+        mois_list = [int(m) for m in mois_list if str(m).isdigit()]
+    banques = _get_param_list(request, 'banques_depenses')
+    if banques:
+        banques = [int(b) for b in banques if str(b).isdigit()]
+    natures = _get_param_list(request, 'natures_depenses')
+    if natures:
+        natures = [int(n) for n in natures if str(n).isdigit()]
+    services = _get_param_list(request, 'services_depenses')
+    if services:
+        services = [int(s) for s in services if str(s).isdigit()]
+    montant_min = _get_param(request, 'montant_min_depenses', 'montant_min_depenses')
+    montant_max = _get_param(request, 'montant_max_depenses', 'montant_max_depenses')
+    observation = _get_param(request, 'observation_depenses', 'observation_depenses')
+
+    qs = DepenseFeuille.objects.all()
+    if annee and str(annee).isdigit():
+        qs = qs.filter(annee=int(annee))
+    if mois_list:
+        qs = qs.filter(mois__in=mois_list)
+    if banques:
+        qs = qs.filter(banque_id__in=banques)
+    if natures:
+        qs = qs.filter(nature_economique_id__in=natures)
+    if services:
+        qs = qs.filter(service_beneficiaire_id__in=services)
+    if montant_min and str(montant_min).replace('.', '').replace('-', '').isdigit():
+        qs = qs.filter(montant_fc__gte=Decimal(str(montant_min)))
+    if montant_max and str(montant_max).replace('.', '').replace('-', '').isdigit():
+        qs = qs.filter(montant_fc__lte=Decimal(str(montant_max)))
+    if observation and observation.strip():
+        qs = qs.filter(observation__icontains=observation.strip())
+    return qs.order_by('date')
+
+
+def _queryset_recettes_filtre(request):
+    """Construit le queryset RecetteFeuille en appliquant tous les filtres (GET ou POST)."""
+    annee = _get_param(request, 'annee', 'annee_recettes')
+    mois_list = _get_param_list(request, 'mois_recettes', 'mois')
+    if mois_list:
+        mois_list = [int(m) for m in mois_list if str(m).isdigit()]
+    banques = _get_param_list(request, 'banques_recettes')
+    if banques:
+        banques = [int(b) for b in banques if str(b).isdigit()]
+    libelle = _get_param(request, 'libelle_recettes', 'libelle_recettes')
+    montant_min = _get_param(request, 'montant_min_recettes', 'montant_min_recettes')
+    montant_max = _get_param(request, 'montant_max_recettes', 'montant_max_recettes')
+    montant_usd_min = _get_param(request, 'montant_usd_min_recettes', 'montant_usd_min_recettes')
+    montant_usd_max = _get_param(request, 'montant_usd_max_recettes', 'montant_usd_max_recettes')
+
+    qs = RecetteFeuille.objects.all()
+    if annee and str(annee).isdigit():
+        qs = qs.filter(annee=int(annee))
+    if mois_list:
+        qs = qs.filter(mois__in=mois_list)
+    if banques:
+        qs = qs.filter(banque_id__in=banques)
+    if libelle and libelle.strip():
+        qs = qs.filter(libelle_recette__icontains=libelle.strip())
+    if montant_min and str(montant_min).replace('.', '').replace('-', '').isdigit():
+        qs = qs.filter(montant_fc__gte=Decimal(str(montant_min)))
+    if montant_max and str(montant_max).replace('.', '').replace('-', '').isdigit():
+        qs = qs.filter(montant_fc__lte=Decimal(str(montant_max)))
+    if montant_usd_min and str(montant_usd_min).replace('.', '').replace('-', '').isdigit():
+        qs = qs.filter(montant_usd__gte=Decimal(str(montant_usd_min)))
+    if montant_usd_max and str(montant_usd_max).replace('.', '').replace('-', '').isdigit():
+        qs = qs.filter(montant_usd__lte=Decimal(str(montant_usd_max)))
+    return qs.order_by('date')
+
+
 class RapportFeuilleSelectionView(LoginRequiredMixin, View):
     """Vue pour la sélection des rapports feuilles avec la logique des états"""
     template_name = 'tableau_bord_feuilles/rapport_selection.html'
@@ -58,44 +149,30 @@ class RapportFeuilleSelectionView(LoginRequiredMixin, View):
 
 
 class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
-    """Vue pour générer le PDF des recettes feuilles"""
+    """Vue pour générer le PDF des recettes feuilles (tous les paramètres du formulaire appliqués)."""
     
     def get(self, request, *args, **kwargs):
-        # Rediriger vers la méthode post pour la compatibilité
         return self.post(request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
-        # Pour la compatibilité avec GET, utiliser la période la plus récente avec des données
-        annee = request.POST.get('annee') or request.GET.get('annee')
-        mois = request.POST.get('mois') or request.GET.get('mois')
-        
-        # Si pas de paramètres, utiliser la période la plus récente avec des données
-        if not annee or not mois:
-            from demandes.models import DepenseFeuille
-            derniere_depense = DepenseFeuille.objects.order_by('-annee', '-mois', '-date').first()
-            if derniere_depense:
-                annee = str(derniere_depense.annee)
-                mois = str(derniere_depense.mois)
-                print(f"Utilisation de la période la plus récente: {annee}-{mois}")
-            else:
-                # Fallback : utiliser l'année et le mois actuels
-                from django.utils import timezone
-                now = timezone.now()
-                annee = str(now.year)
-                mois = str(now.month)
-        
-        annee = int(annee)
-        mois_list = [int(m) for m in mois if m.isdigit()]
-        
-        # Filtrer les recettes
-        recettes = RecetteFeuille.objects.filter(annee=annee, mois=mois).order_by('date')
-        
+        recettes = _queryset_recettes_filtre(request)
         if not recettes.exists():
-            return HttpResponse("Aucune recette trouvée pour cette période", status=404)
+            return HttpResponse("Aucune recette trouvée pour les critères sélectionnés.", status=404)
+
+        annee = _get_param(request, 'annee', 'annee_recettes')
+        mois_param = _get_param_list(request, 'mois_recettes', 'mois')
+        if annee and str(annee).isdigit():
+            annee = int(annee)
+        else:
+            annee = recettes.order_by('annee').values_list('annee', flat=True).first() or timezone.now().year
+        if mois_param and all(str(m).isdigit() for m in mois_param):
+            mois_int = int(mois_param[0])
+        else:
+            premier = recettes.order_by('mois').values_list('mois', flat=True).first()
+            mois_int = int(premier) if premier else timezone.now().month
         
-        # Créer le PDF
         response = HttpResponse(content_type='application/pdf')
-        filename = f"rapport_recettes_{annee}_{mois:02d}.pdf"
+        filename = f"rapport_recettes_{annee}_{mois_int:02d}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         # Créer le document PDF en mode paysage
@@ -126,7 +203,7 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
         
         # Titre
         mois_nom = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][mois-1]
+                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][mois_int - 1]
         story.append(Paragraph("RAPPORT DES RECETTES", title_style))
         story.append(Paragraph(f"Période: {mois_nom} {annee}", subtitle_style))
         story.append(Spacer(1, 20))
@@ -181,47 +258,31 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
 
 
 class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
-    """Vue pour générer le PDF des dépenses feuilles"""
+    """Vue pour générer le PDF des dépenses feuilles (tous les paramètres du formulaire appliqués)."""
     
     def get(self, request, *args, **kwargs):
-        # Rediriger vers la méthode post pour la compatibilité
         return self.post(request, *args, **kwargs)
     
     def post(self, request, *args, **kwargs):
-        # Pour la compatibilité avec GET, utiliser la période la plus récente avec des données
-        annee = request.POST.get('annee') or request.GET.get('annee')
-        mois = request.POST.get('mois') or request.GET.get('mois')
-        
-        # Si pas de paramètres, utiliser la période la plus récente avec des données
-        if not annee or not mois:
-            from demandes.models import DepenseFeuille
-            derniere_depense = DepenseFeuille.objects.order_by('-annee', '-mois', '-date').first()
-            if derniere_depense:
-                annee = str(derniere_depense.annee)
-                mois = str(derniere_depense.mois)
-                print(f"Utilisation de la période la plus récente: {annee}-{mois}")
-            else:
-                # Fallback : utiliser l'année et le mois actuels
-                from django.utils import timezone
-                now = timezone.now()
-                annee = str(now.year)
-                mois = str(now.month)
-        
-        annee = int(annee)
-        mois_list = [int(m) for m in mois if m.isdigit()]
-        
-        # Filtrer les dépenses
-        if mois_list:
-            depenses = DepenseFeuille.objects.filter(annee=annee, mois__in=mois_list).order_by('date')
-        else:
-            depenses = DepenseFeuille.objects.filter(annee=annee).order_by('date').order_by('date')
-        
+        depenses = _queryset_depenses_filtre(request)
         if not depenses.exists():
-            return HttpResponse("Aucune dépense trouvée pour cette période", status=404)
+            return HttpResponse("Aucune dépense trouvée pour les critères sélectionnés.", status=404)
+
+        # Pour le titre et le nom de fichier : utiliser la période (premier enregistrement ou paramètres)
+        annee = _get_param(request, 'annee', 'annee_depenses')
+        mois_param = _get_param_list(request, 'mois_depenses', 'mois')
+        if annee and str(annee).isdigit():
+            annee = int(annee)
+        else:
+            annee = depenses.order_by('annee').values_list('annee', flat=True).first() or timezone.now().year
+        if mois_param and all(str(m).isdigit() for m in mois_param):
+            mois_int = int(mois_param[0])
+        else:
+            premier = depenses.order_by('mois').values_list('mois', flat=True).first()
+            mois_int = int(premier) if premier else timezone.now().month
         
-        # Créer le PDF
         response = HttpResponse(content_type='application/pdf')
-        filename = f"rapport_depenses_{annee}_{mois:02d}.pdf"
+        filename = f"rapport_depenses_{annee}_{mois_int:02d}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         # Créer le document PDF en mode paysage
@@ -252,7 +313,7 @@ class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
         
         # Titre
         mois_nom = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][mois-1]
+                   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][mois_int - 1]
         story.append(Paragraph("RAPPORT DES DÉPENSES", title_style))
         story.append(Paragraph(f"Période: {mois_nom} {annee}", subtitle_style))
         story.append(Spacer(1, 20))

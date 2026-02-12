@@ -32,30 +32,12 @@ class EtatsFeuillesPreviewView(LoginRequiredMixin, View):
             if not type_etat:
                 return JsonResponse({'success': False, 'error': 'Type d\'état manquant'})
             
-            # LOGIQUE AVEC FILTRES SIMPLES : appliquer les filtres de base
+            # Appliquer les mêmes filtres que la vue PDF (cohérence preview / génération)
             if type_etat == 'DEPENSE_FEUILLE':
-                print("Application des filtres pour dépenses")
-                queryset = DepenseFeuille.objects.all()
-                
-                # Récupérer les filtres de base
-                mois = request.POST.getlist('mois_depenses')
-                annee = request.POST.get('annee_depenses')
-                
-                print(f"Filtres - Mois: {mois}, Année: {annee}")
-                
-                # Appliquer les filtres de base
-                if mois:
-                    mois_list = [int(m) for m in mois if m.isdigit()]
-                    if mois_list:
-                        queryset = queryset.filter(mois__in=mois_list)
-                        print(f"✅ Filtré par mois: {mois_list}")
-                
-                if annee and annee.isdigit():
-                    queryset = queryset.filter(annee=int(annee))
-                    print(f"✅ Filtré par annee: {annee}")
-                
-                # Trier par date et limiter à 20 résultats
-                queryset = queryset.order_by('-date')[:20]
+                from tableau_bord_feuilles.views_rapports import _queryset_depenses_filtre
+                queryset = _queryset_depenses_filtre(request)
+                # Limiter à 500 pour le preview (au lieu de tout charger)
+                queryset = queryset.order_by('-date')[:500]
                 
                 lignes = []
                 total_cdf = Decimal('0.00')
@@ -78,28 +60,9 @@ class EtatsFeuillesPreviewView(LoginRequiredMixin, View):
                 print(f"📊 Résultat: {len(lignes)} lignes, Total CDF: {total_cdf}, Total USD: {total_usd}")
                 
             elif type_etat == 'RECETTE_FEUILLE':
-                print("Application des filtres pour recettes")
-                queryset = RecetteFeuille.objects.all()
-                
-                # Récupérer les filtres de base
-                mois = request.POST.getlist('mois_recettes')
-                annee = request.POST.get('annee_recettes')
-                
-                print(f"Filtres - Mois: {mois}, Année: {annee}")
-                
-                # Appliquer les filtres de base
-                if mois:
-                    mois_list = [int(m) for m in mois if m.isdigit()]
-                    if mois_list:
-                        queryset = queryset.filter(mois__in=mois_list)
-                        print(f"✅ Filtré par mois: {mois_list}")
-                
-                if annee and annee.isdigit():
-                    queryset = queryset.filter(annee=int(annee))
-                    print(f"✅ Filtré par annee: {annee}")
-                
-                # Trier par date et limiter à 20 résultats
-                queryset = queryset.order_by('-date')[:20]
+                from tableau_bord_feuilles.views_rapports import _queryset_recettes_filtre
+                queryset = _queryset_recettes_filtre(request)
+                queryset = queryset.order_by('-date')[:500]
                 
                 lignes = []
                 total_cdf = Decimal('0.00')
