@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% load static %}
+{% load filtres_custom %}
+{% block title %}Tableau Général Feuilles - e-FinTrack{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+.tableau-section {
+    background: linear-gradient(135deg, var(--dgrad-bleu) 0%, #2a4a6f 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.filter-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    border: none;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: none;
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-3px);
+}
+
+.stats-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 15px;
+    font-size: 1.5rem;
+}
+
+.stats-icon.depenses {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+    color: white;
+}
+
+.stats-icon.recettes {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.stats-icon.solde {
+    background: linear-gradient(135deg, #17a2b8, #6f42c1);
+    color: white;
+}
+
+.stats-icon.operations {
+    background: linear-gradient(135deg, #ffc107, #ff6b6b);
+    color: white;
+}
+
+.table-responsive {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.custom-table {
+    margin-bottom: 0;
+}
+
+.custom-table thead th {
+    background: linear-gradient(135deg, var(--dgrad-bleu), #2a4a6f);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 15px 12px;
+    font-size: 0.9rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.custom-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.custom-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.type-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.type-badge.depense {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+    color: white;
+}
+
+.type-badge.recette {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.montant-text {
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+}
+
+.montant-text.depense {
+    color: #dc3545;
+}
+
+.montant-text.recette {
+    color: #28a745;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--dgrad-bleu);
+    margin-bottom: 8px;
+}
+
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--dgrad-bleu);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-filter {
+    background: linear-gradient(135deg, var(--dgrad-bleu), #2a4a6f);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-filter:hover {
+    background: linear-gradient(135deg, #2a4a6f, var(--dgrad-bleu));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    color: white;
+}
+
+.btn-pdf {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-pdf:hover {
+    background: linear-gradient(135deg, #c82333, #e8690b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+    color: white;
+}
+
+.btn-reset {
+    background: linear-gradient(135deg, #6c757d, #495057);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-reset:hover {
+    background: linear-gradient(135deg, #5a6268, #343a40);
+    transform: translateY(-2px);
+    color: white;
+}
+
+.stats-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.stats-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.pagination .page-link {
+    color: var(--dgrad-bleu);
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, var(--dgrad-bleu), #2a4a6f);
+    border-color: var(--dgrad-bleu);
+}
+
+.section-title {
+    color: white;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+}
+
+.section-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 25px;
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .tableau-section {
+        padding: 20px;
+    }
+    
+    .filter-card {
+        padding: 15px;
+    }
+    
+    .stats-card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .custom-table {
+        font-size: 0.8rem;
+    }
+    
+    .custom-table thead th {
+        padding: 10px 8px;
+        font-size: 0.8rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="tableau-section">
+        <h1 class="section-title">
+            <i class="fas fa-table me-3"></i>
+            Tableau Général des Feuilles
+        </h1>
+        <p class="section-subtitle">
+            Consultez et filtrez toutes les opérations des feuilles DEPENSES et RECETTES
+        </p>
+    </div>
+
+    <!-- Filtres -->
+    <div class="filter-card">
+        <form method="GET" id="filterForm">
+            <div class="row">
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label for="type" class="form-label">
+                        <i class="fas fa-filter me-2"></i>Type
+                    </label>
+                    <select name="type" id="type" class="form-select">
+                        <option value="">Tous</option>
+                        <option value="depense" {% if type_filter == 'depense' %}selected{% endif %}>Dépenses</option>
+                        <option value="recette" {% if type_filter == 'recette' %}selected{% endif %}>Recettes</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label for="annee" class="form-label">
+                        <i class="fas fa-calendar-alt me-2"></i>Année
+                    </label>
+                    <select name="annee" id="annee" class="form-select">
+                        <option value="">Toutes</option>
+                        {% for annee in annees_disponibles %}
+                        <option value="{{ annee }}" {% if annee_filter == annee|stringformat:"s" %}selected{% endif %}>{{ annee }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label for="mois" class="form-label">
+                        <i class="fas fa-calendar me-2"></i>Mois
+                    </label>
+                    <select name="mois" id="mois" class="form-select">
+                        <option value="">Tous</option>
+                        {% for value, label in mois_choices %}
+                        <option value="{{ value }}" {% if mois_filter == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label for="banque" class="form-label">
+                        <i class="fas fa-university me-2"></i>Banque
+                    </label>
+                    <select name="banque" id="banque" class="form-select">
+                        <option value="">Toutes</option>
+                        {% for banque in banques %}
+                        <option value="{{ banque.id }}" {% if banque_filter == banque.id|stringformat:"s" %}selected{% endif %}>{{ banque.nom_banque }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label for="nature" class="form-label">
+                        <i class="fas fa-tags me-2"></i>Nature
+                    </label>
+                    <select name="nature" id="nature" class="form-select">
+                        <option value="">Toutes</option>
+                        {% for nature in natures %}
+                        <option value="{{ nature.id }}" {% if nature_filter == nature.id|stringformat:"s" %}selected{% endif %}>{{ nature.titre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label for="service" class="form-label">
+                        <i class="fas fa-building me-2"></i>Service
+                    </label>
+                    <select name="service" id="service" class="form-select">
+                        <option value="">Tous</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}" {% if service_filter == service.id|stringformat:"s" %}selected{% endif %}>{{ service.nom_service }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <label for="date_debut" class="form-label">
+                        <i class="fas fa-calendar-check me-2"></i>Date début
+                    </label>
+                    <input type="date" name="date_debut" id="date_debut" class="form-control" value="{{ date_debut }}">
+                </div>
+                
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <label for="date_fin" class="form-label">
+                        <i class="fas fa-calendar-times me-2"></i>Date fin
+                    </label>
+                    <input type="date" name="date_fin" id="date_fin" class="form-control" value="{{ date_fin }}">
+                </div>
+                
+                <div class="col-md-4 col-sm-6 mb-3">
+                    <label for="search" class="form-label">
+                        <i class="fas fa-search me-2"></i>Recherche
+                    </label>
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Libellé ou observation..." value="{{ search }}">
+                </div>
+                
+                <div class="col-md-2 col-sm-6 mb-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-filter flex-fill">
+                            <i class="fas fa-search me-2"></i>Filtrer
+                        </button>
+                        <a href="{% url 'tableau_bord_feuilles:tableau_general' %}" class="btn btn-reset">
+                            <i class="fas fa-redo me-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="text-center">
+                    <div class="stats-icon operations">
+                        <i class="fas fa-list"></i>
+                    </div>
+                    <div class="stats-value">{{ nb_operations }}</div>
+                    <div class="stats-label">Opérations totales</div>
+                    <div class="mt-2">
+                        <small class="text-muted">{{ nb_depenses }} dépenses / {{ nb_recettes }} recettes</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="text-center">
+                    <div class="stats-icon depenses">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="stats-value montant-text depense">{{ total_depenses_cdf|floatformat:0|format_montant }}</div>
+                    <div class="stats-label">Total Dépenses CDF</div>
+                    <div class="mt-2">
+                        <small class="text-muted">{{ total_depenses_usd|floatformat:0|format_montant }} USD</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="text-center">
+                    <div class="stats-icon recettes">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                    <div class="stats-value montant-text recette">{{ total_recettes_cdf|floatformat:0|format_montant }}</div>
+                    <div class="stats-label">Total Recettes CDF</div>
+                    <div class="mt-2">
+                        <small class="text-muted">{{ total_recettes_usd|floatformat:0|format_montant }} USD</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <div class="text-center">
+                    <div class="stats-icon solde">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <div class="stats-value montant-text {% if solde_cdf >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ solde_cdf|floatformat:0|format_montant }}
+                    </div>
+                    <div class="stats-label">Solde Net CDF</div>
+                    <div class="mt-2">
+                        <small class="text-muted {% if solde_usd >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ solde_usd|floatformat:0|format_montant }} USD
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bouton de génération PDF -->
+    {% if page_obj.object_list %}
+    <div class="text-center mb-4">
+        <form method="POST" action="{% url 'tableau_bord_feuilles:tableau_general_pdf' %}" id="pdfForm">
+            {% csrf_token %}
+            <!-- Copier les filtres actuels -->
+            <input type="hidden" name="type" value="{{ type_filter }}">
+            <input type="hidden" name="annee" value="{{ annee_filter }}">
+            <input type="hidden" name="mois" value="{{ mois_filter }}">
+            <input type="hidden" name="banque" value="{{ banque_filter }}">
+            <input type="hidden" name="nature" value="{{ nature_filter }}">
+            <input type="hidden" name="service" value="{{ service_filter }}">
+            <input type="hidden" name="date_debut" value="{{ date_debut }}">
+            <input type="hidden" name="date_fin" value="{{ date_fin }}">
+            <input type="hidden" name="search" value="{{ search }}">
+            
+            <button type="submit" class="btn btn-pdf btn-lg">
+                <i class="fas fa-file-pdf me-2"></i>
+                Générer le PDF des résultats
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Tableau des résultats -->
+    {% if page_obj.object_list %}
+    <div class="table-responsive">
+        <table class="table custom-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Libellé</th>
+                    <th>Nature</th>
+                    <th>Service</th>
+                    <th>Banque</th>
+                    <th>Montant CDF</th>
+                    <th>Montant USD</th>
+                    <th>Observation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for operation in page_obj.object_list %}
+                <tr>
+                    <td>{{ operation.date|date:"d/m/Y" }}</td>
+                    <td>
+                        <span class="type-badge {% if operation.type == 'dépense' %}depense{% else %}recette{% endif %}">
+                            <i class="fas {% if operation.type == 'dépense' %}fa-arrow-down{% else %}fa-arrow-up{% endif %} me-1"></i>
+                            {{ operation.type }}
+                        </span>
+                    </td>
+                    <td>
+                        <strong>{{ operation.libelle|truncatechars:50 }}</strong>
+                    </td>
+                    <td>{{ operation.nature|truncatechars:25 }}</td>
+                    <td>{{ operation.service|truncatechars:20 }}</td>
+                    <td>{{ operation.banque|truncatechars:20 }}</td>
+                    <td class="montant-text {% if operation.type == 'dépense' %}depense{% else %}recette{% endif %}">
+                        {{ operation.montant_cdf|floatformat:0|format_montant }}
+                    </td>
+                    <td class="montant-text {% if operation.type == 'dépense' %}depense{% else %}recette{% endif %}">
+                        {{ operation.montant_usd|floatformat:0|format_montant }}
+                    </td>
+                    <td>{{ operation.observation|truncatechars:40 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Pagination des résultats">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">Aucune opération trouvée</h4>
+        <p class="text-muted">Essayez de modifier vos filtres pour voir des résultats.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-soumission du formulaire quand on change un filtre
+    const filterForm = document.getElementById('filterForm');
+    const filterInputs = filterForm.querySelectorAll('select, input[type="date"]');
+    
+    filterInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            // Ne pas soumettre automatiquement pour la recherche
+            if (input.id !== 'search') {
+                filterForm.submit();
+            }
+        });
+    });
+    
+    // Soumission de la recherche avec Enter
+    const searchInput = document.getElementById('search');
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            filterForm.submit();
+        }
+    });
+    
+    // Animation pour le bouton PDF
+    const pdfForm = document.getElementById('pdfForm');
+    if (pdfForm) {
+        pdfForm.addEventListener('submit', function() {
+            const button = this.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Génération en cours...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }, 5000);
+        });
+    }
+});
+</script>
+{% endblock %}

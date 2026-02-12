@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Test des Données - e-FinTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-database"></i> Test des Données
+            </h2>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>Dépenses Feuilles</h5>
+                </div>
+                <div class="card-body">
+                    <h3>{{ total_depenses }}</h3>
+                    <p class="text-muted">Total des enregistrements</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Recettes Feuilles</h5>
+                </div>
+                <div class="card-body">
+                    <h3>{{ total_recettes }}</h3>
+                    <p class="text-muted">Total des enregistrements</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exemples de dépenses -->
+    {% if exemples_depenses %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Exemples de Dépenses</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Libellé</th>
+                                    <th>Montant CDF</th>
+                                    <th>Montant USD</th>
+                                    <th>Banque</th>
+                                    <th>Service</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dep in exemples_depenses %}
+                                <tr>
+                                    <td>{{ dep.date }}</td>
+                                    <td>{{ dep.libelle_depenses }}</td>
+                                    <td>{{ dep.montant_fc }}</td>
+                                    <td>{{ dep.montant_usd }}</td>
+                                    <td>{{ dep.banque.nom_banque }}</td>
+                                    <td>{{ dep.service_beneficiaire.nom_service }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Exemples de recettes -->
+    {% if exemples_recettes %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Exemples de Recettes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Libellé</th>
+                                    <th>Montant CDF</th>
+                                    <th>Montant USD</th>
+                                    <th>Banque</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rec in exemples_recettes %}
+                                <tr>
+                                    <td>{{ rec.date }}</td>
+                                    <td>{{ rec.libelle_recette }}</td>
+                                    <td>{{ rec.montant_fc }}</td>
+                                    <td>{{ rec.montant_usd }}</td>
+                                    <td>{{ rec.banque.nom_banque }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Message si pas de données -->
+    {% if not exemples_depenses and not exemples_recettes %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <h4><i class="bi bi-exclamation-triangle"></i> Aucune donnée trouvée</h4>
+                <p>Il n'y a aucune donnée dans les tables DepenseFeuille et RecetteFeuille.</p>
+                <p>Pour tester le système, vous pouvez ajouter des données via l'interface d'administration Django.</p>
+                <a href="/admin/" class="btn btn-primary">
+                    <i class="bi bi-gear"></i> Aller à l'administration
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

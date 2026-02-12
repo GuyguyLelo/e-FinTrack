@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Test Fixe - e-FinTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-check-circle"></i> Test Fixe
+            </h2>
+            <p class="alert alert-info">
+                <strong>Ce test utilise des données FIXES</strong> pour vérifier si le problème vient de la base de données ou de la communication HTTP.
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5>Test Dépenses (Données Fixées)</h5>
+                </div>
+                <div class="card-body">
+                    <form id="testFixeDepensesForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="type_etat" value="DEPENSE_FEUILLE">
+                        <button type="button" class="btn btn-primary" onclick="testFixeDepenses()">
+                            <i class="bi bi-play"></i> Tester Dépenses (Fixe)
+                        </button>
+                    </form>
+                    <div id="depensesFixeResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Test Recettes (Données Fixées)</h5>
+                </div>
+                <div class="card-body">
+                    <form id="testFixeRecettesForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="type_etat" value="RECETTE_FEUILLE">
+                        <button type="button" class="btn btn-success" onclick="testFixeRecettes()">
+                            <i class="bi bi-play"></i> Tester Recettes (Fixe)
+                        </button>
+                    </form>
+                    <div id="recettesFixeResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testFixeDepenses() {
+    console.log('TEST FIXE - Dépenses');
+    const form = document.getElementById('testFixeDepensesForm');
+    const formData = new FormData(form);
+    
+    // Debug: afficher le CSRF token
+    console.log('CSRF Token:', form.querySelector('input[name="csrfmiddlewaretoken"]').value);
+    console.log('FormData entries:', Array.from(formData.entries()));
+    
+    fetch('/tableau-bord-feuilles/test-fixe/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Résultat dépenses fixe:', data);
+        const resultDiv = document.getElementById('depensesFixeResult');
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h6>✅ ${data.message}</h6>
+                    <p><strong>${data.count}</strong> lignes trouvées</p>
+                    <ul>
+                        ${data.lignes.map(ligne => `<li>${ligne.date} - ${ligne.libelle_depenses} - ${ligne.montant_fc} CDF</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger"><h6>❌ Erreur: ${data.error}</h6></div>`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('depensesFixeResult').innerHTML = `<div class="alert alert-danger"><h6>❌ Erreur réseau: ${error}</h6></div>`;
+    });
+}
+
+function testFixeRecettes() {
+    console.log('TEST FIXE - Recettes');
+    const form = document.getElementById('testFixeRecettesForm');
+    const formData = new FormData(form);
+    
+    // Debug: afficher le CSRF token
+    console.log('CSRF Token:', form.querySelector('input[name="csrfmiddlewaretoken"]').value);
+    console.log('FormData entries:', Array.from(formData.entries()));
+    
+    fetch('/tableau-bord-feuilles/test-fixe/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Résultat recettes fixe:', data);
+        const resultDiv = document.getElementById('recettesFixeResult');
+        if (data.success) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h6>✅ ${data.message}</h6>
+                    <p><strong>${data.count}</strong> lignes trouvées</p>
+                    <ul>
+                        ${data.lignes.map(ligne => `<li>${ligne.date} - ${ligne.libelle_recette} - ${ligne.montant_fc} CDF</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-danger"><h6>❌ Erreur: ${data.error}</h6></div>`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('recettesFixeResult').innerHTML = `<div class="alert alert-danger"><h6>❌ Erreur réseau: ${error}</h6></div>`;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

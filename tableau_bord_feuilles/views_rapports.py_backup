@@ -85,7 +85,7 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
                 mois = str(now.month)
         
         annee = int(annee)
-        mois_list = [int(m) for m in mois if m.isdigit()]
+        mois = int(mois)
         
         # Filtrer les recettes
         recettes = RecetteFeuille.objects.filter(annee=annee, mois=mois).order_by('date')
@@ -131,6 +131,16 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
         story.append(Paragraph(f"Période: {mois_nom} {annee}", subtitle_style))
         story.append(Spacer(1, 20))
         
+        # Statistiques (sans tableau)
+        total_cdf = recettes.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+        total_usd = recettes.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+        nombre_operations = recettes.count()
+        
+        # Informations de statistiques en texte simple
+        story.append(Paragraph(f"<b>Nombre d'opérations:</b> {nombre_operations}", subtitle_style))
+        story.append(Paragraph(f"<b>Total CDF:</b> {format_montant_pdf(total_cdf)} CDF", subtitle_style))
+        story.append(Paragraph(f"<b>Total USD:</b> {format_montant_pdf(total_usd)} USD", subtitle_style))
+        story.append(Spacer(1, 30))
         
         # Tableau détaillé des recettes
         story.append(Paragraph("DÉTAIL DES RECETTES", subtitle_style))
@@ -208,13 +218,10 @@ class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
                 mois = str(now.month)
         
         annee = int(annee)
-        mois_list = [int(m) for m in mois if m.isdigit()]
+        mois = int(mois)
         
         # Filtrer les dépenses
-        if mois_list:
-            depenses = DepenseFeuille.objects.filter(annee=annee, mois__in=mois_list).order_by('date')
-        else:
-            depenses = DepenseFeuille.objects.filter(annee=annee).order_by('date').order_by('date')
+        depenses = DepenseFeuille.objects.filter(annee=annee, mois=mois).order_by('date')
         
         if not depenses.exists():
             return HttpResponse("Aucune dépense trouvée pour cette période", status=404)
@@ -257,6 +264,16 @@ class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
         story.append(Paragraph(f"Période: {mois_nom} {annee}", subtitle_style))
         story.append(Spacer(1, 20))
         
+        # Statistiques (sans tableau)
+        total_cdf = depenses.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+        total_usd = depenses.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+        nombre_operations = depenses.count()
+        
+        # Informations de statistiques en texte simple
+        story.append(Paragraph(f"<b>Nombre d'opérations:</b> {nombre_operations}", subtitle_style))
+        story.append(Paragraph(f"<b>Total CDF:</b> {format_montant_pdf(total_cdf)} CDF", subtitle_style))
+        story.append(Paragraph(f"<b>Total USD:</b> {format_montant_pdf(total_usd)} USD", subtitle_style))
+        story.append(Spacer(1, 30))
         
         # Tableau détaillé des dépenses
         story.append(Paragraph("DÉTAIL DES DÉPENSES", subtitle_style))

@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Rapports Feuilles - e-FinTrack{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+.rapport-section {
+    background: linear-gradient(135deg, var(--dgrad-bleu) 0%, #2a4a6f 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 40px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.rapport-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    border: none;
+}
+
+.rapport-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+}
+
+.rapport-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2rem;
+}
+
+.rapport-icon.recette {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.rapport-icon.depense {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+    color: white;
+}
+
+.rapport-title {
+    color: var(--dgrad-bleu);
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.rapport-description {
+    color: #6c757d;
+    margin-bottom: 25px;
+    min-height: 60px;
+}
+
+.btn-rapport {
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-rapport.recette {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+}
+
+.btn-rapport.recette:hover {
+    background: linear-gradient(135deg, #218838, #1ea085);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-rapport.depense {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+    color: white;
+}
+
+.btn-rapport.depense:hover {
+    background: linear-gradient(135deg, #c82333, #e8690b);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+.form-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--dgrad-bleu);
+    margin-bottom: 8px;
+}
+
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--dgrad-bleu);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.section-title {
+    color: white;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 2rem;
+}
+
+.section-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 1.1rem;
+}
+
+.loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 20px;
+}
+
+.loading-spinner .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.3em;
+}
+
+.alert-custom {
+    border-radius: 10px;
+    border: none;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .rapport-section {
+        padding: 20px;
+    }
+    
+    .rapport-card {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="rapport-section">
+        <h1 class="section-title">
+            <i class="fas fa-file-pdf me-3"></i>
+            Rapports Feuilles
+        </h1>
+        <p class="section-subtitle">
+            Générez des rapports PDF détaillés pour les recettes et dépenses des feuilles
+        </p>
+    </div>
+
+    <!-- Cartes de sélection -->
+    <div class="row">
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="rapport-card">
+                <div class="rapport-icon recette">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <h3 class="rapport-title text-center">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>
+                    Rapport des Recettes
+                </h3>
+                <p class="rapport-description text-center">
+                    Générez un rapport PDF complet des recettes pour une période donnée avec statistiques et détails.
+                </p>
+                
+                <!-- Formulaire de sélection pour les recettes -->
+                <form method="post" action="{% url 'tableau_bord_feuilles:rapport_recette_pdf' %}" id="recetteForm">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="recette_annee" class="form-label">
+                                    <i class="fas fa-calendar-alt me-2"></i>Année
+                                </label>
+                                <select name="annee" id="recette_annee" class="form-select" required>
+                                    <option value="">Sélectionner une année</option>
+                                    {% for annee in annees_disponibles %}
+                                    <option value="{{ annee }}" {% if annee == current_year %}selected{% endif %}>{{ annee }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="recette_mois" class="form-label">
+                                    <i class="fas fa-calendar me-2"></i>Mois
+                                </label>
+                                <select name="mois" id="recette_mois" class="form-select" required>
+                                    <option value="">Sélectionner un mois</option>
+                                    {% for value, label in mois_choices %}
+                                    <option value="{{ value }}" {% if value == current_month %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-rapport recette">
+                                <i class="fas fa-download me-2"></i>
+                                Générer le PDF
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="loading-spinner" id="recetteLoading">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Génération en cours...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Génération du rapport en cours...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="rapport-card">
+                <div class="rapport-icon depense">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <h3 class="rapport-title text-center">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    Rapport des Dépenses
+                </h3>
+                <p class="rapport-description text-center">
+                    Générez un rapport PDF complet des dépenses pour une période donnée avec statistiques et détails.
+                </p>
+                
+                <!-- Formulaire de sélection pour les dépenses -->
+                <form method="post" action="{% url 'tableau_bord_feuilles:rapport_depense_pdf' %}" id="depenseForm">
+                    {% csrf_token %}
+                    <div class="form-section">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="depense_annee" class="form-label">
+                                    <i class="fas fa-calendar-alt me-2"></i>Année
+                                </label>
+                                <select name="annee" id="depense_annee" class="form-select" required>
+                                    <option value="">Sélectionner une année</option>
+                                    {% for annee in annees_disponibles %}
+                                    <option value="{{ annee }}" {% if annee == current_year %}selected{% endif %}>{{ annee }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="depense_mois" class="form-label">
+                                    <i class="fas fa-calendar me-2"></i>Mois
+                                </label>
+                                <select name="mois" id="depense_mois" class="form-select" required>
+                                    <option value="">Sélectionner un mois</option>
+                                    {% for value, label in mois_choices %}
+                                    <option value="{{ value }}" {% if value == current_month %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-rapport depense">
+                                <i class="fas fa-download me-2"></i>
+                                Générer le PDF
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="loading-spinner" id="depenseLoading">
+                    <div class="spinner-border text-danger" role="status">
+                        <span class="visually-hidden">Génération en cours...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Génération du rapport en cours...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations supplémentaires -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-center mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informations sur les rapports
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Contenu du rapport de recettes
+                            </h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-chevron-right me-2"></i>Statistiques générales (nombre d'opérations, totaux)</li>
+                                <li><i class="fas fa-chevron-right me-2"></i>Tableau détaillé des recettes</li>
+                                <li><i class="fas fa-chevron-right me-2"></i>Informations par banque</li>
+                                <li><i class="fas fa-chevron-right me-2"></i>Montants en CDF et USD</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Contenu du rapport de dépenses
+                            </h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-chevron-right me-2"></i>Statistiques générales (nombre d'opérations, totaux)</li>
+                                <li><i class="fas fa-chevron-right me-2"></i>Tableau détaillé des dépenses</li>
+                                <li><i class="fas fa-chevron-right me-2"></i>Natures économiques</li>
+                                <li><i class="fas fa-chevron-right me-2"></i>Services bénéficiaires</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="alert alert-info alert-custom mt-3">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <strong>Conseil :</strong> Les rapports sont générés au format PDF et peuvent être téléchargés directement. 
+                        Assurez-vous de sélectionner une année et un mois pour lesquels des données existent.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion des formulaires
+    const recetteForm = document.getElementById('recetteForm');
+    const depenseForm = document.getElementById('depenseForm');
+    const recetteLoading = document.getElementById('recetteLoading');
+    const depenseLoading = document.getElementById('depenseLoading');
+
+    // Gestionnaire pour le formulaire des recettes
+    recetteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const annee = document.getElementById('recette_annee').value;
+        const mois = document.getElementById('recette_mois').value;
+        
+        if (!annee || !mois) {
+            showAlert('Veuillez sélectionner une année et un mois', 'warning');
+            return;
+        }
+        
+        // Afficher le loader
+        recetteLoading.style.display = 'block';
+        recetteForm.style.display = 'none';
+        
+        // Soumettre le formulaire
+        setTimeout(() => {
+            recetteForm.submit();
+        }, 500);
+    });
+
+    // Gestionnaire pour le formulaire des dépenses
+    depenseForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const annee = document.getElementById('depense_annee').value;
+        const mois = document.getElementById('depense_mois').value;
+        
+        if (!annee || !mois) {
+            showAlert('Veuillez sélectionner une année et un mois', 'warning');
+            return;
+        }
+        
+        // Afficher le loader
+        depenseLoading.style.display = 'block';
+        depenseForm.style.display = 'none';
+        
+        // Soumettre le formulaire
+        setTimeout(() => {
+            depenseForm.submit();
+        }, 500);
+    });
+
+    // Fonction pour afficher des alertes
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-custom`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-suppression après 5 secondes
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Synchronisation des sélections (optionnel)
+    document.getElementById('recette_annee').addEventListener('change', function() {
+        document.getElementById('depense_annee').value = this.value;
+    });
+
+    document.getElementById('recette_mois').addEventListener('change', function() {
+        document.getElementById('depense_mois').value = this.value;
+    });
+});
+</script>
+{% endblock %}
