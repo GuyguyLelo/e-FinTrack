@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load filtres_custom %}
 {% block title %}Détail des Opérations - Feuilles{% endblock %}
 
 {% block extra_css %}
@@ -196,10 +197,10 @@
                             </td>
                             <td class="text-nowrap">{{ operation.banque }}</td>
                             <td class="text-nowrap {% if operation.type == 'dépense' %}text-danger{% else %}text-success{% endif %}">
-                                {{ operation.montant_cdf|floatformat:0|intcomma }}
+                                {{ operation.montant_cdf|format_montant }}
                             </td>
                             <td class="text-nowrap {% if operation.type == 'dépense' %}text-danger{% else %}text-success{% endif %}">
-                                {{ operation.montant_usd|floatformat:0|intcomma }}
+                                {{ operation.montant_usd|format_montant }}
                             </td>
                             <td class="text-nowrap">{{ operation.nature|truncatechars:20 }}</td>
                             <td class="text-nowrap">{{ operation.service|truncatechars:15 }}</td>

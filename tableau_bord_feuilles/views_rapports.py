@@ -110,7 +110,7 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
             fontSize=18,
             spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=colors.darkblue
+            textColor=colors.black
         )
         
         subtitle_style = ParagraphStyle(
@@ -153,13 +153,13 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
         # Créer le tableau avec plus de colonnes pour le mode paysage
         table = Table(data, colWidths=[3*cm, 8*cm, 3*cm, 3*cm, 3*cm])
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
@@ -172,7 +172,7 @@ class RapportRecetteFeuillePDFView(LoginRequiredMixin, View):
         story.append(Spacer(1, 20))
         story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
                              ParagraphStyle('Footer', parent=styles['Normal'], 
-                                           fontSize=8, alignment=TA_CENTER, textColor=colors.grey)))
+                                           fontSize=8, alignment=TA_CENTER, textColor=colors.black)))
         
         # Générer le PDF
         doc.build(story)
@@ -236,7 +236,7 @@ class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
             fontSize=18,
             spaceAfter=30,
             alignment=TA_CENTER,
-            textColor=colors.darkred
+            textColor=colors.black
         )
         
         subtitle_style = ParagraphStyle(
@@ -280,13 +280,13 @@ class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
         # Créer le tableau avec plus de colonnes pour le mode paysage
         table = Table(data, colWidths=[3*cm, 6*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm])
         table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('FONTSIZE', (0, 1), (-1, -1), 8),
             ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
@@ -299,7 +299,7 @@ class RapportDepenseFeuillePDFView(LoginRequiredMixin, View):
         story.append(Spacer(1, 20))
         story.append(Paragraph(f"Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
                              ParagraphStyle('Footer', parent=styles['Normal'], 
-                                           fontSize=8, alignment=TA_CENTER, textColor=colors.grey)))
+                                           fontSize=8, alignment=TA_CENTER, textColor=colors.black)))
         
         # Générer le PDF
         doc.build(story)

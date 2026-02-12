@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load format_filters %}
 
 {% block title %}Liste des états générés{% endblock %}
 
@@ -106,10 +107,10 @@
                                                 <br><small class="text-muted">{{ etat.get_periodicite_display }}</small>
                                             </td>
                                             <td>
-                                                <strong>{{ etat.total_general|floatformat:2 }}</strong>
+                                                <strong>{{ etat.total_general|format_montant }}</strong>
                                                 <br><small class="text-muted">
-                                                    USD: {{ etat.total_usd|floatformat:2 }}<br>
-                                                    CDF: {{ etat.total_cdf|floatformat:2 }}
+                                                    USD: {{ etat.total_usd|format_montant:"USD" }}<br>
+                                                    CDF: {{ etat.total_cdf|format_montant:"CDF" }}
                                                 </small>
                                             </td>
                                             <td>

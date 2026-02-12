@@ -113,21 +113,21 @@
                                 </td>
                                 <td class="text-end">
                                     {% if banque_data.solde_usd > 0 %}
-                                    <span class="text-success">{{ banque_data.solde_usd|floatformat:2|intcomma }} USD</span>
+                                    <span class="text-success">{{ banque_data.solde_usd|format_montant:"USD" }}</span>
                                     {% else %}
                                     <span class="text-muted">0,00 USD</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
                                     {% if banque_data.solde_cdf > 0 %}
-                                    <span class="text-primary">{{ banque_data.solde_cdf|floatformat:2|intcomma }} CDF</span>
+                                    <span class="text-primary">{{ banque_data.solde_cdf|format_montant:"CDF" }}</span>
                                     {% else %}
                                     <span class="text-muted">0,00 CDF</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
                                     {% if banque_data.solde_usd > 0 %}
-                                    <strong class="text-success">{{ banque_data.solde_usd|floatformat:2|intcomma }} USD</strong>
+                                    <strong class="text-success">{{ banque_data.solde_usd|format_montant:"USD" }}</strong>
                                     {% else %}
                                     <span class="text-muted">0,00 USD</span>
                                     {% endif %}
@@ -152,9 +152,9 @@
                             {% if banques_avec_solde %}
                             <tr class="table-info fw-bold">
                                 <td>Total Consolidé</td>
-                                <td class="text-end">{{ solde_consolide_usd|floatformat:2|intcomma }} USD</td>
-                                <td class="text-end">{{ solde_consolide_cdf|floatformat:2|intcomma }} CDF</td>
-                                <td class="text-end">{{ solde_consolide_usd|floatformat:2|intcomma }} USD</td>
+                                <td class="text-end">{{ solde_consolide_usd|format_montant:"USD" }}</td>
+                                <td class="text-end">{{ solde_consolide_cdf|format_montant:"CDF" }}</td>
+                                <td class="text-end">{{ solde_consolide_usd|format_montant:"USD" }}</td>
                                 <td>
                                     <span class="badge bg-info">Global</span>
                                 </td>

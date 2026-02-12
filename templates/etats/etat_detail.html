@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load format_filters %}
 
 {% block title %}Détails de l'état - {{ etat.titre }}{% endblock %}
 
@@ -93,7 +94,7 @@
                 </div>
                 <div class="card-body">
                     <div class="text-center mb-3">
-                        <h4 class="text-primary">{{ etat.total_general|floatformat:2 }}</h4>
+                        <h4 class="text-primary">{{ etat.total_general|format_montant }}</h4>
                         <p class="text-muted mb-0">Total général</p>
                     </div>
                     
@@ -102,11 +103,11 @@
                     <div class="row">
                         <div class="col-6">
                             <h6 class="text-secondary">USD</h6>
-                            <p class="mb-0"><strong>{{ etat.total_usd|floatformat:2 }}</strong></p>
-                        </div>
-                        <div class="col-6">
-                            <h6 class="text-secondary">CDF</h6>
-                            <p class="mb-0"><strong>{{ etat.total_cdf|floatformat:2 }}</strong></p>
+<p class="mb-0"><strong>{{ etat.total_usd|format_montant:"USD" }}</strong></p>
+                                        </div>
+                                        <div class="col-6">
+                                            <h6 class="text-secondary">CDF</h6>
+                                            <p class="mb-0"><strong>{{ etat.total_cdf|format_montant:"CDF" }}</strong></p>
                         </div>
                     </div>
                 </div>
