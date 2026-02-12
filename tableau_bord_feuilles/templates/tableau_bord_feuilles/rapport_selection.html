@@ -101,17 +101,20 @@
                     <i class="bi bi-funnel"></i> Critères de Consultation
                 </h5>
                 
-                <form id="filterForm">
+                <form id="filterForm" method="post">
                     {% csrf_token %}
                     <div class="row">
                         <!-- Type d'état -->
                         <div class="col-md-12 mb-3">
-                            <label for="id_type_etat" class="form-label">Type d'État</label>
-                            <select name="type_etat" id="id_type_etat" class="form-select" required>
-                                <option value="">-- Sélectionner --</option>
-                                <option value="DEPENSE_FEUILLE">État des Dépenses</option>
-                                <option value="RECETTE_FEUILLE">État des Recettes</option>
-                            </select>
+                            {{ form.type_etat.label_tag }}
+                            {{ form.type_etat }}
+                            {% if form.type_etat.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.type_etat.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                     
@@ -119,75 +122,101 @@
                     <div id="filtres_depenses" style="display: none;">
                         <div class="row">
                             <div class="col-md-3 mb-3">
-                                <label for="id_natures_depenses" class="form-label">Natures Économiques</label>
-                                <select name="natures_depenses" id="id_natures_depenses" class="form-select" multiple>
-                                    {% for nature in natures %}
-                                        <option value="{{ nature.pk }}">{{ nature.titre }} ({{ nature.code }})</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.annee_depenses.label_tag }}
+                                {{ form.annee_depenses }}
+                                {% if form.annee_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.annee_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_services_depenses" class="form-label">Services Bénéficiaires</label>
-                                <select name="services_depenses" id="id_services_depenses" class="form-select" multiple>
-                                    {% for service in services %}
-                                        <option value="{{ service.pk }}">{{ service.nom_service }}</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.mois_depenses.label_tag }}
+                                {{ form.mois_depenses }}
+                                {% if form.mois_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.mois_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_banques_depenses" class="form-label">Banques</label>
-                                <select name="banques_depenses" id="id_banques_depenses" class="form-select" multiple>
-                                    {% for banque in banques %}
-                                        <option value="{{ banque.pk }}">{{ banque.nom_banque }}</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.natures_depenses.label_tag }}
+                                {{ form.natures_depenses }}
+                                {% if form.natures_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.natures_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_mois_depenses" class="form-label">Mois</label>
-                                <select name="mois_depenses" id="id_mois_depenses" class="form-select" multiple>
-                                    <option value="1">Janvier</option>
-                                    <option value="2">Février</option>
-                                    <option value="3">Mars</option>
-                                    <option value="4">Avril</option>
-                                    <option value="5">Mai</option>
-                                    <option value="6">Juin</option>
-                                    <option value="7">Juillet</option>
-                                    <option value="8">Août</option>
-                                    <option value="9">Septembre</option>
-                                    <option value="10">Octobre</option>
-                                    <option value="11">Novembre</option>
-                                    <option value="12">Décembre</option>
-                                </select>
+                                {{ form.services_depenses.label_tag }}
+                                {{ form.services_depenses }}
+                                {% if form.services_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.services_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-3 mb-3">
-                                <label for="id_annee_depenses" class="form-label">Année</label>
-                                <select name="annee_depenses" id="id_annee_depenses" class="form-select">
-                                    <option value="">Toutes</option>
-                                    {% for annee in annees_disponibles %}
-                                        <option value="{{ annee }}">{{ annee }}</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.banques_depenses.label_tag }}
+                                {{ form.banques_depenses }}
+                                {% if form.banques_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.banques_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_montant_min_depenses" class="form-label">Montant CDF Min</label>
-                                <input type="number" name="montant_min_depenses" id="id_montant_min_depenses" class="form-control" step="0.01" min="0">
+                                {{ form.montant_min_depenses.label_tag }}
+                                {{ form.montant_min_depenses }}
+                                {% if form.montant_min_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.montant_min_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_montant_max_depenses" class="form-label">Montant CDF Max</label>
-                                <input type="number" name="montant_max_depenses" id="id_montant_max_depenses" class="form-control" step="0.01" min="0">
+                                {{ form.montant_max_depenses.label_tag }}
+                                {{ form.montant_max_depenses }}
+                                {% if form.montant_max_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.montant_max_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_observation_depenses" class="form-label">Recherche Observation</label>
-                                <input type="text" name="observation_depenses" id="id_observation_depenses" class="form-control" placeholder="Mot-clé...">
+                                {{ form.observation_depenses.label_tag }}
+                                {{ form.observation_depenses }}
+                                {% if form.observation_depenses.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.observation_depenses.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -196,67 +225,101 @@
                     <div id="filtres_recettes" style="display: none;">
                         <div class="row">
                             <div class="col-md-3 mb-3">
-                                <label for="id_banques_recettes" class="form-label">Banques</label>
-                                <select name="banques_recettes" id="id_banques_recettes" class="form-select" multiple>
-                                    {% for banque in banques %}
-                                        <option value="{{ banque.pk }}">{{ banque.nom_banque }}</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.annee_recettes.label_tag }}
+                                {{ form.annee_recettes }}
+                                {% if form.annee_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.annee_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_mois_recettes" class="form-label">Mois</label>
-                                <select name="mois_recettes" id="id_mois_recettes" class="form-select" multiple>
-                                    <option value="1">Janvier</option>
-                                    <option value="2">Février</option>
-                                    <option value="3">Mars</option>
-                                    <option value="4">Avril</option>
-                                    <option value="5">Mai</option>
-                                    <option value="6">Juin</option>
-                                    <option value="7">Juillet</option>
-                                    <option value="8">Août</option>
-                                    <option value="9">Septembre</option>
-                                    <option value="10">Octobre</option>
-                                    <option value="11">Novembre</option>
-                                    <option value="12">Décembre</option>
-                                </select>
+                                {{ form.mois_recettes.label_tag }}
+                                {{ form.mois_recettes }}
+                                {% if form.mois_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.mois_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_annee_recettes" class="form-label">Année</label>
-                                <select name="annee_recettes" id="id_annee_recettes" class="form-select">
-                                    <option value="">Toutes</option>
-                                    {% for annee in annees_disponibles %}
-                                        <option value="{{ annee }}">{{ annee }}</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.banques_recettes.label_tag }}
+                                {{ form.banques_recettes }}
+                                {% if form.banques_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.banques_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_libelle_recettes" class="form-label">Recherche Libellé</label>
-                                <input type="text" name="libelle_recettes" id="id_libelle_recettes" class="form-control" placeholder="Mot-clé...">
+                                {{ form.libelle_recettes.label_tag }}
+                                {{ form.libelle_recettes }}
+                                {% if form.libelle_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.libelle_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-3 mb-3">
-                                <label for="id_montant_min_recettes" class="form-label">Montant CDF Min</label>
-                                <input type="number" name="montant_min_recettes" id="id_montant_min_recettes" class="form-control" step="0.01" min="0">
+                                {{ form.montant_min_recettes.label_tag }}
+                                {{ form.montant_min_recettes }}
+                                {% if form.montant_min_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.montant_min_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_montant_max_recettes" class="form-label">Montant CDF Max</label>
-                                <input type="number" name="montant_max_recettes" id="id_montant_max_recettes" class="form-control" step="0.01" min="0">
+                                {{ form.montant_max_recettes.label_tag }}
+                                {{ form.montant_max_recettes }}
+                                {% if form.montant_max_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.montant_max_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_montant_usd_min_recettes" class="form-label">Montant USD Min</label>
-                                <input type="number" name="montant_usd_min_recettes" id="id_montant_usd_min_recettes" class="form-control" step="0.01" min="0">
+                                {{ form.montant_usd_min_recettes.label_tag }}
+                                {{ form.montant_usd_min_recettes }}
+                                {% if form.montant_usd_min_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.montant_usd_min_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             
                             <div class="col-md-3 mb-3">
-                                <label for="id_montant_usd_max_recettes" class="form-label">Montant USD Max</label>
-                                <input type="number" name="montant_usd_max_recettes" id="id_montant_usd_max_recettes" class="form-control" step="0.01" min="0">
+                                {{ form.montant_usd_max_recettes.label_tag }}
+                                {{ form.montant_usd_max_recettes }}
+                                {% if form.montant_usd_max_recettes.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.montant_usd_max_recettes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

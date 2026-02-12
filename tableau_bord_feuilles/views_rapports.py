@@ -20,6 +20,7 @@ from django.contrib.humanize.templatetags.humanize import intcomma
 from demandes.models import DepenseFeuille, NatureEconomique
 from recettes.models import RecetteFeuille
 from banques.models import Banque
+from .forms_rapports import RapportFeuilleSelectionForm
 
 
 def format_montant_pdf(montant):
@@ -49,33 +50,25 @@ def _get_param_list(request, post_name, get_name=None):
 def _queryset_depenses_filtre(request):
     """Construit le queryset DepenseFeuille en appliquant tous les filtres (GET ou POST)."""
     annee = _get_param(request, 'annee', 'annee_depenses')
-    mois_list = _get_param_list(request, 'mois_depenses', 'mois')
-    if mois_list:
-        mois_list = [int(m) for m in mois_list if str(m).isdigit()]
-    banques = _get_param_list(request, 'banques_depenses')
-    if banques:
-        banques = [int(b) for b in banques if str(b).isdigit()]
-    natures = _get_param_list(request, 'natures_depenses')
-    if natures:
-        natures = [int(n) for n in natures if str(n).isdigit()]
-    services = _get_param_list(request, 'services_depenses')
-    if services:
-        services = [int(s) for s in services if str(s).isdigit()]
-    montant_min = _get_param(request, 'montant_min_depenses', 'montant_min_depenses')
-    montant_max = _get_param(request, 'montant_max_depenses', 'montant_max_depenses')
-    observation = _get_param(request, 'observation_depenses', 'observation_depenses')
+    mois = _get_param(request, 'mois', 'mois_depenses')
+    banques = _get_param(request, 'banques', 'banques_depenses')
+    natures = _get_param(request, 'natures', 'natures_depenses')
+    services = _get_param(request, 'services', 'services_depenses')
+    montant_min = _get_param(request, 'montant_min', 'montant_min_depenses')
+    montant_max = _get_param(request, 'montant_max', 'montant_max_depenses')
+    observation = _get_param(request, 'observation', 'observation_depenses')
 
     qs = DepenseFeuille.objects.all()
-    if annee and str(annee).isdigit():
+    if annee and str(annee).isdigit() and annee != '':
         qs = qs.filter(annee=int(annee))
-    if mois_list:
-        qs = qs.filter(mois__in=mois_list)
-    if banques:
-        qs = qs.filter(banque_id__in=banques)
-    if natures:
-        qs = qs.filter(nature_economique_id__in=natures)
-    if services:
-        qs = qs.filter(service_beneficiaire_id__in=services)
+    if mois and str(mois).isdigit() and mois != '':
+        qs = qs.filter(mois=int(mois))
+    if banques and str(banques).isdigit() and banques != '':
+        qs = qs.filter(banque_id=int(banques))
+    if natures and str(natures).isdigit() and natures != '':
+        qs = qs.filter(nature_economique_id=int(natures))
+    if services and str(services).isdigit() and services != '':
+        qs = qs.filter(service_beneficiaire_id=int(services))
     if montant_min and str(montant_min).replace('.', '').replace('-', '').isdigit():
         qs = qs.filter(montant_fc__gte=Decimal(str(montant_min)))
     if montant_max and str(montant_max).replace('.', '').replace('-', '').isdigit():
@@ -88,25 +81,21 @@ def _queryset_depenses_filtre(request):
 def _queryset_recettes_filtre(request):
     """Construit le queryset RecetteFeuille en appliquant tous les filtres (GET ou POST)."""
     annee = _get_param(request, 'annee', 'annee_recettes')
-    mois_list = _get_param_list(request, 'mois_recettes', 'mois')
-    if mois_list:
-        mois_list = [int(m) for m in mois_list if str(m).isdigit()]
-    banques = _get_param_list(request, 'banques_recettes')
-    if banques:
-        banques = [int(b) for b in banques if str(b).isdigit()]
-    libelle = _get_param(request, 'libelle_recettes', 'libelle_recettes')
-    montant_min = _get_param(request, 'montant_min_recettes', 'montant_min_recettes')
-    montant_max = _get_param(request, 'montant_max_recettes', 'montant_max_recettes')
-    montant_usd_min = _get_param(request, 'montant_usd_min_recettes', 'montant_usd_min_recettes')
-    montant_usd_max = _get_param(request, 'montant_usd_max_recettes', 'montant_usd_max_recettes')
+    mois = _get_param(request, 'mois', 'mois_recettes')
+    banques = _get_param(request, 'banques', 'banques_recettes')
+    libelle = _get_param(request, 'libelle', 'libelle_recettes')
+    montant_min = _get_param(request, 'montant_min', 'montant_min_recettes')
+    montant_max = _get_param(request, 'montant_max', 'montant_max_recettes')
+    montant_usd_min = _get_param(request, 'montant_usd_min', 'montant_usd_min_recettes')
+    montant_usd_max = _get_param(request, 'montant_usd_max', 'montant_usd_max_recettes')
 
     qs = RecetteFeuille.objects.all()
-    if annee and str(annee).isdigit():
+    if annee and str(annee).isdigit() and annee != '':
         qs = qs.filter(annee=int(annee))
-    if mois_list:
-        qs = qs.filter(mois__in=mois_list)
-    if banques:
-        qs = qs.filter(banque_id__in=banques)
+    if mois and str(mois).isdigit() and mois != '':
+        qs = qs.filter(mois=int(mois))
+    if banques and str(banques).isdigit() and banques != '':
+        qs = qs.filter(banque_id=int(banques))
     if libelle and libelle.strip():
         qs = qs.filter(libelle_recette__icontains=libelle.strip())
     if montant_min and str(montant_min).replace('.', '').replace('-', '').isdigit():
@@ -125,23 +114,19 @@ class RapportFeuilleSelectionView(LoginRequiredMixin, View):
     template_name = 'tableau_bord_feuilles/rapport_selection.html'
     
     def get(self, request, *args, **kwargs):
-        # Récupérer les données pour les filtres
-        from demandes.models import NatureEconomique
-        from accounts.models import Service
-        from banques.models import Banque, CompteBancaire
+        # Récupérer les années disponibles
         from demandes.models import DepenseFeuille
         from recettes.models import RecetteFeuille
         
-        # Récupérer les années disponibles
         annees_depenses = list(DepenseFeuille.objects.values_list('annee', flat=True).distinct())
         annees_recettes = list(RecetteFeuille.objects.values_list('annee', flat=True).distinct())
         annees_disponibles = sorted(set(annees_depenses + annees_recettes), reverse=True)
         
+        # Créer le formulaire avec les années disponibles
+        form = RapportFeuilleSelectionForm(annees_disponibles=annees_disponibles)
+        
         context = {
-            'services': Service.objects.all(),
-            'natures': NatureEconomique.objects.all(),
-            'banques': Banque.objects.all(),
-            'comptes': CompteBancaire.objects.all(),
+            'form': form,
             'annees_disponibles': annees_disponibles,
         }
         
