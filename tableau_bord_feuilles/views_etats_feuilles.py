@@ -94,9 +94,19 @@ class EtatsFeuillesPreviewView(LoginRequiredMixin, View):
                     queryset = queryset.filter(observation__icontains=observation.strip())
                     print(f"✅ Filtré par observation: {observation} -> {queryset.count()} résultats")
                 
-                # Limiter pour le preview
-                queryset = queryset.order_by('-date')[:50]
-                print(f"📊 Résultat final: {queryset.count()} lignes")
+                # Limiter pour le preview (avec pagination)
+                total_count = queryset.count()
+                print(f"🔍 AVANT pagination: {total_count} résultats totaux")
+                
+                page = int(request.POST.get('page', 1))
+                page_size = 50
+                start = (page - 1) * page_size
+                end = start + page_size
+                
+                print(f"📊 Pagination params: page={page}, start={start}, end={end}, page_size={page_size}")
+                
+                queryset = queryset.order_by('-date')[start:end]
+                print(f"📊 Pagination: page {page}, {queryset.count()}/{total_count} résultats affichés")
                 
                 lignes = []
                 total_cdf = Decimal('0.00')
@@ -121,8 +131,14 @@ class EtatsFeuillesPreviewView(LoginRequiredMixin, View):
             elif type_etat == 'RECETTE_FEUILLE':
                 from tableau_bord_feuilles.views_rapports import _queryset_recettes_filtre
                 queryset = _queryset_recettes_filtre(request)
-                print(f"Total recettes filtrées: {queryset.count()}")
-                queryset = queryset.order_by('-date')[:50]
+                total_count = queryset.count()
+                page = int(request.POST.get('page', 1))
+                page_size = 50
+                start = (page - 1) * page_size
+                end = start + page_size
+                
+                queryset = queryset.order_by('-date')[start:end]
+                print(f"📊 Pagination recettes: page {page}, {queryset.count()}/{total_count} résultats affichés")
                 
                 lignes = []
                 total_cdf = Decimal('0.00')
@@ -150,6 +166,10 @@ class EtatsFeuillesPreviewView(LoginRequiredMixin, View):
                 'success': True,
                 'lignes': lignes,
                 'count': len(lignes),
+                'total_count': total_count,  # Ajout du nombre total
+                'page': page,
+                'page_size': page_size,
+                'has_next': end < total_count,
                 'total_cdf': float(total_cdf),
                 'total_usd': float(total_usd),
             })

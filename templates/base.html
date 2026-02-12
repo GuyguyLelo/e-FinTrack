@@ -270,9 +270,7 @@
                     </a>
                     
                     <!-- Tableau général -->
-                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and 'tableau_general' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_general' %}">
-                        <i class="bi bi-table"></i> Tableau général
-                    </a>
+                    
                     
                     <!-- Rapports feuilles -->
                     <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and 'rapport' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'tableau_bord_feuilles:rapport_selection' %}">
