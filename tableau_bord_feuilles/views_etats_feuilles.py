@@ -2,13 +2,27 @@ from django.shortcuts import render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import View
 from django.http import JsonResponse, HttpResponse
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Count
 from django.utils import timezone
 from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
 from datetime import datetime
+
+# Imports pour PDF
+try:
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib import colors
+    from io import BytesIO
+    from urllib.parse import unquote
+    REPORTLAB_AVAILABLE = True
+except ImportError as e:
+    REPORTLAB_AVAILABLE = False
+    print(f"WARNING: ReportLab n'est pas disponible: {e}. Les rapports PDF ne fonctionneront pas.")
 
 from demandes.models import DepenseFeuille, NatureEconomique
 from recettes.models import RecetteFeuille
@@ -188,23 +202,518 @@ class EtatsFeuillesGenererView(LoginRequiredMixin, View):
     
     def post(self, request, *args, **kwargs):
         try:
-            # Pour l'instant, rediriger vers les vues PDF existantes
             format_sortie = request.POST.get('format_sortie', 'PDF')
             type_etat = request.POST.get('type_etat')
+            type_rapport = request.POST.get('type_rapport', 'DETAILLE')  # DETAILLE, GROUPE, SYNTHESE
             
-            if format_sortie == 'PDF':
-                if type_etat == 'RECETTE_FEUILLE':
-                    # Rediriger vers la vue PDF des recettes
-                    return JsonResponse({'success': True, 'etat_id': 'recette_pdf'})
-                elif type_etat == 'DEPENSE_FEUILLE':
-                    # Rediriger vers la vue PDF des dépenses
-                    return JsonResponse({'success': True, 'etat_id': 'depense_pdf'})
-                else:
-                    # Rediriger vers le tableau général PDF
-                    return JsonResponse({'success': True, 'etat_id': 'tableau_general_pdf'})
+            print(f"Génération rapport: {type_etat}, format: {format_sortie}, type: {type_rapport}")
+            
+            if type_rapport == 'SYNTHESE':
+                # Rapport synthétique - juste les totaux
+                return self._generer_synthese(request, type_etat, format_sortie)
+            elif type_rapport == 'GROUPE':
+                # Rapport regroupé
+                critere_groupement = request.POST.get('critere_groupement', 'nature')
+                return self._generer_groupe(request, type_etat, critere_groupement, format_sortie)
             else:
-                # Pour Excel, pour l'instant retourner une erreur
-                return JsonResponse({'success': False, 'error': 'Export Excel non encore implémenté'})
+                # Rapport détaillé (existant)
+                if format_sortie == 'PDF':
+                    if type_etat == 'RECETTE_FEUILLE':
+                        return JsonResponse({'success': True, 'etat_id': 'recette_pdf'})
+                    elif type_etat == 'DEPENSE_FEUILLE':
+                        return JsonResponse({'success': True, 'etat_id': 'depense_pdf'})
+                    else:
+                        return JsonResponse({'success': True, 'etat_id': 'tableau_general_pdf'})
+                else:
+                    return JsonResponse({'success': False, 'error': 'Export Excel non encore implémenté'})
                 
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
+    
+    def _generer_synthese(self, request, type_etat, format_sortie):
+        """Générer un rapport synthétique avec juste les totaux"""
+        from decimal import Decimal
+        from django.db.models import Sum, Q
+        
+        annee = request.POST.get('annee_depenses') or request.POST.get('annee_recettes')
+        mois = request.POST.get('mois_depenses') or request.POST.get('mois_recettes')
+        
+        print(f"Synthèse - Année: {annee}, Mois: {mois}, Type: {type_etat}")
+        
+        # Construire les filtres
+        filtres = Q()
+        if annee and annee.isdigit() and annee != '':
+            filtres &= Q(annee=int(annee))
+        if mois and mois.isdigit() and mois != '':
+            filtres &= Q(mois=int(mois))
+        
+        if type_etat == 'DEPENSE_FEUILLE':
+            queryset = DepenseFeuille.objects.filter(filtres)
+            resultats = queryset.aggregate(
+                total_cdf=Sum('montant_fc'),
+                total_usd=Sum('montant_usd'),
+                nombre=Count('id')
+            )
+            titre = f"SYNTHÈSE DES DÉPENSES"
+            if annee:
+                titre += f" - {annee}"
+            if mois and mois.isdigit():
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                titre += f" - {mois_noms[int(mois)]}"
+        else:
+            queryset = RecetteFeuille.objects.filter(filtres)
+            resultats = queryset.aggregate(
+                total_cdf=Sum('montant_fc'),
+                total_usd=Sum('montant_usd'),
+                nombre=Count('id')
+            )
+            titre = f"SYNTHÈSE DES RECETTES"
+            if annee:
+                titre += f" - {annee}"
+            if mois and mois.isdigit():
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                titre += f" - {mois_noms[int(mois)]}"
+        
+        # Préparer les données pour le template
+        data = {
+            'titre': titre,
+            'total_cdf': resultats['total_cdf'] or Decimal('0'),
+            'total_usd': resultats['total_usd'] or Decimal('0'),
+            'nombre': resultats['nombre'] or 0,
+            'annee': annee,
+            'mois': mois,
+            'type_etat': type_etat
+        }
+        
+        print(f"Données synthèse: {data}")
+        
+        if format_sortie == 'PDF':
+            return JsonResponse({
+                'success': True, 
+                'type': 'SYNTHESE',
+                'data': data
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'Export Excel non encore implémenté'})
+    
+    def _generer_groupe(self, request, type_etat, critere_groupement, format_sortie):
+        """Générer un rapport regroupé par critère"""
+        from django.db.models import Sum, Count
+        from collections import defaultdict
+        
+        annee = request.POST.get('annee_depenses') or request.POST.get('annee_recettes')
+        mois = request.POST.get('mois_depenses') or request.POST.get('mois_recettes')
+        
+        print(f"Groupe - Critère: {critere_groupement}, Année: {annee}, Mois: {mois}, Type: {type_etat}")
+        
+        # Construire les filtres
+        filtres = {}
+        if annee and annee.isdigit() and annee != '':
+            filtres['annee'] = int(annee)
+        if mois and mois.isdigit() and mois != '':
+            filtres['mois'] = int(mois)
+        
+        if type_etat == 'DEPENSE_FEUILLE':
+            queryset = DepenseFeuille.objects.filter(**filtres)
+            
+            if critere_groupement == 'nature':
+                groups = queryset.values('nature_economique__titre').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('nature_economique__titre')
+                titre = f"DÉPENSES PAR NATURE ÉCONOMIQUE"
+            elif critere_groupement == 'service':
+                groups = queryset.values('service_beneficiaire__nom_service').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('service_beneficiaire__nom_service')
+                titre = f"DÉPENSES PAR SERVICE BÉNÉFICIAIRE"
+            elif critere_groupement == 'banque':
+                groups = queryset.values('banque__nom_banque').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('banque__nom_banque')
+                titre = f"DÉPENSES PAR BANQUE"
+            elif critere_groupement == 'mois':
+                groups = queryset.values('mois').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('mois')
+                titre = f"DÉPENSES PAR MOIS"
+            else:
+                return JsonResponse({'success': False, 'error': 'Critère de regroupement non valide'})
+                
+        else:  # RECETTE_FEUILLE
+            queryset = RecetteFeuille.objects.filter(**filtres)
+            
+            if critere_groupement == 'banque':
+                groups = queryset.values('banque__nom_banque').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('banque__nom_banque')
+                titre = f"RECETTES PAR BANQUE"
+            elif critere_groupement == 'mois':
+                groups = queryset.values('mois').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('mois')
+                titre = f"RECETTES PAR MOIS"
+            else:
+                return JsonResponse({'success': False, 'error': 'Critère de regroupement non valide pour les recettes'})
+        
+        # Ajouter la période au titre
+        if annee:
+            titre += f" - {annee}"
+        if mois and mois.isdigit():
+            mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+            titre += f" - {mois_noms[int(mois)]}"
+        
+        # Préparer les données
+        data = {
+            'titre': titre,
+            'groups': list(groups),
+            'critere': critere_groupement,
+            'annee': annee,
+            'mois': mois,
+            'type_etat': type_etat
+        }
+        
+        print(f"Données groupe: {len(data['groups'])} groupes trouvés")
+        
+        if format_sortie == 'PDF':
+            return JsonResponse({
+                'success': True, 
+                'type': 'GROUPE',
+                'data': data
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'Export Excel non encore implémenté'})
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RapportSynthesePDFView(LoginRequiredMixin, View):
+    """Vue pour générer les rapports synthétiques en PDF"""
+    
+    def get(self, request, *args, **kwargs):
+        if not REPORTLAB_AVAILABLE:
+            return HttpResponse("ReportLab n'est pas disponible. Veuillez l'installer avec: pip install reportlab", content_type='text/plain')
+        
+        try:
+            # Récupérer les données depuis l'URL
+            from urllib.parse import unquote
+            data_json = request.GET.get('data', '{}')
+            data = json.loads(unquote(data_json))
+            
+            print(f"Génération PDF synthèse: {data}")
+            
+            # Créer le buffer PDF
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
+                               rightMargin=1*cm, leftMargin=1*cm, 
+                               topMargin=1*cm, bottomMargin=1*cm)
+            
+            styles = getSampleStyleSheet()
+            elements = []
+            
+            # Titre
+            titre_style = styles['Title']
+            elements.append(Paragraph(data['titre'], titre_style))
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # Période
+            periode = ""
+            if data.get('annee'):
+                periode = f"Année: {data['annee']}"
+            if data.get('mois') and data['mois'].isdigit():
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                periode += f" - {mois_noms[int(data['mois'])]}"
+            
+            if periode:
+                elements.append(Paragraph(f"<b>Période:</b> {periode}", styles['Normal']))
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # Statistiques principales
+            elements.append(Paragraph("<b>STATISTIQUES PRINCIPALES</b>", styles['Heading2']))
+            elements.append(Spacer(1, 0.3*cm))
+            
+            stats_data = [
+                ['Type', 'Nombre', 'Total CDF', 'Total USD'],
+                [data['type_etat'].replace('_FEUILLE', '').capitalize(), 
+                 str(data['nombre']), 
+                 f"{data['total_cdf']:,.2f}".replace(',', ' '), 
+                 f"{data['total_usd']:,.2f}".replace(',', ' ')]
+            ]
+            
+            stats_table = Table(stats_data, colWidths=[4*cm, 3*cm, 5*cm, 5*cm])
+            stats_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            
+            elements.append(stats_table)
+            elements.append(Spacer(1, 1*cm))
+            
+            # Générer le PDF
+            doc.build(elements)
+            
+            # Préparer la réponse
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            filename = f"synthese_{data['type_etat'].lower()}_{data.get('annee', 'tout')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+            
+        except Exception as e:
+            print(f"Erreur génération PDF synthèse: {e}")
+            import traceback
+            traceback.print_exc()
+            return HttpResponse(f"Erreur: {str(e)}", content_type='text/plain')
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RapportGroupePDFView(LoginRequiredMixin, View):
+    """Vue pour générer les rapports regroupés en PDF"""
+    
+    def get(self, request, *args, **kwargs):
+        if not REPORTLAB_AVAILABLE:
+            return HttpResponse("ReportLab n'est pas disponible. Veuillez l'installer avec: pip install reportlab", content_type='text/plain')
+        
+        try:
+            # Récupérer les données depuis l'URL
+            from urllib.parse import unquote
+            data_json = request.GET.get('data', '{}')
+            data = json.loads(unquote(data_json))
+            
+            print(f"Génération PDF groupe: {data}")
+            
+            # Créer le buffer PDF
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
+                               rightMargin=1*cm, leftMargin=1*cm, 
+                               topMargin=1*cm, bottomMargin=1*cm)
+            
+            styles = getSampleStyleSheet()
+            elements = []
+            
+            # Titre
+            titre_style = styles['Title']
+            elements.append(Paragraph(data['titre'], titre_style))
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # Période
+            periode = ""
+            if data.get('annee'):
+                periode = f"Année: {data['annee']}"
+            if data.get('mois') and data['mois'].isdigit():
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                periode += f" - {mois_noms[int(data['mois'])]}"
+            
+            if periode:
+                elements.append(Paragraph(f"<b>Période:</b> {periode}", styles['Normal']))
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # Tableau des regroupements
+            elements.append(Paragraph("<b>DÉTAILS PAR REGROUPEMENT</b>", styles['Heading2']))
+            elements.append(Spacer(1, 0.3*cm))
+            
+            # En-têtes du tableau
+            critere = data['critere']
+            if critere == 'nature':
+                headers = ['Nature Économique', 'Nombre', 'Total CDF', 'Total USD']
+                groups = data['groups']
+                table_data = [headers]
+                for group in groups:
+                    total_cdf = group.get('total_cdf', 0)
+                    total_usd = group.get('total_usd', 0)
+                    
+                    # Convertir en nombre si c'est une chaîne
+                    try:
+                        total_cdf = float(total_cdf) if total_cdf else 0
+                    except (ValueError, TypeError):
+                        total_cdf = 0
+                    
+                    try:
+                        total_usd = float(total_usd) if total_usd else 0
+                    except (ValueError, TypeError):
+                        total_usd = 0
+                    
+                    table_data.append([
+                        str(group.get('nature_economique__titre', 'N/A')),
+                        str(group.get('nombre', 0)),
+                        f"{total_cdf:,.2f}".replace(',', ' '),
+                        f"{total_usd:,.2f}".replace(',', ' ')
+                    ])
+            elif critere == 'service':
+                headers = ['Service Bénéficiaire', 'Nombre', 'Total CDF', 'Total USD']
+                groups = data['groups']
+                table_data = [headers]
+                for group in groups:
+                    total_cdf = group.get('total_cdf', 0)
+                    total_usd = group.get('total_usd', 0)
+                    
+                    # Convertir en nombre si c'est une chaîne
+                    try:
+                        total_cdf = float(total_cdf) if total_cdf else 0
+                    except (ValueError, TypeError):
+                        total_cdf = 0
+                    
+                    try:
+                        total_usd = float(total_usd) if total_usd else 0
+                    except (ValueError, TypeError):
+                        total_usd = 0
+                    
+                    table_data.append([
+                        str(group.get('service_beneficiaire__nom_service', 'N/A')),
+                        str(group.get('nombre', 0)),
+                        f"{total_cdf:,.2f}".replace(',', ' '),
+                        f"{total_usd:,.2f}".replace(',', ' ')
+                    ])
+            elif critere == 'banque':
+                headers = ['Banque', 'Nombre', 'Total CDF', 'Total USD']
+                groups = data['groups']
+                table_data = [headers]
+                for group in groups:
+                    total_cdf = group.get('total_cdf', 0)
+                    total_usd = group.get('total_usd', 0)
+                    
+                    # Convertir en nombre si c'est une chaîne
+                    try:
+                        total_cdf = float(total_cdf) if total_cdf else 0
+                    except (ValueError, TypeError):
+                        total_cdf = 0
+                    
+                    try:
+                        total_usd = float(total_usd) if total_usd else 0
+                    except (ValueError, TypeError):
+                        total_usd = 0
+                    
+                    table_data.append([
+                        str(group.get('banque__nom_banque', 'N/A')),
+                        str(group.get('nombre', 0)),
+                        f"{total_cdf:,.2f}".replace(',', ' '),
+                        f"{total_usd:,.2f}".replace(',', ' ')
+                    ])
+            elif critere == 'mois':
+                headers = ['Mois', 'Nombre', 'Total CDF', 'Total USD']
+                groups = data['groups']
+                table_data = [headers]
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                for group in groups:
+                    total_cdf = group.get('total_cdf', 0)
+                    total_usd = group.get('total_usd', 0)
+                    
+                    # Convertir en nombre si c'est une chaîne
+                    try:
+                        total_cdf = float(total_cdf) if total_cdf else 0
+                    except (ValueError, TypeError):
+                        total_cdf = 0
+                    
+                    try:
+                        total_usd = float(total_usd) if total_usd else 0
+                    except (ValueError, TypeError):
+                        total_usd = 0
+                    
+                    mois_num = group.get('mois', 0)
+                    table_data.append([
+                        str(mois_noms[mois_num] if mois_num < len(mois_noms) else f"Mois {mois_num}"),
+                        str(group.get('nombre', 0)),
+                        f"{total_cdf:,.2f}".replace(',', ' '),
+                        f"{total_usd:,.2f}".replace(',', ' ')
+                    ])
+            
+            # Créer le tableau
+            table = Table(table_data, colWidths=[6*cm, 3*cm, 5*cm, 5*cm])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            
+            elements.append(table)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # Total général
+            total_cdf = 0
+            total_usd = 0
+            total_nombre = 0
+            
+            for g in data['groups']:
+                try:
+                    cdf_val = float(g.get('total_cdf', 0))
+                    total_cdf += cdf_val
+                except (ValueError, TypeError):
+                    pass
+                
+                try:
+                    usd_val = float(g.get('total_usd', 0))
+                    total_usd += usd_val
+                except (ValueError, TypeError):
+                    pass
+                
+                try:
+                    nombre_val = int(g.get('nombre', 0))
+                    total_nombre += nombre_val
+                except (ValueError, TypeError):
+                    pass
+            
+            total_data = [
+                ['TOTAL GÉNÉRAL', str(total_nombre), 
+                 f"{total_cdf:,.2f}".replace(',', ' '), 
+                 f"{total_usd:,.2f}".replace(',', ' ')]
+            ]
+            
+            total_table = Table([total_data], colWidths=[6*cm, 3*cm, 5*cm, 5*cm])
+            total_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            
+            elements.append(total_table)
+            
+            # Générer le PDF
+            doc.build(elements)
+            
+            # Préparer la réponse
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            filename = f"rapport_groupe_{data['critere']}_{data.get('annee', 'tout')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            
+            return response
+            
+        except Exception as e:
+            print(f"Erreur génération PDF groupe: {e}")
+            import traceback
+            traceback.print_exc()
+            return HttpResponse(f"Erreur: {str(e)}", content_type='text/plain')

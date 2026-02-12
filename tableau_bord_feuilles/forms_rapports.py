@@ -18,6 +18,31 @@ class RapportFeuilleSelectionForm(forms.Form):
         label="Type d'État"
     )
     
+    # Type de rapport
+    type_rapport = forms.ChoiceField(
+        choices=[
+            ('DETAILLE', 'Rapport Détaillé'),
+            ('GROUPE', 'Rapport Regroupé'),
+            ('SYNTHESE', 'Rapport Synthétique'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Type de Rapport",
+        initial='DETAILLE'
+    )
+    
+    # Critère de regroupement
+    critere_groupement = forms.ChoiceField(
+        choices=[
+            ('nature', 'Par Nature Économique'),
+            ('service', 'Par Service Bénéficiaire'),
+            ('banque', 'Par Banque'),
+            ('mois', 'Par Mois'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="Regrouper par",
+        required=False
+    )
+    
     # Filtres temporels
     annee = forms.ChoiceField(
         choices=[],

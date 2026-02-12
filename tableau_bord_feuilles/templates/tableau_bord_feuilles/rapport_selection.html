@@ -105,12 +105,38 @@
                     {% csrf_token %}
                     <div class="row">
                         <!-- Type d'état -->
-                        <div class="col-md-12 mb-3">
+                        <div class="col-md-4 mb-3">
                             {{ form.type_etat.label_tag }}
                             {{ form.type_etat }}
                             {% if form.type_etat.errors %}
                                 <div class="text-danger">
                                     {% for error in form.type_etat.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Type de rapport -->
+                        <div class="col-md-4 mb-3">
+                            {{ form.type_rapport.label_tag }}
+                            {{ form.type_rapport }}
+                            {% if form.type_rapport.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.type_rapport.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Critère de regroupement -->
+                        <div class="col-md-4 mb-3" id="container_critere_groupement" style="display: none;">
+                            {{ form.critere_groupement.label_tag }}
+                            {{ form.critere_groupement }}
+                            {% if form.critere_groupement.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.critere_groupement.errors %}
                                         {{ error }}
                                     {% endfor %}
                                 </div>
@@ -491,6 +517,24 @@ document.getElementById('id_type_etat').addEventListener('change', function() {
     resetFilters();
 });
 
+// Gestion du changement de type de rapport
+document.getElementById('id_type_rapport').addEventListener('change', function() {
+    const typeRapport = this.value;
+    console.log('Changement type rapport:', typeRapport);
+    
+    const containerCritere = document.getElementById('container_critere_groupement');
+    
+    // Afficher/masquer le critère de regroupement
+    if (typeRapport === 'GROUPE') {
+        containerCritere.style.display = 'block';
+    } else {
+        containerCritere.style.display = 'none';
+    }
+    
+    // Réinitialiser les données
+    resetFilters();
+});
+
 function formatDate(date) {
     return date.toISOString().split('T')[0];
 }
@@ -789,25 +833,70 @@ function submitReportForm(actionUrl) {
 // Générer l'état (PDF ou Excel) : envoi de tous les paramètres en POST
 function generateState(format) {
     const typeEtat = document.getElementById('id_type_etat').value;
+    const typeRapport = document.getElementById('id_type_rapport').value;
+    const critereGroupement = document.getElementById('id_critere_groupement').value;
     
     document.getElementById('loadingOverlay').style.display = 'flex';
     
-    if (typeEtat === 'DEPENSE_FEUILLE') {
-        const url = '/tableau-bord-feuilles/rapports/depense/pdf/';
-        if (format === 'PDF' || format === 'EXCEL') {
-            submitReportForm(url);
+    // Utiliser la nouvelle vue pour les rapports regroupés et synthétiques
+    if (typeRapport === 'GROUPE' || typeRapport === 'SYNTHESE') {
+        // Envoyer à la nouvelle vue de génération
+        const form = document.getElementById('filterForm');
+        const formData = new FormData(form);
+        formData.append('format_sortie', format);
+        formData.append('type_rapport', typeRapport);
+        if (typeRapport === 'GROUPE') {
+            formData.append('critere_groupement', critereGroupement);
         }
-    } else if (typeEtat === 'RECETTE_FEUILLE') {
-        const url = '/tableau-bord-feuilles/rapports/recette/pdf/';
-        if (format === 'PDF' || format === 'EXCEL') {
-            submitReportForm(url);
-        }
+        
+        fetch('/tableau-bord-feuilles/generer-etats/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.type === 'SYNTHESE') {
+                    // Ouvrir le PDF de synthèse dans un nouvel onglet
+                    const url = `/tableau-bord-feuilles/rapports/synthese/pdf/?data=${encodeURIComponent(JSON.stringify(data.data))}`;
+                    window.open(url, '_blank');
+                } else if (data.type === 'GROUPE') {
+                    // Ouvrir le PDF de regroupement dans un nouvel onglet
+                    const url = `/tableau-bord-feuilles/rapports/groupe/pdf/?data=${encodeURIComponent(JSON.stringify(data.data))}`;
+                    window.open(url, '_blank');
+                }
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+            document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors de la génération du rapport');
+            document.getElementById('loadingOverlay').style.display = 'none';
+        });
     } else {
-        alert('Veuillez sélectionner un type d\'état');
-        document.getElementById('loadingOverlay').style.display = 'none';
-        return;
+        // Utiliser les vues existantes pour les rapports détaillés
+        if (typeEtat === 'DEPENSE_FEUILLE') {
+            const url = '/tableau-bord-feuilles/rapports/depense/pdf/';
+            if (format === 'PDF' || format === 'EXCEL') {
+                submitReportForm(url);
+            }
+        } else if (typeEtat === 'RECETTE_FEUILLE') {
+            const url = '/tableau-bord-feuilles/rapports/recette/pdf/';
+            if (format === 'PDF' || format === 'EXCEL') {
+                submitReportForm(url);
+            }
+        } else {
+            alert('Veuillez sélectionner un type d\'état');
+            document.getElementById('loadingOverlay').style.display = 'none';
+            return;
+        }
+        setTimeout(function() { document.getElementById('loadingOverlay').style.display = 'none'; }, 1500);
     }
-    setTimeout(function() { document.getElementById('loadingOverlay').style.display = 'none'; }, 1500);
 }
 
 // Générer le titre automatiquement

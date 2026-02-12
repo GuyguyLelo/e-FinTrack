@@ -24,7 +24,11 @@ urlpatterns = [
     
     # États feuilles (logique états)
     path('preview-etats/', views_etats_feuilles.EtatsFeuillesPreviewView.as_view(), name='preview_etats'),
-    path('generer-etat/', views_etats_feuilles.EtatsFeuillesGenererView.as_view(), name='generer_etat'),
+    path('generer-etats/', views_etats_feuilles.EtatsFeuillesGenererView.as_view(), name='generer_etats'),
+    
+    # Nouveaux rapports synthétiques et regroupés
+    path('rapports/synthese/pdf/', views_etats_feuilles.RapportSynthesePDFView.as_view(), name='rapport_synthese_pdf'),
+    path('rapports/groupe/pdf/', views_etats_feuilles.RapportGroupePDFView.as_view(), name='rapport_groupe_pdf'),
     
     # Tests
     path('test-donnees/', views_test.TestDonneesView.as_view(), name='test_donnees'),
