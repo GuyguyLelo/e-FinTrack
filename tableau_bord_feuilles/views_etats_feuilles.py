@@ -352,7 +352,14 @@ class EtatsFeuillesGenererView(LoginRequiredMixin, View):
         else:  # RECETTE_FEUILLE
             queryset = RecetteFeuille.objects.filter(**filtres)
             
-            if critere_groupement == 'banque':
+            if critere_groupement == 'nature':
+                groups = queryset.values('source_recette__nom').annotate(
+                    total_cdf=Sum('montant_fc'),
+                    total_usd=Sum('montant_usd'),
+                    nombre=Count('id')
+                ).order_by('source_recette__nom')
+                titre = f"RECETTES PAR SOURCE"
+            elif critere_groupement == 'banque':
                 groups = queryset.values('banque__nom_banque').annotate(
                     total_cdf=Sum('montant_fc'),
                     total_usd=Sum('montant_usd'),
@@ -418,8 +425,8 @@ class RapportSynthesePDFView(LoginRequiredMixin, View):
             # Créer le buffer PDF
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
-                               rightMargin=1*cm, leftMargin=1*cm, 
-                               topMargin=1*cm, bottomMargin=1*cm)
+                               rightMargin=0.5*cm, leftMargin=0.5*cm, 
+                               topMargin=0.8*cm, bottomMargin=0.8*cm)
             
             styles = getSampleStyleSheet()
             elements = []
@@ -446,12 +453,23 @@ class RapportSynthesePDFView(LoginRequiredMixin, View):
             elements.append(Paragraph("<b>STATISTIQUES PRINCIPALES</b>", styles['Heading2']))
             elements.append(Spacer(1, 0.3*cm))
             
+            # Convertir les montants en nombres
+            try:
+                total_cdf = float(data['total_cdf']) if data['total_cdf'] else 0
+            except (ValueError, TypeError):
+                total_cdf = 0
+            
+            try:
+                total_usd = float(data['total_usd']) if data['total_usd'] else 0
+            except (ValueError, TypeError):
+                total_usd = 0
+            
             stats_data = [
                 ['Type', 'Nombre', 'Total CDF', 'Total USD'],
                 [data['type_etat'].replace('_FEUILLE', '').capitalize(), 
                  str(data['nombre']), 
-                 f"{data['total_cdf']:,.2f}".replace(',', ' '), 
-                 f"{data['total_usd']:,.2f}".replace(',', ' ')]
+                 f"{total_cdf:,.2f}".replace(',', ' '), 
+                 f"{total_usd:,.2f}".replace(',', ' ')]
             ]
             
             stats_table = Table(stats_data, colWidths=[4*cm, 3*cm, 5*cm, 5*cm])
@@ -504,18 +522,49 @@ class RapportGroupePDFView(LoginRequiredMixin, View):
             
             print(f"Génération PDF groupe: {data}")
             
+            # Récupérer le type d'état dès le début
+            type_etat = data.get('type_etat', 'DEPENSE_FEUILLE')
+            
+            # Définir le type de titre selon le type d'état
+            titre_type = "Relevé des recettes" if type_etat == 'RECETTE_FEUILLE' else "Relevé des dépenses"
+            
             # Créer le buffer PDF
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
-                               rightMargin=1*cm, leftMargin=1*cm, 
-                               topMargin=1*cm, bottomMargin=1*cm)
+                               rightMargin=0.5*cm, leftMargin=0.5*cm, 
+                               topMargin=0.8*cm, bottomMargin=0.8*cm)
             
             styles = getSampleStyleSheet()
             elements = []
             
-            # Titre
+            # Titre personnalisé selon le critère
+            critere = data['critere']
+            # Adapter les libellés de critères selon le type d'état
+            if type_etat == 'RECETTE_FEUILLE':
+                critere_labels = {
+                    'nature': 'Source de recette',
+                    'service': 'Service Bénéficiaire', 
+                    'banque': 'Banque',
+                    'mois': 'Mois'
+                }
+            else:
+                critere_labels = {
+                    'nature': 'Nature Économique',
+                    'service': 'Service Bénéficiaire', 
+                    'banque': 'Banque',
+                    'mois': 'Mois'
+                }
+            
+            titre = f"{titre_type} par {critere_labels.get(critere, critere)}"
+            if data.get('mois') and data['mois'].isdigit():
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                titre += f" du {mois_noms[int(data['mois'])]} {data.get('annee', '')}"
+            elif data.get('annee'):
+                titre += f" de l'année {data['annee']}"
+            
             titre_style = styles['Title']
-            elements.append(Paragraph(data['titre'], titre_style))
+            elements.append(Paragraph(titre, titre_style))
             elements.append(Spacer(1, 0.5*cm))
             
             # Période
@@ -531,173 +580,149 @@ class RapportGroupePDFView(LoginRequiredMixin, View):
                 elements.append(Paragraph(f"<b>Période:</b> {periode}", styles['Normal']))
                 elements.append(Spacer(1, 0.5*cm))
             
-            # Tableau des regroupements
-            elements.append(Paragraph("<b>DÉTAILS PAR REGROUPEMENT</b>", styles['Heading2']))
-            elements.append(Spacer(1, 0.3*cm))
+            # Importer les modèles selon le type d'état
+            if type_etat == 'RECETTE_FEUILLE':
+                from recettes.models import RecetteFeuille, SourceRecette
+                from banques.models import Banque
+                ModelFeuille = RecetteFeuille
+            else:
+                from demandes.models import DepenseFeuille, NatureEconomique, Service
+                from banques.models import Banque
+                ModelFeuille = DepenseFeuille
             
-            # En-têtes du tableau
-            critere = data['critere']
-            if critere == 'nature':
-                headers = ['Nature Économique', 'Nombre', 'Total CDF', 'Total USD']
-                groups = data['groups']
-                table_data = [headers]
-                for group in groups:
-                    total_cdf = group.get('total_cdf', 0)
-                    total_usd = group.get('total_usd', 0)
-                    
-                    # Convertir en nombre si c'est une chaîne
-                    try:
-                        total_cdf = float(total_cdf) if total_cdf else 0
-                    except (ValueError, TypeError):
-                        total_cdf = 0
-                    
-                    try:
-                        total_usd = float(total_usd) if total_usd else 0
-                    except (ValueError, TypeError):
-                        total_usd = 0
-                    
-                    table_data.append([
-                        str(group.get('nature_economique__titre', 'N/A')),
-                        str(group.get('nombre', 0)),
-                        f"{total_cdf:,.2f}".replace(',', ' '),
-                        f"{total_usd:,.2f}".replace(',', ' ')
-                    ])
-            elif critere == 'service':
-                headers = ['Service Bénéficiaire', 'Nombre', 'Total CDF', 'Total USD']
-                groups = data['groups']
-                table_data = [headers]
-                for group in groups:
-                    total_cdf = group.get('total_cdf', 0)
-                    total_usd = group.get('total_usd', 0)
-                    
-                    # Convertir en nombre si c'est une chaîne
-                    try:
-                        total_cdf = float(total_cdf) if total_cdf else 0
-                    except (ValueError, TypeError):
-                        total_cdf = 0
-                    
-                    try:
-                        total_usd = float(total_usd) if total_usd else 0
-                    except (ValueError, TypeError):
-                        total_usd = 0
-                    
-                    table_data.append([
-                        str(group.get('service_beneficiaire__nom_service', 'N/A')),
-                        str(group.get('nombre', 0)),
-                        f"{total_cdf:,.2f}".replace(',', ' '),
-                        f"{total_usd:,.2f}".replace(',', ' ')
-                    ])
-            elif critere == 'banque':
-                headers = ['Banque', 'Nombre', 'Total CDF', 'Total USD']
-                groups = data['groups']
-                table_data = [headers]
-                for group in groups:
-                    total_cdf = group.get('total_cdf', 0)
-                    total_usd = group.get('total_usd', 0)
-                    
-                    # Convertir en nombre si c'est une chaîne
-                    try:
-                        total_cdf = float(total_cdf) if total_cdf else 0
-                    except (ValueError, TypeError):
-                        total_cdf = 0
-                    
-                    try:
-                        total_usd = float(total_usd) if total_usd else 0
-                    except (ValueError, TypeError):
-                        total_usd = 0
-                    
-                    table_data.append([
-                        str(group.get('banque__nom_banque', 'N/A')),
-                        str(group.get('nombre', 0)),
-                        f"{total_cdf:,.2f}".replace(',', ' '),
-                        f"{total_usd:,.2f}".replace(',', ' ')
-                    ])
-            elif critere == 'mois':
-                headers = ['Mois', 'Nombre', 'Total CDF', 'Total USD']
-                groups = data['groups']
-                table_data = [headers]
-                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-                              'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-                for group in groups:
-                    total_cdf = group.get('total_cdf', 0)
-                    total_usd = group.get('total_usd', 0)
-                    
-                    # Convertir en nombre si c'est une chaîne
-                    try:
-                        total_cdf = float(total_cdf) if total_cdf else 0
-                    except (ValueError, TypeError):
-                        total_cdf = 0
-                    
-                    try:
-                        total_usd = float(total_usd) if total_usd else 0
-                    except (ValueError, TypeError):
-                        total_usd = 0
-                    
+            # Traiter chaque regroupement avec détails
+            groups = data['groups']
+            
+            for group in groups:
+                # Récupérer le libellé du regroupement selon le type d'état
+                if critere == 'nature':
+                    if type_etat == 'RECETTE_FEUILLE':
+                        groupe_libelle = str(group.get('source_recette__nom', 'N/A'))
+                        groupe_id = group.get('source_recette_id')
+                    else:
+                        groupe_libelle = str(group.get('nature_economique__titre', 'N/A'))
+                        groupe_id = group.get('nature_economique_id')
+                elif critere == 'service':
+                    # Pour les recettes, le service n'est pas applicable
+                    if type_etat == 'RECETTE_FEUILLE':
+                        continue  # Skip ce groupe pour les recettes
+                    groupe_libelle = str(group.get('service_beneficiaire__nom_service', 'N/A'))
+                    groupe_id = group.get('service_beneficiaire_id')
+                elif critere == 'banque':
+                    groupe_libelle = str(group.get('banque__nom_banque', 'N/A'))
+                    groupe_id = group.get('banque_id')
+                elif critere == 'mois':
+                    mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
                     mois_num = group.get('mois', 0)
+                    groupe_libelle = mois_noms[mois_num] if mois_num < len(mois_noms) else f"Mois {mois_num}"
+                    groupe_id = mois_num
+                else:
+                    continue
+                
+                # Afficher le libellé du regroupement
+                elements.append(Paragraph(f"<b>{groupe_libelle.upper()}</b>", styles['Heading2']))
+                elements.append(Spacer(1, 0.3*cm))
+                
+                # Récupérer les données détaillées pour ce regroupement
+                donnees = ModelFeuille.objects.all()
+                
+                # Filtrer par période
+                if data.get('annee'):
+                    donnees = donnees.filter(annee=data['annee'])
+                if data.get('mois') and data['mois'].isdigit():
+                    donnees = donnees.filter(mois=int(data['mois']))
+                
+                # Filtrer par critère de regroupement selon le type d'état
+                if critere == 'nature' and groupe_id:
+                    if type_etat == 'RECETTE_FEUILLE':
+                        donnees = donnees.filter(source_recette_id=groupe_id)
+                    else:
+                        donnees = donnees.filter(nature_economique_id=groupe_id)
+                elif critere == 'service' and groupe_id:
+                    donnees = donnees.filter(service_beneficiaire_id=groupe_id)
+                elif critere == 'banque' and groupe_id:
+                    donnees = donnees.filter(banque_id=groupe_id)
+                elif critere == 'mois' and groupe_id:
+                    donnees = donnees.filter(mois=groupe_id)
+                
+                # Préparer les données du tableau détaillé selon le type
+                if type_etat == 'RECETTE_FEUILLE':
+                    headers = ['Date', 'Libellé recette', 'Montant CDF', 'Montant USD']
+                else:
+                    headers = ['Date', 'Libellé dépense', 'Montant CDF', 'Montant USD']
+                table_data = [headers]
+                
+                total_cdf_groupe = 0
+                total_usd_groupe = 0
+                
+                for item in donnees.order_by('date'):
+                    montant_cdf = item.montant_fc or 0
+                    montant_usd = item.montant_usd or 0
+                    
+                    total_cdf_groupe += montant_cdf
+                    total_usd_groupe += montant_usd
+                    
+                    # Adapter le libellé selon le type (augmenter la longueur)
+                    if type_etat == 'RECETTE_FEUILLE':
+                        libelle = item.libelle_recette[:150]
+                    else:
+                        libelle = item.libelle_depenses[:150]
+                    
                     table_data.append([
-                        str(mois_noms[mois_num] if mois_num < len(mois_noms) else f"Mois {mois_num}"),
-                        str(group.get('nombre', 0)),
-                        f"{total_cdf:,.2f}".replace(',', ' '),
-                        f"{total_usd:,.2f}".replace(',', ' ')
+                        item.date.strftime('%d/%m/%Y'),
+                        libelle,
+                        f"{montant_cdf:,.2f}".replace(',', ' ') if montant_cdf > 0 else '0,00',
+                        f"{montant_usd:,.2f}".replace(',', ' ') if montant_usd > 0 else '0,00'
                     ])
-            
-            # Créer le tableau
-            table = Table(table_data, colWidths=[6*cm, 3*cm, 5*cm, 5*cm])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            
-            elements.append(table)
-            elements.append(Spacer(1, 0.5*cm))
-            
-            # Total général
-            total_cdf = 0
-            total_usd = 0
-            total_nombre = 0
-            
-            for g in data['groups']:
-                try:
-                    cdf_val = float(g.get('total_cdf', 0))
-                    total_cdf += cdf_val
-                except (ValueError, TypeError):
-                    pass
                 
-                try:
-                    usd_val = float(g.get('total_usd', 0))
-                    total_usd += usd_val
-                except (ValueError, TypeError):
-                    pass
+                # Créer le tableau détaillé
+                if len(table_data) > 1:  # S'il y a des dépenses
+                    table = Table(table_data, colWidths=[2.5*cm, 10*cm, 4.5*cm, 4.5*cm])
+                    table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('ALIGN', (1, 1), (1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 8),
+                        ('FONTSIZE', (0, 1), (-1, -1), 7),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP')
+                    ]))
+                    
+                    elements.append(table)
+                    elements.append(Spacer(1, 0.3*cm))
+                    
+                    # Afficher le total du groupe
+                    total_data = [
+                        ['TOTAL', '', 
+                         f"{total_cdf_groupe:,.2f}".replace(',', ' '), 
+                         f"{total_usd_groupe:,.2f}".replace(',', ' ')]
+                    ]
+                    
+                    total_table = Table(total_data, colWidths=[2.5*cm, 10*cm, 4.5*cm, 4.5*cm])
+                    total_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 9),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP')
+                    ]))
+                    
+                    elements.append(total_table)
+                else:
+                    # Aucune dépense pour ce regroupement
+                    elements.append(Paragraph("Aucune dépense trouvée pour ce regroupement.", styles['Normal']))
                 
-                try:
-                    nombre_val = int(g.get('nombre', 0))
-                    total_nombre += nombre_val
-                except (ValueError, TypeError):
-                    pass
-            
-            total_data = [
-                ['TOTAL GÉNÉRAL', str(total_nombre), 
-                 f"{total_cdf:,.2f}".replace(',', ' '), 
-                 f"{total_usd:,.2f}".replace(',', ' ')]
-            ]
-            
-            total_table = Table([total_data], colWidths=[6*cm, 3*cm, 5*cm, 5*cm])
-            total_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            
-            elements.append(total_table)
+                # Saut de page entre les regroupements (sauf pour le dernier)
+                elements.append(Spacer(1, 1*cm))
             
             # Générer le PDF
             doc.build(elements)
