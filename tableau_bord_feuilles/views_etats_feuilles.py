@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import View
 from django.http import JsonResponse, HttpResponse
@@ -8,18 +9,37 @@ from decimal import Decimal
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+import html
 from datetime import datetime
 
 # Imports pour PDF
 try:
     from reportlab.lib.pagesizes import landscape, A4
     from reportlab.lib.units import cm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, KeepTogether
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib import colors
     from io import BytesIO
     from urllib.parse import unquote
     REPORTLAB_AVAILABLE = True
+
+    def _draw_footer(canvas, doc, page_count=None):
+        """Pied de page : Page x de xx à gauche, date du jour à droite"""
+        from datetime import date
+        date_str = date.today().strftime('%d/%m/%Y')
+        page_num = canvas.getPageNumber()
+        total = page_count if page_count else page_num
+        canvas.saveState()
+        canvas.setFont("Helvetica", 8)
+        canvas.drawString(50, 25, f"Page {page_num} de {total}")
+        canvas.drawRightString(792, 25, date_str)
+        canvas.restoreState()
+
+    def _footer_on_first(canvas, doc):
+        _draw_footer(canvas, doc)
+
+    def _footer_on_later(canvas, doc):
+        _draw_footer(canvas, doc)
 except ImportError as e:
     REPORTLAB_AVAILABLE = False
     print(f"WARNING: ReportLab n'est pas disponible: {e}. Les rapports PDF ne fonctionneront pas.")
@@ -92,15 +112,38 @@ class EtatsFeuillesPreviewView(View):
                 elif type_etat == 'synthese_par_banque':
                     mois = request.POST.get('mois_synthese_banque')
                     annee = request.POST.get('annee_synthese_banque')
-                    banque = request.POST.get('banque_synthese')
-                    print(f"Filtres synthèse par banque - Mois: {mois}, Année: {annee}, Banque: {banque}")
-                    
                     if annee and annee.isdigit() and annee != '':
                         queryset = queryset.filter(annee=int(annee))
                     if mois and mois.isdigit() and mois != '':
                         queryset = queryset.filter(mois=int(mois))
-                    if banque and banque.isdigit() and banque != '':
-                        queryset = queryset.filter(banque_id=int(banque))
+                    # Aperçu : regroupement par banque (une ligne par banque + total général)
+                    groups = list(queryset.values('banque_id', 'banque__nom_banque').annotate(
+                        total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
+                    ).order_by('banque__nom_banque'))
+                    total_general_fc = sum((g['total_cdf'] or Decimal('0')) for g in groups)
+                    total_general_usd = sum((g['total_usd'] or Decimal('0')) for g in groups)
+                    groupes_banque = [
+                        {
+                            'banque_nom': g.get('banque__nom_banque') or 'Sans banque',
+                            'total_cdf': float(g['total_cdf'] or 0),
+                            'total_usd': float(g['total_usd'] or 0),
+                        }
+                        for g in groups
+                    ]
+                    mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                                 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                    if annee and str(annee).isdigit():
+                        periode_label = f'{mois_noms[int(mois)]} {annee}' if (mois and str(mois).isdigit() and 1 <= int(mois) <= 12) else annee
+                    else:
+                        periode_label = 'Toutes périodes'
+                    return JsonResponse({
+                        'success': True,
+                        'preview_synthese_banque': True,
+                        'periode_label': periode_label,
+                        'groupes_banque': groupes_banque,
+                        'total_general_cdf': float(total_general_fc),
+                        'total_general_usd': float(total_general_usd),
+                    })
                         
                 elif type_etat == 'synthese_par_depenses':
                     mois = request.POST.get('mois_synthese_depenses')
@@ -426,20 +469,24 @@ class EtatsFeuillesGenererView(View):
         try:
             if not REPORTLAB_AVAILABLE:
                 return JsonResponse({'success': False, 'error': 'ReportLab non disponible. pip install reportlab'})
-            
+            from reportlab.lib.styles import ParagraphStyle
+            styles_temp = getSampleStyleSheet()
+            style_cell_libelle = ParagraphStyle('CellLibelleFlat', parent=styles_temp['Normal'], fontSize=8, leading=9)
             # Construire le queryset (même logique que preview)
             if type_etat in ['depense_par_nature', 'depense_par_mois', 'rapport_par_banque', 'synthese_par_banque', 'synthese_par_depenses']:
                 queryset = DepenseFeuille.objects.all()
                 if type_etat == 'depense_par_nature':
                     mois = request.POST.get('mois_nature')
                     annee = request.POST.get('annee_nature')
-                    nature = request.POST.get('nature_economique')
+                    nature_filtre = request.POST.get('nature_economique')
                     if annee and annee.isdigit() and annee != '':
                         queryset = queryset.filter(annee=int(annee))
                     if mois and mois.isdigit() and mois != '':
                         queryset = queryset.filter(mois=int(mois))
-                    if nature and nature.isdigit() and nature != '':
-                        queryset = queryset.filter(nature_economique_id=int(nature))
+                    if nature_filtre and nature_filtre.isdigit() and nature_filtre != '':
+                        queryset = queryset.filter(nature_economique_id=int(nature_filtre))
+                    # Cas spécial : dépense par nature → regroupement par nature, nature en en-tête de groupe
+                    return self._generer_pdf_depense_par_nature(request, queryset, mois, annee)
                 elif type_etat == 'depense_par_mois':
                     mois = request.POST.get('mois_depense')
                     annee = request.POST.get('annee_mois')
@@ -450,23 +497,22 @@ class EtatsFeuillesGenererView(View):
                 elif type_etat == 'rapport_par_banque':
                     mois = request.POST.get('mois_banque')
                     annee = request.POST.get('annee_banque')
-                    banque = request.POST.get('banque_rapport')
+                    banque_filtre = request.POST.get('banque_rapport')
                     if annee and annee.isdigit() and annee != '':
                         queryset = queryset.filter(annee=int(annee))
                     if mois and mois.isdigit() and mois != '':
                         queryset = queryset.filter(mois=int(mois))
-                    if banque and banque.isdigit() and banque != '':
-                        queryset = queryset.filter(banque_id=int(banque))
+                    if banque_filtre and banque_filtre.isdigit() and banque_filtre != '':
+                        queryset = queryset.filter(banque_id=int(banque_filtre))
+                    return self._generer_pdf_rapport_par_banque(request, queryset, mois, annee)
                 elif type_etat == 'synthese_par_banque':
                     mois = request.POST.get('mois_synthese_banque')
                     annee = request.POST.get('annee_synthese_banque')
-                    banque = request.POST.get('banque_synthese')
                     if annee and annee.isdigit() and annee != '':
                         queryset = queryset.filter(annee=int(annee))
                     if mois and mois.isdigit() and mois != '':
                         queryset = queryset.filter(mois=int(mois))
-                    if banque and banque.isdigit() and banque != '':
-                        queryset = queryset.filter(banque_id=int(banque))
+                    return self._generer_pdf_synthese_par_banque(request, queryset, mois, annee)
                 elif type_etat == 'synthese_par_depenses':
                     mois = request.POST.get('mois_synthese_depenses')
                     annee = request.POST.get('annee_synthese_depenses')
@@ -475,18 +521,19 @@ class EtatsFeuillesGenererView(View):
                     if mois and mois.isdigit() and mois != '':
                         queryset = queryset.filter(mois=int(mois))
                 
-                titre = 'ÉTAT DES DÉPENSES'
+                titre = 'DÉPENSES MENSUELLES' if type_etat == 'depense_par_mois' else 'ÉTAT DES DÉPENSES'
                 queryset = queryset.order_by('-date')
                 headers = ['Date', 'Libellé', 'Nature/Banque', 'Montant FC', 'Montant $us']
                 def row_from_dep(dep):
+                    lib_para = Paragraph(html.escape((dep.libelle_depenses or '')[:200]), style_cell_libelle)
                     return [
                         dep.date.strftime('%d/%m/%Y'),
-                        dep.libelle_depenses[:80] if dep.libelle_depenses else '',
+                        lib_para,
                         (dep.nature_economique.titre if dep.nature_economique else '') or (dep.banque.nom_banque if dep.banque else ''),
                         f"{float(dep.montant_fc):,.2f}".replace(',', ' '),
                         f"{float(dep.montant_usd):,.2f}".replace(',', ' '),
                     ]
-                rows = [row_from_dep(d) for d in queryset]
+                rows = [row_from_dep(d) for d in queryset[:25]]
                 
             elif type_etat in ['recette_du_mois', 'recette_par_banque', 'synthese_recettes']:
                 queryset = RecetteFeuille.objects.all()
@@ -519,7 +566,7 @@ class EtatsFeuillesGenererView(View):
                 queryset = queryset.order_by('-date')
                 headers = ['Date', 'Libellé', 'Banque', 'Montant FC', 'Montant $us']
                 def row_from_rec(rec):
-                    lib = (rec.libelle_recette or '')[:80]
+                    lib = (rec.libelle_recette or '')[:150]
                     ban = (rec.banque.nom_banque if rec.banque else '') or ''
                     return [
                         rec.date.strftime('%d/%m/%Y'),
@@ -528,7 +575,7 @@ class EtatsFeuillesGenererView(View):
                         f"{float(rec.montant_fc or 0):,.2f}".replace(',', ' '),
                         f"{float(rec.montant_usd or 0):,.2f}".replace(',', ' '),
                     ]
-                rows = [row_from_rec(r) for r in queryset]
+                rows = [row_from_rec(r) for r in queryset[:25]]
                 
             else:
                 return JsonResponse({'success': False, 'error': 'Type d\'état non valide'})
@@ -544,17 +591,39 @@ class EtatsFeuillesGenererView(View):
                 topMargin=0.8*cm, bottomMargin=0.8*cm)
             styles = getSampleStyleSheet()
             elements = []
+            # Logo du projet en en-tête (à gauche)
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            if logo_path.exists():
+                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo_table = Table([[logo]], colWidths=[3*cm])
+                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                elements.append(logo_table)
+                elements.append(Spacer(1, 0.3*cm))
             elements.append(Paragraph(titre, styles['Title']))
-            elements.append(Spacer(1, 0.5*cm))
+            if type_etat == 'depense_par_mois' and mois and mois.isdigit() and annee and annee.isdigit():
+                style_mois = ParagraphStyle('MoisConcerne', parent=styles['Normal'], fontSize=12, leading=14)
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                mois_lib = mois_noms[int(mois)] if 1 <= int(mois) <= 12 else f"Mois {mois}"
+                mois_para = Paragraph(f"<b>Mois concerné :</b> {mois_lib} {annee}", style_mois)
+                col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
+                mois_table = Table([[mois_para, '', '', '', '']], colWidths=col_widths)
+                mois_table.setStyle(TableStyle([('SPAN', (0, 0), (2, 0)), ('ALIGN', (0, 0), (0, 0), 'LEFT')]))
+                elements.append(mois_table)
+                elements.append(Spacer(1, 0.3*cm))
+            else:
+                elements.append(Spacer(1, 0.5*cm))
             
             table_data = [headers] + rows
             if table_data:
-                table = Table(table_data, colWidths=[2.5*cm, 8*cm, 4*cm, 4*cm, 4*cm])
+                table = Table(table_data, colWidths=[2*cm, 14*cm, 4*cm, 4*cm, 4*cm])
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (2, -1), 'LEFT'),
+                    ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, -1), 8),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
@@ -563,17 +632,17 @@ class EtatsFeuillesGenererView(View):
                 elements.append(table)
                 elements.append(Spacer(1, 0.3*cm))
                 total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
-                total_table = Table([total_row], colWidths=[2.5*cm, 8*cm, 4*cm, 4*cm, 4*cm])
+                total_table = Table([total_row], colWidths=[2*cm, 14*cm, 4*cm, 4*cm, 4*cm])
                 total_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
                     ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                 ]))
                 elements.append(total_table)
             else:
                 elements.append(Paragraph("Aucune donnée pour les critères sélectionnés.", styles['Normal']))
-            
-            doc.build(elements)
+            doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
             pdf_value = buffer.getvalue()
             buffer.close()
             
@@ -584,6 +653,395 @@ class EtatsFeuillesGenererView(View):
             
         except Exception as e:
             print(f"Erreur génération PDF: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    def _generer_pdf_depense_par_nature(self, request, queryset, mois, annee):
+        """Générer PDF dépense par nature : nature au niveau du regroupement, pas dans les lignes détail"""
+        try:
+            from reportlab.lib.styles import ParagraphStyle
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                rightMargin=1.5*cm, leftMargin=1.5*cm,
+                topMargin=1.5*cm, bottomMargin=1.5*cm)
+            styles = getSampleStyleSheet()
+            style_cell = ParagraphStyle('CellLibelle', parent=styles['Normal'], fontSize=8, leading=9)
+            style_regroupement = ParagraphStyle('Regroupement', parent=styles['Heading2'], fontSize=9, leading=10)
+            elements = []
+            # Logo (à gauche)
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            if logo_path.exists():
+                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo_table = Table([[logo]], colWidths=[3*cm])
+                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                elements.append(logo_table)
+                elements.append(Spacer(1, 0.3*cm))
+            mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                         'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+            titre = 'ÉTAT DES DÉPENSES PAR NATURE ÉCONOMIQUE'
+            elements.append(Paragraph(titre, styles['Title']))
+            if annee and str(annee).isdigit():
+                periode_label = f'{mois_noms[int(mois)].upper()} {annee}' if (mois and str(mois).isdigit() and 1 <= int(mois) <= 12) else annee
+            else:
+                periode_label = 'Toutes périodes'
+            col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
+            periode_row = [
+                Paragraph(f'<b>Période : {periode_label}</b>', styles['Normal']),
+                '', '', '', ''
+            ]
+            t_periode = Table([periode_row], colWidths=col_widths)
+            t_periode.setStyle(TableStyle([
+                ('SPAN', (0, 0), (-1, 0)),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_periode)
+            elements.append(Spacer(1, 0.3*cm))
+            # Regroupement par nature
+            groups = list(queryset.values('nature_economique_id', 'nature_economique__titre').annotate(
+                total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
+            ).order_by('nature_economique__titre'))
+            headers_detail = ['Date', 'Libellé', 'Observation', 'Montant FC', 'Montant $us']
+            total_general_fc = Decimal('0')
+            total_general_usd = Decimal('0')
+            for idx, g in enumerate(groups):
+                is_last = (idx == len(groups) - 1)
+                nature_titre = g.get('nature_economique__titre') or 'Sans nature'
+                depenses_groupe = queryset.filter(nature_economique_id=g['nature_economique_id']).order_by('-date')[:25]
+                rows = []
+                for d in depenses_groupe:
+                    lib_text = html.escape((d.libelle_depenses or '')[:200])
+                    lib_para = Paragraph(lib_text, style_cell)
+                    rows.append([
+                        d.date.strftime('%d/%m/%Y'),
+                        lib_para,
+                        (d.observation or '')[:50],
+                        f"{float(d.montant_fc):,.2f}".replace(',', ' '),
+                        f"{float(d.montant_usd):,.2f}".replace(',', ' '),
+                    ])
+                if rows:
+                    # Nature en première ligne du tableau, même colonnes
+                    nature_cell = Paragraph(f"<b>{nature_titre.upper()}</b>", style_regroupement)
+                    table_data = [[nature_cell, '', '', '', '']] + [headers_detail] + rows
+                    t = Table(table_data, colWidths=col_widths)
+                    t.setStyle(TableStyle([
+                        ('SPAN', (0, 0), (2, 0)),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8e8e8')),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (0, 0), 9),
+                        ('BOTTOMPADDING', (0, 0), (0, 0), 6),
+                        ('BACKGROUND', (0, 1), (-1, 1), colors.grey),
+                        ('TEXTCOLOR', (0, 1), (-1, 1), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('ALIGN', (1, 1), (2, -1), 'LEFT'),
+                        ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ]))
+                    total_fc = g['total_cdf'] or Decimal('0')
+                    total_usd = g['total_usd'] or Decimal('0')
+                    total_general_fc += total_fc
+                    total_general_usd += total_usd
+                    total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
+                    tt = Table([total_row], colWidths=col_widths)
+                    tt.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                        ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ]))
+                    if is_last:
+                        grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
+                        grand_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 9),
+                            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        ]))
+                        elements.append(KeepTogether([t, tt, Spacer(1, 0.3*cm), grand_table]))
+                    else:
+                        elements.append(t)
+                        elements.append(tt)
+                        elements.append(Spacer(1, 0.5*cm))
+                else:
+                    if is_last:
+                        grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
+                        grand_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 9),
+                            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        ]))
+                        elements.append(KeepTogether([Paragraph("Aucune dépense pour cette nature.", styles['Normal']), Spacer(1, 0.3*cm), grand_table]))
+                    else:
+                        elements.append(Paragraph("Aucune dépense pour cette nature.", styles['Normal']))
+                    elements.append(Spacer(1, 0.5*cm))
+            if not groups:
+                grand_table = Table([['TOTAL GÉNÉRAL', '', '', '0,00', '0,00']], colWidths=col_widths)
+                grand_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ]))
+                elements.append(grand_table)
+            doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            filename = f"etat_depense_par_nature_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            print(f"Erreur _generer_pdf_depense_par_nature: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    def _generer_pdf_rapport_par_banque(self, request, queryset, mois, annee):
+        """Générer PDF rapport par banque : même structure que dépense par nature, regroupement par banque"""
+        try:
+            from reportlab.lib.styles import ParagraphStyle
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                rightMargin=1.5*cm, leftMargin=1.5*cm,
+                topMargin=1.5*cm, bottomMargin=1.5*cm)
+            styles = getSampleStyleSheet()
+            style_cell = ParagraphStyle('CellLibelle', parent=styles['Normal'], fontSize=8, leading=9)
+            style_regroupement = ParagraphStyle('Regroupement', parent=styles['Heading2'], fontSize=9, leading=10)
+            elements = []
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            if logo_path.exists():
+                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo_table = Table([[logo]], colWidths=[3*cm])
+                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                elements.append(logo_table)
+                elements.append(Spacer(1, 0.3*cm))
+            titre = 'RAPPORT DES DÉPENSES PAR BANQUE'
+            if annee and annee.isdigit():
+                titre += f' - {annee}'
+            if mois and mois.isdigit():
+                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+                titre += f' - {mois_noms[int(mois)]}'
+            elements.append(Paragraph(titre, styles['Title']))
+            elements.append(Spacer(1, 0.5*cm))
+            groups = list(queryset.values('banque_id', 'banque__nom_banque').annotate(
+                total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
+            ).order_by('banque__nom_banque'))
+            headers_detail = ['Date', 'Libellé', 'Observation', 'Montant FC', 'Montant $us']
+            col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
+            total_general_fc = Decimal('0')
+            total_general_usd = Decimal('0')
+            for idx, g in enumerate(groups):
+                is_last = (idx == len(groups) - 1)
+                banque_titre = g.get('banque__nom_banque') or 'Sans banque'
+                depenses_groupe = queryset.filter(banque_id=g['banque_id']).order_by('-date')[:25]
+                rows = []
+                for d in depenses_groupe:
+                    lib_text = html.escape((d.libelle_depenses or '')[:200])
+                    lib_para = Paragraph(lib_text, style_cell)
+                    rows.append([
+                        d.date.strftime('%d/%m/%Y'),
+                        lib_para,
+                        (d.observation or '')[:50],
+                        f"{float(d.montant_fc):,.2f}".replace(',', ' '),
+                        f"{float(d.montant_usd):,.2f}".replace(',', ' '),
+                    ])
+                if rows:
+                    banque_cell = Paragraph(f"<b>{banque_titre.upper()}</b>", style_regroupement)
+                    table_data = [[banque_cell, '', '', '', '']] + [headers_detail] + rows
+                    t = Table(table_data, colWidths=col_widths)
+                    t.setStyle(TableStyle([
+                        ('SPAN', (0, 0), (2, 0)),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8e8e8')),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (0, 0), 9),
+                        ('BOTTOMPADDING', (0, 0), (0, 0), 6),
+                        ('BACKGROUND', (0, 1), (-1, 1), colors.grey),
+                        ('TEXTCOLOR', (0, 1), (-1, 1), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('ALIGN', (1, 1), (2, -1), 'LEFT'),
+                        ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ]))
+                    total_fc = g['total_cdf'] or Decimal('0')
+                    total_usd = g['total_usd'] or Decimal('0')
+                    total_general_fc += total_fc
+                    total_general_usd += total_usd
+                    total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
+                    tt = Table([total_row], colWidths=col_widths)
+                    tt.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                        ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ]))
+                    if is_last:
+                        grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
+                        grand_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 9),
+                            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        ]))
+                        elements.append(KeepTogether([t, tt, Spacer(1, 0.3*cm), grand_table]))
+                    else:
+                        elements.append(t)
+                        elements.append(tt)
+                        elements.append(Spacer(1, 0.5*cm))
+                else:
+                    if is_last:
+                        grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
+                        grand_table.setStyle(TableStyle([
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                            ('FONTSIZE', (0, 0), (-1, -1), 9),
+                            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        ]))
+                        elements.append(KeepTogether([Paragraph("Aucune dépense pour cette banque.", styles['Normal']), Spacer(1, 0.3*cm), grand_table]))
+                    else:
+                        elements.append(Paragraph("Aucune dépense pour cette banque.", styles['Normal']))
+                    elements.append(Spacer(1, 0.5*cm))
+            if not groups:
+                grand_table = Table([['TOTAL GÉNÉRAL', '', '', '0,00', '0,00']], colWidths=col_widths)
+                grand_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ]))
+                elements.append(grand_table)
+            doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            filename = f"rapport_par_banque_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            print(f"Erreur _generer_pdf_rapport_par_banque: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    def _generer_pdf_synthese_par_banque(self, request, queryset, mois, annee):
+        """Synthèse par banque : une ligne par banque (totaux) + total général. Filtres : mois et année uniquement."""
+        try:
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                rightMargin=1.5*cm, leftMargin=1.5*cm,
+                topMargin=1.5*cm, bottomMargin=1.5*cm)
+            styles = getSampleStyleSheet()
+            elements = []
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            if logo_path.exists():
+                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo_table = Table([[logo]], colWidths=[3*cm])
+                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                elements.append(logo_table)
+                elements.append(Spacer(1, 0.3*cm))
+            titre = 'SYNTHÈSE PAR BANQUE'
+            elements.append(Paragraph(titre, styles['Title']))
+            mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                         'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+            if annee and str(annee).isdigit():
+                if mois and str(mois).isdigit() and 1 <= int(mois) <= 12:
+                    periode_label = f'{mois_noms[int(mois)]} {annee}'
+                else:
+                    periode_label = annee
+            else:
+                periode_label = 'Toutes périodes'
+            col_widths = [12*cm, 6*cm, 6*cm]
+            periode_row = [
+                Paragraph(f'<b>Période : {periode_label}</b>', styles['Normal']),
+                '', ''
+            ]
+            t_periode = Table([periode_row], colWidths=col_widths)
+            t_periode.setStyle(TableStyle([
+                ('SPAN', (0, 0), (-1, 0)),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_periode)
+            elements.append(Spacer(1, 0.3*cm))
+            groups = list(queryset.values('banque_id', 'banque__nom_banque').annotate(
+                total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
+            ).order_by('banque__nom_banque'))
+            headers = ['Banque', 'Total FC', 'Total $us']
+            total_general_fc = Decimal('0')
+            total_general_usd = Decimal('0')
+            rows = []
+            for g in groups:
+                banque_nom = g.get('banque__nom_banque') or 'Sans banque'
+                total_fc = g['total_cdf'] or Decimal('0')
+                total_usd = g['total_usd'] or Decimal('0')
+                total_general_fc += total_fc
+                total_general_usd += total_usd
+                rows.append([
+                    banque_nom,
+                    f"{float(total_fc):,.2f}".replace(',', ' '),
+                    f"{float(total_usd):,.2f}".replace(',', ' '),
+                ])
+            table_data = [headers] + rows
+            if table_data:
+                t = Table(table_data, colWidths=col_widths)
+                t.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ]))
+                elements.append(t)
+                elements.append(Spacer(1, 0.3*cm))
+                total_row = ['TOTAL GÉNÉRAL', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]
+                tt = Table([total_row], colWidths=col_widths)
+                tt.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ]))
+                elements.append(tt)
+            else:
+                elements.append(Paragraph("Aucune donnée pour la période sélectionnée.", styles['Normal']))
+            doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            filename = f"synthese_par_banque_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            print(f"Erreur _generer_pdf_synthese_par_banque: {str(e)}")
             import traceback
             traceback.print_exc()
             return JsonResponse({'success': False, 'error': str(e)})
@@ -793,8 +1251,8 @@ class RapportSynthesePDFView(LoginRequiredMixin, View):
             # Créer le buffer PDF
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
-                               rightMargin=0.5*cm, leftMargin=0.5*cm, 
-                               topMargin=0.8*cm, bottomMargin=0.8*cm)
+                               rightMargin=1.5*cm, leftMargin=1.5*cm, 
+                               topMargin=1.5*cm, bottomMargin=1.5*cm)
             
             styles = getSampleStyleSheet()
             elements = []
@@ -855,7 +1313,7 @@ class RapportSynthesePDFView(LoginRequiredMixin, View):
             elements.append(Spacer(1, 1*cm))
             
             # Générer le PDF
-            doc.build(elements)
+            doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
             
             # Préparer la réponse
             pdf_value = buffer.getvalue()
@@ -899,8 +1357,8 @@ class RapportGroupePDFView(LoginRequiredMixin, View):
             # Créer le buffer PDF
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
-                               rightMargin=0.5*cm, leftMargin=0.5*cm, 
-                               topMargin=0.8*cm, bottomMargin=0.8*cm)
+                               rightMargin=1.5*cm, leftMargin=1.5*cm, 
+                               topMargin=1.5*cm, bottomMargin=1.5*cm)
             
             styles = getSampleStyleSheet()
             elements = []
@@ -1093,7 +1551,7 @@ class RapportGroupePDFView(LoginRequiredMixin, View):
                 elements.append(Spacer(1, 1*cm))
             
             # Générer le PDF
-            doc.build(elements)
+            doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
             
             # Préparer la réponse
             pdf_value = buffer.getvalue()
