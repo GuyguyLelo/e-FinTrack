@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>
+                        Sélection du type de rapport
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Choisissez le type de rapport que vous souhaitez générer :
+                    </p>
+                    
+                    <div class="row justify-content-center mb-4">
+                        <div class="col-md-5 mb-3">
+                            <a href="{% url 'tableau_bord_feuilles:rapport_recettes' %}" 
+                               class="btn btn-success w-100">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Bouton Recettes
+                            </a>
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <a href="{% url 'tableau_bord_feuilles:rapport_depenses' %}" 
+                               class="btn btn-danger w-100">
+                                <i class="fas fa-minus-circle me-2"></i>
+                                Bouton Dépenses
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Retour au tableau de bord
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

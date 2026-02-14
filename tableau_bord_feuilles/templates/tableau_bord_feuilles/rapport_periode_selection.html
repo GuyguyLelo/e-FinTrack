@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Sélection de la période - {{ type_rapport }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <p class="text-muted mb-4">
+                        Sélectionnez la période pour les rapports de {{ type_rapport }} :
+                    </p>
+                    
+                    <form method="get" action="{% url 'tableau_bord_feuilles:rapport_feuille_selection' %}">
+                        <input type="hidden" name="type" value="{{ type_rapport }}">
+                        <input type="hidden" name="selection_step" value="confirmer">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="mois" class="form-label">Mois</label>
+                                <select name="mois" id="mois" class="form-select" required>
+                                    <option value="">Sélectionner un mois</option>
+                                    {% for value, label in mois_choices %}
+                                        <option value="{{ value }}" {% if mois == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="annee" class="form-label">Année</label>
+                                <select name="annee" id="annee" class="form-select" required>
+                                    <option value="">Sélectionner une année</option>
+                                    {% for annee in annees_disponibles %}
+                                        <option value="{{ annee }}" {% if annee == annee|stringformat:"s" %}selected{% endif %}>{{ annee }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-check me-2"></i>
+                                    Sélectionner
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <a href="{% url 'tableau_bord_feuilles:rapport_feuille_selection' %}?type={{ type_rapport }}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}

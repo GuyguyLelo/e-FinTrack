@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-minus-circle me-2"></i>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="rapportForm">
+                        {% csrf_token %}
+                        
+                        <!-- Paramètres par défaut -->
+                        <input type="hidden" name="type_etat" value="{{ type_rapport }}">
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="mois_depenses" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Mois
+                                </label>
+                                <select class="form-select" id="mois_depenses" name="mois_depenses" required>
+                                    <option value="">-- Sélectionner un mois --</option>
+                                    {% for mois_id, mois_label in mois_choices %}
+                                        <option value="{{ mois_id }}" {% if mois|add:"0" == mois_id %}selected{% endif %}>
+                                            {{ mois_label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="annee_depenses" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Année
+                                </label>
+                                <select class="form-select" id="annee_depenses" name="annee_depenses" required>
+                                    <option value="">-- Sélectionner une année --</option>
+                                    {% for annee_dispo in annees_disponibles %}
+                                        <option value="{{ annee_dispo }}" {% if annee == annee_dispo|stringformat:"s" %}selected{% endif %}>
+                                            {{ annee_dispo }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Boutons d'action -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-primary w-100" id="previewBtn">
+                                    <i class="fas fa-eye me-2"></i>
+                                    Aperçu
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-download me-2"></i>
+                                    Imprimer le rapport
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Zone d'aperçu -->
+                    <div id="previewZone" class="mt-4" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-eye me-2"></i>
+                                    Aperçu du rapport
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="previewContent">
+                                    <!-- Le contenu de l'aperçu sera chargé ici -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton de retour -->
+                    <div class="text-center mt-4">
+                        <a href="{% url 'tableau_bord_feuilles:rapport_feuille_selection' %}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Retour à la sélection
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer l'aperçu
+    document.getElementById('previewBtn').addEventListener('click', function() {
+        genererApercu();
+    });
+    
+    // Gérer la soumission du formulaire
+    document.getElementById('rapportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        genererRapport();
+    });
+});
+
+function genererApercu() {
+    const formData = new FormData(document.getElementById('rapportForm'));
+    const previewZone = document.getElementById('previewZone');
+    const previewContent = document.getElementById('previewContent');
+    
+    previewZone.style.display = 'block';
+    previewContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement de l\'aperçu...</div>';
+    
+    fetch('/tableau_bord_feuilles/preview-etats/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            afficherApercu(data);
+        } else {
+            previewContent.innerHTML = '<div class="alert alert-danger">Erreur: ' + data.error + '</div>';
+        }
+    })
+    .catch(error => {
+        previewContent.innerHTML = '<div class="alert alert-danger">Erreur de chargement: ' + error.message + '</div>';
+    });
+}
+
+function afficherApercu(data) {
+    const previewContent = document.getElementById('previewContent');
+    
+    let html = '<div class="table-responsive"><table class="table table-striped table-sm">';
+    html += '<thead class="table-dark"><tr>';
+    html += '<th>Date</th><th>Libellé</th><th>Nature</th><th>Service</th><th>Banque</th><th>Montant CDF</th><th>Montant USD</th>';
+    html += '</tr></thead><tbody>';
+    
+    data.lignes.forEach(ligne => {
+        html += '<tr>';
+        html += '<td>' + ligne.date + '</td>';
+        html += '<td>' + ligne.libelle_depenses + '</td>';
+        html += '<td>' + ligne.nature_economique + '</td>';
+        html += '<td>' + ligne.service_beneficiaire + '</td>';
+        html += '<td>' + ligne.banque + '</td>';
+        html += '<td class="text-end">' + Number(ligne.montant_fc).toLocaleString('fr-FR') + '</td>';
+        html += '<td class="text-end">' + Number(ligne.montant_usd).toLocaleString('fr-FR') + '</td>';
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    
+    if (data.count > 0) {
+        html += '<div class="alert alert-info">';
+        html += '<strong>Total:</strong> ' + data.count + ' enregistrements | ';
+        html += '<strong>CDF:</strong> ' + Number(data.total_cdf).toLocaleString('fr-FR') + ' | ';
+        html += '<strong>USD:</strong> ' + Number(data.total_usd).toLocaleString('fr-FR');
+        html += '</div>';
+    }
+    
+    previewContent.innerHTML = html;
+}
+
+function genererRapport() {
+    const formData = new FormData(document.getElementById('rapportForm'));
+    
+    // Ajouter les valeurs par défaut pour le type de rapport et le format
+    formData.set('type_rapport', 'DETAILLE');
+    formData.set('format_sortie', 'PDF');
+    
+    fetch('/tableau_bord_feuilles/generer-etats/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Rapport imprimé avec succès!');
+        } else {
+            alert('Erreur: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erreur d\'impression: ' + error.message);
+    });
+}
+</script>
+
+<style>
+.card {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.form-check-input:checked {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+</style>
+{% endblock %}

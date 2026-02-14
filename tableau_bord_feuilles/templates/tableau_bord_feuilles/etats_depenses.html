@@ -1,0 +1,546 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-minus-circle me-2"></i>
+                        {{ title }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Boutons de sélection d'état -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="mb-3">Sélectionnez le type d'état souhaité :</h6>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
+                                    data-etat="depense_par_nature">
+                                <i class="fas fa-tags me-2"></i>
+                                Dépense par nature
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
+                                    data-etat="depense_par_mois">
+                                <i class="fas fa-calendar me-2"></i>
+                                Dépense par mois
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
+                                    data-etat="rapport_par_banque">
+                                <i class="fas fa-university me-2"></i>
+                                Rapport par banque
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
+                                    data-etat="synthese_par_banque">
+                                <i class="fas fa-chart-pie me-2"></i>
+                                Synthèse par banque
+                            </button>
+                        </div>
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
+                                    data-etat="synthese_par_depenses">
+                                <i class="fas fa-file-invoice me-2"></i>
+                                Synthèse par dépenses
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulaire avec champs dynamiques -->
+                    <form method="POST" id="etatForm" style="display: none;">
+                        {% csrf_token %}
+                        <input type="hidden" name="type_etat" id="type_etat" value="">
+                        <input type="hidden" name="format_sortie" value="PDF">
+                        
+                        <!-- Champs dynamiques -->
+                        <div id="champsDynamiques">
+                            <!-- Les champs seront insérés ici dynamiquement -->
+                        </div>
+                        
+                        <!-- Boutons d'action -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-primary w-100" id="previewBtn">
+                                    <i class="fas fa-eye me-2"></i>
+                                    Aperçu
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="fas fa-download me-2"></i>
+                                    Imprimer l'état
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Zone d'aperçu -->
+                    <div id="previewZone" class="mt-4" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-eye me-2"></i>
+                                    Aperçu de l'état
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="previewContent">
+                                    <!-- Le contenu de l'aperçu sera chargé ici -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bouton de retour -->
+                    <div class="text-center mt-4">
+                        <a href="{% url 'tableau_bord_feuilles:rapport_selection' %}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Retour
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates pour les champs dynamiques -->
+<template id="template-depense-par-nature">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label for="nature_economique" class="form-label">
+                <i class="fas fa-tags me-1"></i>
+                Nature économique
+            </label>
+            <select class="form-select" id="nature_economique" name="nature_economique">
+                <option value="">-- Toutes les natures --</option>
+                <!-- Sera rempli dynamiquement -->
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="mois_nature" class="form-label">
+                <i class="fas fa-calendar me-1"></i>
+                Mois
+            </label>
+            <select class="form-select" id="mois_nature" name="mois_nature">
+                <option value="">-- Tous les mois --</option>
+                {% for mois_id, mois_label in mois_choices %}
+                    <option value="{{ mois_id }}">{{ mois_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="annee_nature" class="form-label">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Année
+            </label>
+            <select class="form-select" id="annee_nature" name="annee_nature">
+                <option value="">-- Sélectionner une année --</option>
+                {% for annee_dispo in annees_disponibles %}
+                    <option value="{{ annee_dispo }}">{{ annee_dispo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</template>
+
+<template id="template-depense-par-mois">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <label for="mois_depense" class="form-label">
+                <i class="fas fa-calendar me-1"></i>
+                Mois
+            </label>
+            <select class="form-select" id="mois_depense" name="mois_depense">
+                <option value="">-- Sélectionner un mois --</option>
+                {% for mois_id, mois_label in mois_choices %}
+                    <option value="{{ mois_id }}">{{ mois_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="annee_mois" class="form-label">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Année
+            </label>
+            <select class="form-select" id="annee_mois" name="annee_mois">
+                <option value="">-- Sélectionner une année --</option>
+                {% for annee_dispo in annees_disponibles %}
+                    <option value="{{ annee_dispo }}">{{ annee_dispo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</template>
+
+<template id="template-rapport-par-banque">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label for="banque_rapport" class="form-label">
+                <i class="fas fa-university me-1"></i>
+                Banque
+            </label>
+            <select class="form-select" id="banque_rapport" name="banque_rapport">
+                <option value="">-- Toutes les banques --</option>
+                <!-- Sera rempli dynamiquement -->
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="mois_banque" class="form-label">
+                <i class="fas fa-calendar me-1"></i>
+                Mois
+            </label>
+            <select class="form-select" id="mois_banque" name="mois_banque">
+                <option value="">-- Tous les mois --</option>
+                {% for mois_id, mois_label in mois_choices %}
+                    <option value="{{ mois_id }}">{{ mois_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="annee_banque" class="form-label">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Année
+            </label>
+            <select class="form-select" id="annee_banque" name="annee_banque">
+                <option value="">-- Sélectionner une année --</option>
+                {% for annee_dispo in annees_disponibles %}
+                    <option value="{{ annee_dispo }}">{{ annee_dispo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</template>
+
+<template id="template-synthese-par-banque">
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label for="banque_synthese" class="form-label">
+                <i class="fas fa-university me-1"></i>
+                Banque
+            </label>
+            <select class="form-select" id="banque_synthese" name="banque_synthese">
+                <option value="">-- Toutes les banques --</option>
+                <!-- Sera rempli dynamiquement -->
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="mois_synthese_banque" class="form-label">
+                <i class="fas fa-calendar me-1"></i>
+                Mois
+            </label>
+            <select class="form-select" id="mois_synthese_banque" name="mois_synthese_banque">
+                <option value="">-- Tous les mois --</option>
+                {% for mois_id, mois_label in mois_choices %}
+                    <option value="{{ mois_id }}">{{ mois_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="annee_synthese_banque" class="form-label">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Année
+            </label>
+            <select class="form-select" id="annee_synthese_banque" name="annee_synthese_banque">
+                <option value="">-- Sélectionner une année --</option>
+                {% for annee_dispo in annees_disponibles %}
+                    <option value="{{ annee_dispo }}">{{ annee_dispo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</template>
+
+<template id="template-synthese-par-depenses">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <label for="annee_synthese_depenses" class="form-label">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Année
+            </label>
+            <select class="form-select" id="annee_synthese_depenses" name="annee_synthese_depenses">
+                <option value="">-- Sélectionner une année --</option>
+                {% for annee_dispo in annees_disponibles %}
+                    <option value="{{ annee_dispo }}">{{ annee_dispo }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="mois_synthese_depenses" class="form-label">
+                <i class="fas fa-calendar me-1"></i>
+                Mois (optionnel)
+            </label>
+            <select class="form-select" id="mois_synthese_depenses" name="mois_synthese_depenses">
+                <option value="">-- Toute l'année --</option>
+                {% for mois_id, mois_label in mois_choices %}
+                    <option value="{{ mois_id }}">{{ mois_label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let etatActuel = null;
+    
+    // Gestion des clics sur les boutons d'état
+    document.querySelectorAll('.etat-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const etat = this.dataset.etat;
+            activerEtat(etat);
+        });
+    });
+    
+    // Gestion du formulaire
+    document.getElementById('etatForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        genererEtat();
+    });
+    
+    // Gestion de l'aperçu
+    document.getElementById('previewBtn').addEventListener('click', function() {
+        genererApercu();
+    });
+    
+    function activerEtat(etat) {
+        etatActuel = etat;
+        
+        // Mettre à jour l'apparence des boutons
+        document.querySelectorAll('.etat-btn').forEach(btn => {
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-outline-danger');
+        });
+        
+        document.querySelector(`[data-etat="${etat}"]`).classList.remove('btn-outline-danger');
+        document.querySelector(`[data-etat="${etat}"]`).classList.add('btn-danger');
+        
+        // Afficher le formulaire et charger les champs
+        document.getElementById('etatForm').style.display = 'block';
+        chargerChampsDynamiques(etat);
+        
+        // Mettre à jour le type d'état
+        document.getElementById('type_etat').value = etat;
+    }
+    
+    function chargerChampsDynamiques(etat) {
+        const container = document.getElementById('champsDynamiques');
+        const templates = {
+            'depense_par_nature': 'template-depense-par-nature',
+            'depense_par_mois': 'template-depense-par-mois',
+            'rapport_par_banque': 'template-rapport-par-banque',
+            'synthese_par_banque': 'template-synthese-par-banque',
+            'synthese_par_depenses': 'template-synthese-par-depenses'
+        };
+        
+        if (templates[etat]) {
+            const template = document.getElementById(templates[etat]);
+            container.innerHTML = template.innerHTML;
+            
+            // Charger les données dynamiques si nécessaire
+            if (etat.includes('nature')) {
+                chargerNaturesEconomiques();
+            }
+            if (etat.includes('banque')) {
+                chargerBanques();
+            }
+        }
+    }
+    
+    function chargerNaturesEconomiques() {
+        const select = document.querySelector('[name="nature_economique"]');
+        if (select) {
+            // Vider le select sauf l'option par défaut
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // Charger les natures économiques depuis l'API
+            fetch('/tableau-bord-feuilles/api/natures-economiques/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.natures) {
+                        data.natures.forEach(nature => {
+                            const option = document.createElement('option');
+                            option.value = nature.id;
+                            option.textContent = nature.display;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des natures économiques:', error);
+                    // En cas d'erreur, ajouter un message
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Erreur de chargement';
+                    select.appendChild(option);
+                });
+        }
+    }
+    
+    function chargerBanques() {
+        const selects = document.querySelectorAll('[name*="banque"]');
+        selects.forEach(select => {
+            // Vider le select sauf l'option par défaut
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // Charger les banques depuis l'API
+            fetch('/tableau-bord-feuilles/api/banques/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.banques) {
+                        data.banques.forEach(banque => {
+                            const option = document.createElement('option');
+                            option.value = banque.id;
+                            option.textContent = banque.display;
+                            select.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement des banques:', error);
+                    // En cas d'erreur, ajouter un message
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'Erreur de chargement';
+                    select.appendChild(option);
+                });
+        });
+    }
+    
+    function genererApercu() {
+        const formData = new FormData(document.getElementById('etatForm'));
+        const previewZone = document.getElementById('previewZone');
+        const previewContent = document.getElementById('previewContent');
+        
+        previewZone.style.display = 'block';
+        previewContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement de l\'aperçu...</div>';
+        
+        fetch('/tableau-bord-feuilles/preview-etats/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                afficherApercu(data);
+            } else {
+                previewContent.innerHTML = '<div class="alert alert-danger">Erreur: ' + data.error + '</div>';
+            }
+        })
+        .catch(error => {
+            previewContent.innerHTML = '<div class="alert alert-danger">Erreur de chargement: ' + error.message + '</div>';
+        });
+    }
+    
+    function afficherApercu(data) {
+        const previewContent = document.getElementById('previewContent');
+        
+        let html = '<div class="table-responsive"><table class="table table-striped table-sm">';
+        html += '<thead class="table-dark"><tr>';
+        
+        // Adapter les en-têtes selon le type d'état
+        if (etatActuel.includes('nature')) {
+            html += '<th>Date</th><th>Libellé</th><th>Nature</th><th>Montant CDF</th><th>Montant USD</th>';
+        } else if (etatActuel.includes('banque')) {
+            html += '<th>Date</th><th>Libellé</th><th>Banque</th><th>Montant CDF</th><th>Montant USD</th>';
+        } else {
+            html += '<th>Date</th><th>Libellé</th><th>Montant CDF</th><th>Montant USD</th>';
+        }
+        
+        html += '</tr></thead><tbody>';
+        
+        data.lignes.forEach(ligne => {
+            html += '<tr>';
+            html += '<td>' + ligne.date + '</td>';
+            html += '<td>' + (ligne.libelle_depenses || ligne.libelle_recette || '') + '</td>';
+            
+            if (etatActuel.includes('nature')) {
+                html += '<td>' + (ligne.nature_economique || '') + '</td>';
+            } else if (etatActuel.includes('banque')) {
+                html += '<td>' + (ligne.banque || '') + '</td>';
+            }
+            
+            html += '<td class="text-end">' + Number(ligne.montant_fc || 0).toLocaleString('fr-FR') + '</td>';
+            html += '<td class="text-end">' + Number(ligne.montant_usd || 0).toLocaleString('fr-FR') + '</td>';
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        
+        if (data.count > 0) {
+            html += '<div class="alert alert-info">';
+            html += '<strong>Total:</strong> ' + data.count + ' enregistrements | ';
+            html += '<strong>CDF:</strong> ' + Number(data.total_cdf || 0).toLocaleString('fr-FR') + ' | ';
+            html += '<strong>USD:</strong> ' + Number(data.total_usd || 0).toLocaleString('fr-FR');
+            html += '</div>';
+        }
+        
+        previewContent.innerHTML = html;
+    }
+    
+    function genererEtat() {
+        const formData = new FormData(document.getElementById('etatForm'));
+        
+        fetch('/tableau-bord-feuilles/generer-etats/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('État imprimé avec succès!');
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erreur d\'impression: ' + error.message);
+        });
+    }
+});
+</script>
+
+<style>
+.etat-btn {
+    transition: all 0.3s ease;
+}
+
+.etat-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#etatForm {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+</style>
+{% endblock %}

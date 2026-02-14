@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.http import JsonResponse, HttpResponse
 from django.db.models import Sum, Count, Avg, Q, F, DecimalField
 from django.db.models.functions import ExtractYear, ExtractMonth, TruncMonth
 from django.utils.timezone import now
@@ -276,3 +277,49 @@ def detail_operations(request):
     }
     
     return render(request, 'tableau_bord_feuilles/detail_operations.html', context)
+
+
+def etats_depenses(request):
+    """
+    Page des états de dépenses avec tous les boutons de rapport
+    """
+    try:
+        from demandes.models import NatureEconomique
+        from accounts.models import Service
+        from banques.models import Banque
+        
+        context = {
+            'natures': NatureEconomique.objects.filter(active=True).order_by('code'),
+            'services': Service.objects.all().order_by('nom_service'),
+            'banques': Banque.objects.filter(active=True).order_by('nom_banque'),
+            'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],
+            'annees_disponibles': range(2020, 2026),
+            'format_montant': format_montant,
+            'format_montant_decimal': format_montant_decimal,
+        }
+        
+        return render(request, 'tableau_bord_feuilles/etats_depenses.html', context)
+    except Exception as e:
+        return HttpResponse(f"Erreur dans etats_depenses: {str(e)}", content_type='text/plain')
+
+
+def etats_recettes(request):
+    """
+    Page des états de recettes avec tous les boutons de rapport
+    """
+    try:
+        from banques.models import Banque
+        
+        context = {
+            'banques': Banque.objects.filter(active=True).order_by('nom_banque'),
+            'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                                  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],
+            'annees_disponibles': range(2020, 2026),
+            'format_montant': format_montant,
+            'format_montant_decimal': format_montant_decimal,
+        }
+        
+        return render(request, 'tableau_bord_feuilles/etats_recettes.html', context)
+    except Exception as e:
+        return HttpResponse(f"Erreur dans etats_recettes: {str(e)}", content_type='text/plain')

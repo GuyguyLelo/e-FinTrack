@@ -31,7 +31,7 @@ from accounts.models import Service
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class EtatsFeuillesPreviewView(View):
+class EtatsFeuillesPreviewView(LoginRequiredMixin, View):
     """Vue pour le preview des états feuilles"""
     
     def post(self, request, *args, **kwargs):
@@ -46,193 +46,15 @@ class EtatsFeuillesPreviewView(View):
             if not type_etat:
                 return JsonResponse({'success': False, 'error': 'Type d\'état manquant'})
             
-            # Appliquer les mêmes filtres que la vue PDF (cohérence preview / génération)
-            if type_etat in ['depense_par_nature', 'depense_par_mois', 'rapport_par_banque', 'synthese_par_banque', 'synthese_par_depenses']:
-                # Utiliser la logique DEPENSE_FEUILLE pour les nouveaux états
-                queryset = DepenseFeuille.objects.all()
-                print(f"Total initial DepenseFeuille: {queryset.count()}")
-                
-                # Récupérer les filtres selon le type d'état
-                if type_etat == 'depense_par_nature':
-                    mois = request.POST.get('mois_nature')
-                    annee = request.POST.get('annee_nature')
-                    nature = request.POST.get('nature_economique')
-                    print(f"Filtres dépense par nature - Mois: {mois}, Année: {annee}, Nature: {nature}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                    if nature and nature.isdigit() and nature != '':
-                        queryset = queryset.filter(nature_economique_id=int(nature))
-                        
-                elif type_etat == 'depense_par_mois':
-                    mois = request.POST.get('mois_depense')
-                    annee = request.POST.get('annee_mois')
-                    print(f"Filtres dépense par mois - Mois: {mois}, Année: {annee}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                        
-                elif type_etat == 'rapport_par_banque':
-                    mois = request.POST.get('mois_banque')
-                    annee = request.POST.get('annee_banque')
-                    banque = request.POST.get('banque_rapport')
-                    print(f"Filtres rapport par banque - Mois: {mois}, Année: {annee}, Banque: {banque}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                    if banque and banque.isdigit() and banque != '':
-                        queryset = queryset.filter(banque_id=int(banque))
-                        
-                elif type_etat == 'synthese_par_banque':
-                    mois = request.POST.get('mois_synthese_banque')
-                    annee = request.POST.get('annee_synthese_banque')
-                    banque = request.POST.get('banque_synthese')
-                    print(f"Filtres synthèse par banque - Mois: {mois}, Année: {annee}, Banque: {banque}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                    if banque and banque.isdigit() and banque != '':
-                        queryset = queryset.filter(banque_id=int(banque))
-                        
-                elif type_etat == 'synthese_par_depenses':
-                    mois = request.POST.get('mois_synthese_depenses')
-                    annee = request.POST.get('annee_synthese_depenses')
-                    print(f"Filtres synthèse par dépenses - Mois: {mois}, Année: {annee}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                
-                # Préparer les données pour la réponse
-                lignes = []
-                total_cdf = Decimal('0.00')
-                total_usd = Decimal('0.00')
-                
-                # Pagination
-                page = int(request.POST.get('page', 1))
-                page_size = 50
-                start = (page - 1) * page_size
-                end = start + page_size
-                
-                queryset_paginated = queryset.order_by('-date')[start:end]
-                
-                for dep in queryset_paginated:
-                    lignes.append({
-                        'date': dep.date.strftime('%d/%m/%Y'),
-                        'libelle_depenses': dep.libelle_depenses[:100],
-                        'nature_economique': dep.nature_economique.titre if dep.nature_economique else '',
-                        'service_beneficiaire': dep.service_beneficiaire.nom_service if dep.service_beneficiaire else '',
-                        'banque': dep.banque.nom_banque if dep.banque else '',
-                        'montant_fc': float(dep.montant_fc),
-                        'montant_usd': float(dep.montant_usd),
-                        'observation': dep.observation[:100] if dep.observation else '',
-                    })
-                    total_cdf += dep.montant_fc
-                    total_usd += dep.montant_usd
-                
-                total_count = queryset.count()
-                has_next = end < total_count
-                
-                return JsonResponse({
-                    'success': True,
-                    'lignes': lignes,
-                    'count': len(lignes),
-                    'total_count': total_count,
-                    'page': page,
-                    'page_size': page_size,
-                    'has_next': has_next,
-                    'total_cdf': float(total_cdf),
-                    'total_usd': float(total_usd),
-                })
-                
+            # Gérer les nouveaux types d'états personnalisés
+            if type_etat in ['depense_par_nature', 'depense_par_mois', 'rapport_par_banque', 
+                           'synthese_par_banque', 'synthese_par_depenses']:
+                return self._handle_nouveaux_etats(request, type_etat)
             elif type_etat in ['recette_du_mois', 'recette_par_banque', 'synthese_recettes']:
-                # Utiliser la logique RECETTE_FEUILLE pour les nouveaux états
-                queryset = RecetteFeuille.objects.all()
-                print(f"Total initial RecetteFeuille: {queryset.count()}")
-                
-                # Récupérer les filtres selon le type d'état
-                if type_etat == 'recette_du_mois':
-                    mois = request.POST.get('mois_recette')
-                    annee = request.POST.get('annee_recette')
-                    print(f"Filtres recette du mois - Mois: {mois}, Année: {annee}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                        
-                elif type_etat == 'recette_par_banque':
-                    mois = request.POST.get('mois_recette_banque')
-                    annee = request.POST.get('annee_recette_banque')
-                    banque = request.POST.get('banque_recette')
-                    print(f"Filtres recette par banque - Mois: {mois}, Année: {annee}, Banque: {banque}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                    if banque and banque.isdigit() and banque != '':
-                        queryset = queryset.filter(banque_id=int(banque))
-                        
-                elif type_etat == 'synthese_recettes':
-                    mois = request.POST.get('mois_synthese_recettes')
-                    annee = request.POST.get('annee_synthese_recettes')
-                    print(f"Filtres synthèse recettes - Mois: {mois}, Année: {annee}")
-                    
-                    if annee and annee.isdigit() and annee != '':
-                        queryset = queryset.filter(annee=int(annee))
-                    if mois and mois.isdigit() and mois != '':
-                        queryset = queryset.filter(mois=int(mois))
-                
-                # Préparer les données pour la réponse
-                lignes = []
-                total_cdf = Decimal('0.00')
-                total_usd = Decimal('0.00')
-                
-                # Pagination
-                page = int(request.POST.get('page', 1))
-                page_size = 50
-                start = (page - 1) * page_size
-                end = start + page_size
-                
-                queryset_paginated = queryset.order_by('-date')[start:end]
-                
-                for rec in queryset_paginated:
-                    lignes.append({
-                        'date': rec.date.strftime('%d/%m/%Y'),
-                        'libelle_recette': rec.libelle_recette[:100],
-                        'banque': rec.banque.nom_banque if rec.banque else '',
-                        'montant_fc': float(rec.montant_fc),
-                        'montant_usd': float(rec.montant_usd),
-                    })
-                    total_cdf += rec.montant_fc
-                    total_usd += rec.montant_usd
-                
-                total_count = queryset.count()
-                has_next = end < total_count
-                
-                return JsonResponse({
-                    'success': True,
-                    'lignes': lignes,
-                    'count': len(lignes),
-                    'total_count': total_count,
-                    'page': page,
-                    'page_size': page_size,
-                    'has_next': has_next,
-                    'total_cdf': float(total_cdf),
-                    'total_usd': float(total_usd),
-                })
-                
-            elif type_etat == 'DEPENSE_FEUILLE':
+                return self._handle_etats_recettes(request, type_etat)
+            
+            # Appliquer les mêmes filtres que la vue PDF (cohérence preview / génération)
+            if type_etat == 'DEPENSE_FEUILLE':
                 # LOGIQUE SIMPLE DIRECTE - sans fonction externe
                 queryset = DepenseFeuille.objects.all()
                 print(f"Total initial DepenseFeuille: {queryset.count()}")
@@ -382,7 +204,7 @@ class EtatsFeuillesPreviewView(View):
 
 
 @method_decorator(csrf_exempt, name='dispatch')
-class EtatsFeuillesGenererView(View):
+class EtatsFeuillesGenererView(LoginRequiredMixin, View):
     """Vue pour générer les états feuilles"""
     
     def post(self, request, *args, **kwargs):
@@ -392,12 +214,6 @@ class EtatsFeuillesGenererView(View):
             type_rapport = request.POST.get('type_rapport', 'DETAILLE')  # DETAILLE, GROUPE, SYNTHESE
             
             print(f"Génération rapport: {type_etat}, format: {format_sortie}, type: {type_rapport}")
-            
-            # Gérer les nouveaux types d'état
-            if type_etat in ['depense_par_nature', 'depense_par_mois', 'rapport_par_banque', 'synthese_par_banque', 'synthese_par_depenses']:
-                return self._generer_pdf_nouveaux_etats(request, type_etat)
-            elif type_etat in ['recette_du_mois', 'recette_par_banque', 'synthese_recettes']:
-                return self._generer_pdf_nouveaux_etats(request, type_etat)
             
             if type_rapport == 'SYNTHESE':
                 # Rapport synthétique - juste les totaux
@@ -410,9 +226,9 @@ class EtatsFeuillesGenererView(View):
                 # Rapport détaillé (existant)
                 if format_sortie == 'PDF':
                     if type_etat == 'RECETTE_FEUILLE':
-                        return self._generer_pdf_recette_feuille(request)
+                        return JsonResponse({'success': True, 'etat_id': 'recette_pdf'})
                     elif type_etat == 'DEPENSE_FEUILLE':
-                        return self._generer_pdf_depense_feuille(request)
+                        return JsonResponse({'success': True, 'etat_id': 'depense_pdf'})
                     else:
                         return JsonResponse({'success': True, 'etat_id': 'tableau_general_pdf'})
                 else:
@@ -420,32 +236,6 @@ class EtatsFeuillesGenererView(View):
                 
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
-    
-    def _generer_pdf_nouveaux_etats(self, request, type_etat):
-        """Générer un PDF pour les nouveaux types d'état"""
-        try:
-            # Pour l'instant, retourner un message de succès
-            # TODO: Implémenter la génération PDF complète
-            return JsonResponse({
-                'success': True, 
-                'message': f'PDF généré avec succès pour {type_etat}',
-                'type_etat': type_etat
-            })
-        except Exception as e:
-            print(f"Erreur génération PDF: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({'success': False, 'error': f'Erreur: {str(e)}'})
-    
-    def _generer_pdf_depense_feuille(self, request):
-        """Générer PDF pour DEPENSE_FEUILLE (logique existante)"""
-        # Implémenter la logique existante pour DEPENSE_FEUILLE
-        return JsonResponse({'success': True, 'message': 'PDF DEPENSE_FEUILLE généré'})
-    
-    def _generer_pdf_recette_feuille(self, request):
-        """Générer PDF pour RECETTE_FEUILLE (logique existante)"""
-        # Implémenter la logique existante pour RECETTE_FEUILLE
-        return JsonResponse({'success': True, 'message': 'PDF RECETTE_FEUILLE généré'})
     
     def _generer_synthese(self, request, type_etat, format_sortie):
         """Générer un rapport synthétique avec juste les totaux"""
@@ -959,62 +749,3 @@ class RapportGroupePDFView(LoginRequiredMixin, View):
             import traceback
             traceback.print_exc()
             return HttpResponse(f"Erreur: {str(e)}", content_type='text/plain')
-
-
-class NaturesEconomiquesAPIView(View):
-    """Vue API pour récupérer la liste des natures économiques"""
-    
-    def get(self, request, *args, **kwargs):
-        try:
-            from demandes.models import NatureEconomique
-            
-            # Récupérer toutes les natures économiques actives
-            natures = NatureEconomique.objects.filter(active=True).order_by('code')
-            
-            # Préparer les données pour le select
-            data = []
-            for nature in natures:
-                data.append({
-                    'id': nature.id,
-                    'code': nature.code,
-                    'titre': nature.titre,
-                    'display': f"{nature.code} - {nature.titre}"
-                })
-            
-            return JsonResponse({
-                'success': True,
-                'natures': data
-            })
-            
-        except Exception as e:
-            print(f"Erreur dans NaturesEconomiquesAPIView: {str(e)}")
-            return JsonResponse({'success': False, 'error': str(e)})
-
-
-class BanquesAPIView(View):
-    """Vue API pour récupérer la liste des banques"""
-    
-    def get(self, request, *args, **kwargs):
-        try:
-            from banques.models import Banque
-            
-            # Récupérer toutes les banques actives
-            banques = Banque.objects.filter(active=True).order_by('nom_banque')
-            
-            # Préparer les données pour le select
-            data = []
-            for banque in banques:
-                data.append({
-                    'id': banque.id,
-                    'nom_banque': banque.nom_banque,
-                    'display': banque.nom_banque
-                })
-            
-            return JsonResponse({
-                'success': True,
-                'banques': data
-            })
-            
-        except Exception as e:
-            print(f"Erreur dans BanquesAPIView: {str(e)}")
-            return JsonResponse({'success': False, 'error': str(e)})
