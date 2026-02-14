@@ -27,7 +27,13 @@
         .navbar {
             background: linear-gradient(135deg, var(--dgrad-bleu) 0%, #2a4a6f 100%);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
         }
+        body { padding-top: 56px; }
         
         .navbar-brand {
             font-weight: bold;
@@ -37,6 +43,8 @@
         
         .sidebar {
             min-height: calc(100vh - 56px);
+            position: sticky;
+            top: 56px;
             background-color: var(--dgrad-bleu);
             padding: 20px 0;
             color: white;
@@ -218,11 +226,11 @@
                     </a>
                     {% endif %}
                     
-                    {% if user.peut_voir_menu_demandes %}
+                    <!-- {% if user.peut_voir_menu_demandes %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'liste' %}active{% endif %}" href="{% url 'demandes:liste' %}">
                         <i class="bi bi-file-earmark-text"></i> Demandes de paiement
                     </a>
-                    {% endif %}
+                    {% endif %} -->
                     
                     {% if user.peut_creer_releves %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'releves_liste' %}active{% endif %}" href="{% url 'demandes:releves_liste' %}">
@@ -237,14 +245,24 @@
                     {% endif %}
                     
                     {% if user.peut_voir_menu_depenses %}
-                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
+                    <!-- <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
                         <i class="bi bi-list-ul"></i> Dépenses
+                    </a> -->
+                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <i class="bi bi-chart-line"></i> TABLEAU DE BORD
+                    </a>
+
+                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'depense_feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:depense_feuille_liste' %}">
+                        <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
                     </a>
                     {% endif %}
                     
                     {% if user.peut_voir_menu_recettes %}
-                    <a class="nav-link {% if request.resolver_match.app_name == 'recettes' %}active{% endif %}" href="{% url 'recettes:liste' %}">
+                    <!-- <a class="nav-link {% if request.resolver_match.app_name == 'recettes' and request.resolver_match.url_name == 'liste' %}active{% endif %}" href="{% url 'recettes:liste' %}">
                         <i class="bi bi-cash-coin"></i> Recettes
+                    </a> -->
+                    <a class="nav-link {% if request.resolver_match.app_name == 'recettes' and 'feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'recettes:feuille_liste' %}">
+                        <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
                     </a>
                     {% endif %}
                     
@@ -265,9 +283,7 @@
                     
                     <!-- Tableau de bord feuilles -->
                     <hr style="border-color: rgba(255,255,255,0.2);">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
-                        <i class="bi bi-chart-line"></i> Tableau de bord feuilles
-                    </a>
+                   
                     
                     <!-- Tableau général -->
                     
@@ -283,6 +299,10 @@
                             </a></li>
                             <li><a class="dropdown-item" href="{% url 'tableau_bord_feuilles:etats_recettes' %}">
                                 <i class="bi bi-cash-coin"></i> État Recette
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'tableau_bord_feuilles:rapport_selection' %}">
+                                <i class="bi bi-file-pdf"></i> Rapports (sélection)
                             </a></li>
                         </ul>
                     </li>

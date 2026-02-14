@@ -28,12 +28,6 @@
         <a href="{% url 'demandes:depense_feuille_liste' %}" class="btn btn-outline-secondary" title="Structure feuille Excel DEPENSES">
             <i class="bi bi-file-earmark-spreadsheet"></i> Vue Feuille (Excel)
         </a>
-        <span class="badge bg-info fs-5 px-3 py-2">
-            <strong>Total CDF:</strong> {{ total_fc|format_montant }} CDF
-        </span>
-        <span class="badge bg-primary fs-5 px-3 py-2">
-            <strong>Total USD:</strong> {{ total_usd|format_montant }} USD
-        </span>
     </div>
 </div>
 
@@ -214,17 +208,6 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-                {% if depenses %}
-                <tfoot class="table-secondary">
-                    <tr>
-                        <th colspan="5" class="text-end">Total:</th>
-                        <th class="text-end text-success">{{ total_fc|format_montant:"CDF" }}</th>
-                        <th class="text-end text-primary">{{ total_usd|format_montant:"USD" }}</th>
-                        <th></th>
-                        <th></th>
-                    </tr>
-                </tfoot>
-                {% endif %}
             </table>
         </div>
         

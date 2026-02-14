@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load format_filters %}
 
-{% block title %}Détail dépense (feuille) - e-FinTrack{% endblock %}
+{% block title %}Détail dépense - e-FinTrack{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -79,7 +79,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-2">
-    <h2 class="h4 mb-0"><i class="bi bi-file-earmark-spreadsheet"></i> Ligne dépense (feuille)</h2>
+    <h2 class="h4 mb-0"><i class="bi bi-file-earmark-spreadsheet"></i> Détail dépense</h2>
     <div class="d-flex gap-2">
         {% if user.peut_saisir_demandes_recettes %}
         <a href="{% url 'demandes:depense_feuille_modifier' ligne.pk %}" class="btn btn-warning btn-sm"><i class="bi bi-pencil me-1"></i> Modifier</a>

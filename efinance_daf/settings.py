@@ -93,16 +93,17 @@ WSGI_APPLICATION = 'efinance_daf.wsgi.application'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
 # Configuration de la base de données
-# Utilise PostgreSQL si disponible, sinon SQLite pour le développement
+# SQLite par défaut | Pour PostgreSQL : USE_POSTGRESQL=True dans .env
 USE_POSTGRESQL = config('USE_POSTGRESQL', default=False, cast=bool)
 
 if USE_POSTGRESQL:
+    # Connexion PostgreSQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('DB_NAME', default='efinance_daf'),
+            'NAME': config('DB_NAME', default='FINTRACK'),
             'USER': config('DB_USER', default='postgres'),
-            'PASSWORD': config('DB_PASSWORD', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default='123456'),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default='5432'),
         }

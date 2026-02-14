@@ -101,6 +101,13 @@ class RecetteFeuilleForm(forms.ModelForm):
         self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')
         self.fields['banque'].empty_label = "Sélectionner une banque"
 
+    def clean_annee(self):
+        annee = self.cleaned_data.get('annee')
+        if annee is not None:
+            if annee < 1990 or annee > 2100:
+                raise forms.ValidationError('L\'année doit être entre 1990 et 2100.')
+        return annee
+
     def clean(self):
         cleaned_data = super().clean()
         montant_fc = cleaned_data.get('montant_fc') or Decimal('0.00')

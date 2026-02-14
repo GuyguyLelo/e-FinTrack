@@ -44,7 +44,7 @@
                     </div>
                     
                     <!-- Formulaire avec champs dynamiques -->
-                    <form method="POST" id="etatForm" style="display: none;">
+                    <form method="POST" id="etatForm" action="{% url 'tableau_bord_feuilles:generer_etats' %}" style="display: none;">
                         {% csrf_token %}
                         <input type="hidden" name="type_etat" id="type_etat" value="">
                         <input type="hidden" name="format_sortie" value="PDF">
@@ -365,26 +365,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function genererEtat() {
-        const formData = new FormData(document.getElementById('etatForm'));
-        
-        fetch('/tableau-bord-feuilles/generer-etats/', {
+        const form = document.getElementById('etatForm');
+        const formData = new FormData(form);
+        fetch(form.action || '/tableau-bord-feuilles/generer-etats/', {
             method: 'POST',
             body: formData,
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-            }
+            headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('État imprimé avec succès!');
-            } else {
-                alert('Erreur: ' + data.error);
+        .then(response => {
+            const ct = response.headers.get('content-type') || '';
+            if (ct.includes('application/pdf')) {
+                return response.blob().then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'etat_' + new Date().getTime() + '.pdf';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
             }
+            return response.text().then(txt => {
+                try {
+                    const data = JSON.parse(txt);
+                    alert(data.error || 'Une erreur s\'est produite.');
+                } catch (e) {
+                    alert('Une erreur s\'est produite: ' + (txt || response.statusText));
+                }
+            });
         })
-        .catch(error => {
-            alert('Erreur d\'impression: ' + error.message);
-        });
+        .catch(err => alert('Erreur: ' + err.message));
     }
 });
 </script>

@@ -1,129 +1,94 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if object %}Modifier{% else %}Ajouter{% endif %} une ligne recette (feuille) - e-FinTrack{% endblock %}
+{% block title %}{% if object %}Modifier{% else %}Ajouter{% endif %} une recette - e-FinTrack{% endblock %}
 
 {% block extra_css %}
 <style>
-.recette-feuille-card {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
-    overflow: hidden;
-    border: none;
+.recette-form-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #f4fef8;
+    padding: 1.75rem;
+    border-radius: 10px;
 }
-.recette-feuille-card .card-header {
-    background: linear-gradient(135deg, #1a4d6e 0%, #2d6a8f 50%, #1a4d6e 100%);
-    color: white;
-    padding: 1rem 1.25rem;
-    border: none;
+.recette-form-wrap .form-header {
+    border-left: 4px solid #059669;
+    padding-left: 1rem;
+    margin-bottom: 1.75rem;
 }
-.recette-feuille-card .card-header h4 {
+.recette-form-wrap .form-header h4 {
     margin: 0;
-    font-weight: 600;
-    font-size: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #1e293b;
+    letter-spacing: -0.02em;
 }
-.recette-feuille-card .card-header h4 i {
-    opacity: 0.95;
+.recette-form-wrap .form-header h4 i {
+    color: #059669;
+    margin-right: 0.5rem;
 }
-.recette-feuille-card .card-body {
-    padding: 1.5rem 1.5rem 1.5rem;
-    background: #fafbfc;
-}
-.recette-feuille-card .form-section {
-    background: white;
-    border-radius: 8px;
-    padding: 1.25rem 1.25rem 1rem;
+.recette-form-wrap .form-section {
+    border-left: 3px solid #059669;
+    background: #fff;
+    padding: 1.25rem 1.5rem;
     margin-bottom: 1.25rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e8ecef;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
-.recette-feuille-card .form-section:last-of-type {
-    margin-bottom: 0;
-}
-.recette-feuille-card .form-section-title {
+.recette-form-wrap .form-section-title {
     font-weight: 600;
-    font-size: 0.95rem;
-    color: #1a4d6e;
+    font-size: 0.9rem;
+    color: #64748b;
     margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #e8ecef;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
-.recette-feuille-card .form-section-title i {
-    font-size: 1rem;
-    opacity: 0.9;
+.recette-form-wrap .form-section-title i {
+    color: #059669;
+    margin-right: 0.4rem;
 }
-.recette-feuille-card .form-label {
+.recette-form-wrap .form-label {
     font-weight: 500;
-    color: #495057;
-    font-size: 1rem;
+    color: #475569;
+    font-size: 0.9rem;
     margin-bottom: 0.35rem;
 }
-.recette-feuille-card .form-control,
-.recette-feuille-card .form-select {
-    border-radius: 6px;
-    border: 1px solid #dee2e6;
+.recette-form-wrap .form-control,
+.recette-form-wrap .form-select {
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
     padding: 0.5rem 0.75rem;
-    min-height: 2.5rem;
-    font-size: 1rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 0.95rem;
+    color: #0ea5e9;
+    font-weight: 500;
 }
-.recette-feuille-card .form-select {
-    padding: 0.5rem 0.75rem;
+.recette-form-wrap .form-control::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
 }
-.recette-feuille-card .form-control:focus,
-.recette-feuille-card .form-select:focus {
-    border-color: #1a4d6e;
-    box-shadow: 0 0 0 0.2rem rgba(26, 77, 110, 0.2);
+.recette-form-wrap .form-control:focus,
+.recette-form-wrap .form-select:focus {
+    border-color: #059669;
+    box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
 }
-.recette-feuille-card textarea.form-control {
-    min-height: 80px;
-    padding: 0.5rem 0.75rem;
-    font-size: 1rem;
-    resize: vertical;
+.recette-form-wrap textarea.form-control { min-height: 85px; resize: vertical; }
+.recette-form-wrap .btn-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e2e8f0;
 }
-.recette-feuille-card .btn-actions {
-    background: white;
-    border-radius: 8px;
-    padding: 1rem 1.25rem;
-    margin-top: 1rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e8ecef;
-}
-.recette-feuille-card .btn-submit {
-    padding: 0.6rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: 5px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.recette-feuille-card .btn-submit:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(26, 77, 110, 0.3);
-}
-.recette-feuille-card .btn-outline-back {
-    border-radius: 6px;
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
-}
-.recette-feuille-card .invalid-feedback {
-    font-size: 0.8rem;
-}
+.recette-form-wrap .btn-submit { font-weight: 600; }
+.recette-form-wrap .invalid-feedback { font-size: 0.8rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="row">
-    <div class="col-lg-8 offset-lg-2">
-        <div class="card recette-feuille-card">
-            <div class="card-header">
-                <h4><i class="bi bi-file-earmark-spreadsheet"></i> {% if object %}Modifier{% else %}Ajouter{% endif %} une ligne – Feuille RECETTES</h4>
+    <div class="col-lg-11 offset-lg-0 col-xl-10 offset-xl-1">
+        <div class="recette-form-wrap">
+            <div class="form-header">
+                <h4><i class="bi bi-arrow-up-circle"></i> {% if object %}Modifier{% else %}Ajouter{% endif %} une recette</h4>
             </div>
-            <div class="card-body">
                 <form method="post">
                     {% csrf_token %}
                     {% if form.non_field_errors %}
@@ -179,14 +144,11 @@
                     </div>
 
                     <div class="btn-actions d-flex flex-wrap gap-2 align-items-center">
-                        <button type="submit" class="btn btn-primary btn-submit"><i class="bi bi-check-circle me-1"></i> Enregistrer</button>
-                        <a href="{% url 'recettes:feuille_liste' %}" class="btn btn-secondary btn-submit">Annuler</a>
+                        <button type="submit" class="btn btn-success btn-submit" style="background:#059669;border-color:#059669"><i class="bi bi-check-lg me-1"></i> Enregistrer</button>
+                        <a href="{% url 'recettes:feuille_liste' %}" class="btn btn-light btn-submit">Annuler</a>
+                        <a href="{% url 'recettes:feuille_liste' %}" class="btn btn-link text-secondary"><i class="bi bi-arrow-left me-1"></i> Retour</a>
                     </div>
                 </form>
-            </div>
-        </div>
-        <div class="mt-3">
-            <a href="{% url 'recettes:feuille_liste' %}" class="btn btn-outline-secondary btn-outline-back"><i class="bi bi-arrow-left me-1"></i> Retour à la liste</a>
         </div>
     </div>
 </div>

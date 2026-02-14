@@ -19,7 +19,7 @@ class RecetteListView(RoleRequiredMixin, ListView):
     model = Recette
     template_name = 'recettes/recette_liste.html'
     context_object_name = 'recettes'
-    paginate_by = 50
+    paginate_by = 15
     permission_function = 'peut_voir_menu_recettes'
     
     def get_queryset(self):
@@ -194,7 +194,7 @@ class RecetteFeuilleListView(RoleRequiredMixin, ListView):
     model = RecetteFeuille
     template_name = 'recettes/recette_feuille_liste.html'
     context_object_name = 'lignes'
-    paginate_by = 50
+    paginate_by = 15
     permission_function = 'peut_voir_menu_recettes'
 
     def get_queryset(self):

@@ -37,10 +37,15 @@ def tableau_bord_feuilles(request):
     depenses = DepenseFeuille.objects.all()
     recettes = RecetteFeuille.objects.all()
     
-    # Filtres par année et mois
+    # Filtres par année et mois (valeurs par défaut : mois et année en cours)
     annee_filter = request.GET.get('annee')
     mois_filter = request.GET.get('mois')
     banque_filter = request.GET.get('banque')
+    
+    if annee_filter is None:
+        annee_filter = current_year
+    if mois_filter is None:
+        mois_filter = current_month
     
     if annee_filter:
         annee_filter = int(annee_filter)
@@ -96,11 +101,16 @@ def tableau_bord_feuilles(request):
             'nb_operations': depenses_banque.count() + recettes_banque.count()
         })
     
-    # Évolution mensuelle (données pour graphiques)
+    # Évolution mensuelle : données par mois pour l'année sélectionnée (tous les mois, pas filtré par mois)
+    depenses_evol = DepenseFeuille.objects.filter(annee=annee_filter)
+    recettes_evol = RecetteFeuille.objects.filter(annee=annee_filter)
+    if banque_filter:
+        depenses_evol = depenses_evol.filter(banque_id=banque_filter)
+        recettes_evol = recettes_evol.filter(banque_id=banque_filter)
     evolution_mensuelle = []
     for mois in range(1, 13):
-        dep_mois = depenses.filter(mois=mois, annee=current_year)
-        rec_mois = recettes.filter(mois=mois, annee=current_year)
+        dep_mois = depenses_evol.filter(mois=mois)
+        rec_mois = recettes_evol.filter(mois=mois)
         
         total_dep_cdf = dep_mois.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
         total_dep_usd = dep_mois.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
@@ -138,10 +148,10 @@ def tableau_bord_feuilles(request):
         ]
     }
     
-    # Récupérer les années disponibles sans union
-    annees_depenses = list(depenses.values_list('annee', flat=True).distinct())
-    annees_recettes = list(recettes.values_list('annee', flat=True).distinct())
-    annees_disponibles = sorted(set(annees_depenses + annees_recettes), reverse=True)
+    # Récupérer les années disponibles (inclure l'année en cours pour les valeurs par défaut)
+    annees_depenses = list(DepenseFeuille.objects.values_list('annee', flat=True).distinct())
+    annees_recettes = list(RecetteFeuille.objects.values_list('annee', flat=True).distinct())
+    annees_disponibles = sorted(set(annees_depenses + annees_recettes + [current_year]), reverse=True)
     
     context = {
         'total_depenses_cdf': total_depenses_cdf,

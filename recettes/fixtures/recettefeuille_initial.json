@@ -1,0 +1,5 @@
+[
+  {"model": "recettes.recettefeuille", "pk": 1, "fields": {"mois": 1, "annee": 2024, "date": "2024-01-15", "libelle_recette": "Recettes initiales - Droits administratifs", "banque": 1, "montant_fc": "0.00", "montant_usd": "5000.00", "date_creation": "2024-01-15T10:00:00Z", "date_modification": "2024-01-15T10:00:00Z"}},
+  {"model": "recettes.recettefeuille", "pk": 2, "fields": {"mois": 1, "annee": 2024, "date": "2024-01-20", "libelle_recette": "Redevances mensuelles", "banque": 1, "montant_fc": "25000000.00", "montant_usd": "0.00", "date_creation": "2024-01-20T14:00:00Z", "date_modification": "2024-01-20T14:00:00Z"}},
+  {"model": "recettes.recettefeuille", "pk": 3, "fields": {"mois": 2, "annee": 2024, "date": "2024-02-01", "libelle_recette": "Autres recettes diverses", "banque": 2, "montant_fc": "5000000.00", "montant_usd": "2500.00", "date_creation": "2024-02-01T09:30:00Z", "date_modification": "2024-02-01T09:30:00Z"}}
+]

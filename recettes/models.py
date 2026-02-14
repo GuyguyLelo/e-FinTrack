@@ -24,6 +24,13 @@ class SourceRecette(models.Model):
     
     def __str__(self):
         return f"{self.nom} ({self.code})"
+
+    def natural_key(self):
+        return [self.code]
+
+    @classmethod
+    def get_by_natural_key(cls, code):
+        return cls.objects.get(code=code)
     
     @classmethod
     def get_sources_par_defaut(cls):

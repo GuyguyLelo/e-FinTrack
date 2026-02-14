@@ -424,18 +424,169 @@ class EtatsFeuillesGenererView(View):
     def _generer_pdf_nouveaux_etats(self, request, type_etat):
         """Générer un PDF pour les nouveaux types d'état"""
         try:
-            # Pour l'instant, retourner un message de succès
-            # TODO: Implémenter la génération PDF complète
-            return JsonResponse({
-                'success': True, 
-                'message': f'PDF généré avec succès pour {type_etat}',
-                'type_etat': type_etat
-            })
+            if not REPORTLAB_AVAILABLE:
+                return JsonResponse({'success': False, 'error': 'ReportLab non disponible. pip install reportlab'})
+            
+            # Construire le queryset (même logique que preview)
+            if type_etat in ['depense_par_nature', 'depense_par_mois', 'rapport_par_banque', 'synthese_par_banque', 'synthese_par_depenses']:
+                queryset = DepenseFeuille.objects.all()
+                if type_etat == 'depense_par_nature':
+                    mois = request.POST.get('mois_nature')
+                    annee = request.POST.get('annee_nature')
+                    nature = request.POST.get('nature_economique')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                    if nature and nature.isdigit() and nature != '':
+                        queryset = queryset.filter(nature_economique_id=int(nature))
+                elif type_etat == 'depense_par_mois':
+                    mois = request.POST.get('mois_depense')
+                    annee = request.POST.get('annee_mois')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                elif type_etat == 'rapport_par_banque':
+                    mois = request.POST.get('mois_banque')
+                    annee = request.POST.get('annee_banque')
+                    banque = request.POST.get('banque_rapport')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                    if banque and banque.isdigit() and banque != '':
+                        queryset = queryset.filter(banque_id=int(banque))
+                elif type_etat == 'synthese_par_banque':
+                    mois = request.POST.get('mois_synthese_banque')
+                    annee = request.POST.get('annee_synthese_banque')
+                    banque = request.POST.get('banque_synthese')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                    if banque and banque.isdigit() and banque != '':
+                        queryset = queryset.filter(banque_id=int(banque))
+                elif type_etat == 'synthese_par_depenses':
+                    mois = request.POST.get('mois_synthese_depenses')
+                    annee = request.POST.get('annee_synthese_depenses')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                
+                titre = 'ÉTAT DES DÉPENSES'
+                queryset = queryset.order_by('-date')
+                headers = ['Date', 'Libellé', 'Nature/Banque', 'Montant FC', 'Montant $us']
+                def row_from_dep(dep):
+                    return [
+                        dep.date.strftime('%d/%m/%Y'),
+                        dep.libelle_depenses[:80] if dep.libelle_depenses else '',
+                        (dep.nature_economique.titre if dep.nature_economique else '') or (dep.banque.nom_banque if dep.banque else ''),
+                        f"{float(dep.montant_fc):,.2f}".replace(',', ' '),
+                        f"{float(dep.montant_usd):,.2f}".replace(',', ' '),
+                    ]
+                rows = [row_from_dep(d) for d in queryset]
+                
+            elif type_etat in ['recette_du_mois', 'recette_par_banque', 'synthese_recettes']:
+                queryset = RecetteFeuille.objects.all()
+                if type_etat == 'recette_du_mois':
+                    mois = request.POST.get('mois_recette')
+                    annee = request.POST.get('annee_recette')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                elif type_etat == 'recette_par_banque':
+                    mois = request.POST.get('mois_recette_banque')
+                    annee = request.POST.get('annee_recette_banque')
+                    banque = request.POST.get('banque_recette')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                    if banque and banque.isdigit() and banque != '':
+                        queryset = queryset.filter(banque_id=int(banque))
+                elif type_etat == 'synthese_recettes':
+                    mois = request.POST.get('mois_synthese_recettes')
+                    annee = request.POST.get('annee_synthese_recettes')
+                    if annee and annee.isdigit() and annee != '':
+                        queryset = queryset.filter(annee=int(annee))
+                    if mois and mois.isdigit() and mois != '':
+                        queryset = queryset.filter(mois=int(mois))
+                
+                titre = 'ÉTAT DES RECETTES'
+                queryset = queryset.order_by('-date')
+                headers = ['Date', 'Libellé', 'Banque', 'Montant FC', 'Montant $us']
+                def row_from_rec(rec):
+                    lib = (rec.libelle_recette or '')[:80]
+                    ban = (rec.banque.nom_banque if rec.banque else '') or ''
+                    return [
+                        rec.date.strftime('%d/%m/%Y'),
+                        lib,
+                        ban,
+                        f"{float(rec.montant_fc or 0):,.2f}".replace(',', ' '),
+                        f"{float(rec.montant_usd or 0):,.2f}".replace(',', ' '),
+                    ]
+                rows = [row_from_rec(r) for r in queryset]
+                
+            else:
+                return JsonResponse({'success': False, 'error': 'Type d\'état non valide'})
+            
+            # Calculer les totaux depuis le queryset
+            total_fc = queryset.aggregate(s=Sum('montant_fc'))['s'] or Decimal('0')
+            total_usd = queryset.aggregate(s=Sum('montant_usd'))['s'] or Decimal('0')
+            
+            # Générer le PDF
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                rightMargin=0.5*cm, leftMargin=0.5*cm,
+                topMargin=0.8*cm, bottomMargin=0.8*cm)
+            styles = getSampleStyleSheet()
+            elements = []
+            elements.append(Paragraph(titre, styles['Title']))
+            elements.append(Spacer(1, 0.5*cm))
+            
+            table_data = [headers] + rows
+            if table_data:
+                table = Table(table_data, colWidths=[2.5*cm, 8*cm, 4*cm, 4*cm, 4*cm])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ]))
+                elements.append(table)
+                elements.append(Spacer(1, 0.3*cm))
+                total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
+                total_table = Table([total_row], colWidths=[2.5*cm, 8*cm, 4*cm, 4*cm, 4*cm])
+                total_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ]))
+                elements.append(total_table)
+            else:
+                elements.append(Paragraph("Aucune donnée pour les critères sélectionnés.", styles['Normal']))
+            
+            doc.build(elements)
+            pdf_value = buffer.getvalue()
+            buffer.close()
+            
+            response = HttpResponse(pdf_value, content_type='application/pdf')
+            filename = f"etat_{type_etat}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+            
         except Exception as e:
             print(f"Erreur génération PDF: {str(e)}")
             import traceback
             traceback.print_exc()
-            return JsonResponse({'success': False, 'error': f'Erreur: {str(e)}'})
+            return JsonResponse({'success': False, 'error': str(e)})
     
     def _generer_pdf_depense_feuille(self, request):
         """Générer PDF pour DEPENSE_FEUILLE (logique existante)"""
