@@ -37,36 +37,41 @@ def tableau_bord_feuilles(request):
     depenses = DepenseFeuille.objects.all()
     recettes = RecetteFeuille.objects.all()
     
-    # Récupérer la dernière année disponible avec données significatives
-    derniere_annee_depense = DepenseFeuille.objects.order_by('-annee').first()
-    derniere_annee_recette = RecetteFeuille.objects.order_by('-annee').first()
+    # Récupérer le mois et année les plus récents avec des données
+    derniere_depense = DepenseFeuille.objects.order_by('-annee', '-mois').first()
+    derniere_recette = RecetteFeuille.objects.order_by('-annee', '-mois').first()
     
-    # Chercher l'année la plus récente avec des données USD non nulles
-    annee_avec_usd_depense = DepenseFeuille.objects.filter(montant_usd__gt=0).order_by('-annee').first()
-    annee_avec_usd_recette = RecetteFeuille.objects.filter(montant_usd__gt=0).order_by('-annee').first()
-    
-    if annee_avec_usd_depense and annee_avec_usd_recette:
-        default_year = max(annee_avec_usd_depense.annee, annee_avec_usd_recette.annee)
-    elif annee_avec_usd_depense:
-        default_year = annee_avec_usd_depense.annee
-    elif annee_avec_usd_recette:
-        default_year = annee_avec_usd_recette.annee
-    elif derniere_annee_depense and derniere_annee_recette:
-        default_year = max(derniere_annee_depense.annee, derniere_annee_recette.annee)
-    elif derniere_annee_depense:
-        default_year = derniere_annee_depense.annee
-    elif derniere_annee_recette:
-        default_year = derniere_annee_recette.annee
+    # Déterminer le mois et année les plus récents
+    if derniere_depense and derniere_recette:
+        if (derniere_depense.annee > derniere_recette.annee) or \
+           (derniere_depense.annee == derniere_recette.annee and derniere_depense.mois >= derniere_recette.mois):
+            default_year = derniere_depense.annee
+            default_month = derniere_depense.mois
+        else:
+            default_year = derniere_recette.annee
+            default_month = derniere_recette.mois
+    elif derniere_depense:
+        default_year = derniere_depense.annee
+        default_month = derniere_depense.mois
+    elif derniere_recette:
+        default_year = derniere_recette.annee
+        default_month = derniere_recette.mois
     else:
         default_year = current_year
+        default_month = current_month
     
-    # Filtres par année et mois (valeurs par défaut : TOUTES les données sans filtre)
+    # Filtres par année et mois (valeurs par défaut : mois et année les plus récents)
     annee_filter = request.GET.get('annee')
     mois_filter = request.GET.get('mois')
     banque_filter = request.GET.get('banque')
     
-    # Par défaut, ne filtrer par rien pour afficher TOUTES les données
-    # Seulement appliquer les filtres si l'utilisateur les sélectionne explicitement
+    # Par défaut, utiliser le mois et année les plus récents
+    if annee_filter is None:
+        annee_filter = default_year
+    if mois_filter is None:
+        mois_filter = default_month
+    
+    # Appliquer les filtres
     if annee_filter:
         annee_filter = int(annee_filter)
         depenses = depenses.filter(annee=annee_filter)
@@ -191,7 +196,8 @@ def tableau_bord_feuilles(request):
         'current_year': current_year,
         'current_month': current_month,
         'default_year': default_year,
-        'annee_filter': annee_filter,  # Sera None par défaut (toutes les années)
+        'default_month': default_month,
+        'annee_filter': annee_filter,
         'mois_filter': mois_filter,
         'banque_filter': banque_filter,
         'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],
