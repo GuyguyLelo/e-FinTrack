@@ -37,16 +37,36 @@ def tableau_bord_feuilles(request):
     depenses = DepenseFeuille.objects.all()
     recettes = RecetteFeuille.objects.all()
     
-    # Filtres par année et mois (valeurs par défaut : mois et année en cours)
+    # Récupérer la dernière année disponible avec données significatives
+    derniere_annee_depense = DepenseFeuille.objects.order_by('-annee').first()
+    derniere_annee_recette = RecetteFeuille.objects.order_by('-annee').first()
+    
+    # Chercher l'année la plus récente avec des données USD non nulles
+    annee_avec_usd_depense = DepenseFeuille.objects.filter(montant_usd__gt=0).order_by('-annee').first()
+    annee_avec_usd_recette = RecetteFeuille.objects.filter(montant_usd__gt=0).order_by('-annee').first()
+    
+    if annee_avec_usd_depense and annee_avec_usd_recette:
+        default_year = max(annee_avec_usd_depense.annee, annee_avec_usd_recette.annee)
+    elif annee_avec_usd_depense:
+        default_year = annee_avec_usd_depense.annee
+    elif annee_avec_usd_recette:
+        default_year = annee_avec_usd_recette.annee
+    elif derniere_annee_depense and derniere_annee_recette:
+        default_year = max(derniere_annee_depense.annee, derniere_annee_recette.annee)
+    elif derniere_annee_depense:
+        default_year = derniere_annee_depense.annee
+    elif derniere_annee_recette:
+        default_year = derniere_annee_recette.annee
+    else:
+        default_year = current_year
+    
+    # Filtres par année et mois (valeurs par défaut : TOUTES les données sans filtre)
     annee_filter = request.GET.get('annee')
     mois_filter = request.GET.get('mois')
     banque_filter = request.GET.get('banque')
     
-    if annee_filter is None:
-        annee_filter = current_year
-    if mois_filter is None:
-        mois_filter = current_month
-    
+    # Par défaut, ne filtrer par rien pour afficher TOUTES les données
+    # Seulement appliquer les filtres si l'utilisateur les sélectionne explicitement
     if annee_filter:
         annee_filter = int(annee_filter)
         depenses = depenses.filter(annee=annee_filter)
@@ -56,7 +76,7 @@ def tableau_bord_feuilles(request):
         mois_filter = int(mois_filter)
         depenses = depenses.filter(mois=mois_filter)
         recettes = recettes.filter(mois=mois_filter)
-    
+        
     if banque_filter:
         depenses = depenses.filter(banque_id=banque_filter)
         recettes = recettes.filter(banque_id=banque_filter)
@@ -170,7 +190,8 @@ def tableau_bord_feuilles(request):
         'banques': banques,
         'current_year': current_year,
         'current_month': current_month,
-        'annee_filter': annee_filter or current_year,
+        'default_year': default_year,
+        'annee_filter': annee_filter,  # Sera None par défaut (toutes les années)
         'mois_filter': mois_filter,
         'banque_filter': banque_filter,
         'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],

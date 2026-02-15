@@ -62,6 +62,7 @@
                 <div class="col-md-3">
                     <label for="annee" class="form-label">Année</label>
                     <select name="annee" id="annee" class="form-select">
+                        <option value="" {% if annee_filter == "" %}selected{% endif %}>Toutes les années</option>
                         {% for annee in annees_disponibles %}
                         <option value="{{ annee }}" {% if annee_filter == annee %}selected{% endif %}>{{ annee }}</option>
                         {% endfor %}

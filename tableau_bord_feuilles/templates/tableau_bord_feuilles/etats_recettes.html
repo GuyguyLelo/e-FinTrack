@@ -263,11 +263,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function chargerBanques() {
-        const selects = document.querySelectorAll('[name*="banque"]');
-        selects.forEach(select => {
+        // Ne cibler QUE le champ de sélection de banque (éviter les champs mois/année)
+        const banqueSelect = document.querySelector('[name="banque_recette"]');
+        
+        if (banqueSelect) {
             // Vider le select sauf l'option par défaut
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
+            while (banqueSelect.children.length > 1) {
+                banqueSelect.removeChild(banqueSelect.lastChild);
             }
             
             // Charger les banques depuis l'API
@@ -279,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             const option = document.createElement('option');
                             option.value = banque.id;
                             option.textContent = banque.display;
-                            select.appendChild(option);
+                            banqueSelect.appendChild(option);
                         });
                     }
                 })
@@ -289,9 +291,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const option = document.createElement('option');
                     option.value = '';
                     option.textContent = 'Erreur de chargement';
-                    select.appendChild(option);
+                    banqueSelect.appendChild(option);
                 });
-        });
+        }
     }
     
     function genererApercu() {

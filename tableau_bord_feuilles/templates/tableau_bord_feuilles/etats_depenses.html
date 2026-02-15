@@ -383,34 +383,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function chargerBanques() {
-        const selects = document.querySelectorAll('[name*="banque"]');
+        // Ne cibler que les vrais champs de banque
+        const selects = document.querySelectorAll('[name$="banque"], [name*="banque_rapport"]');
         selects.forEach(select => {
-            // Vider le select sauf l'option par défaut
-            while (select.children.length > 1) {
-                select.removeChild(select.lastChild);
+            // Vérifier que c'est bien un champ de sélection de banque
+            if (select.tagName === 'SELECT' && (select.name.includes('banque_rapport') || select.name.endsWith('banque'))) {
+                // Vider le select sauf l'option par défaut
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+                
+                // Charger les banques depuis l'API
+                fetch('/tableau-bord-feuilles/api/banques/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.banques) {
+                            data.banques.forEach(banque => {
+                                const option = document.createElement('option');
+                                option.value = banque.id;
+                                option.textContent = banque.display;
+                                select.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur lors du chargement des banques:', error);
+                        // En cas d'erreur, ajouter un message
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'Erreur de chargement';
+                        select.appendChild(option);
+                    });
             }
-            
-            // Charger les banques depuis l'API
-            fetch('/tableau-bord-feuilles/api/banques/')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.banques) {
-                        data.banques.forEach(banque => {
-                            const option = document.createElement('option');
-                            option.value = banque.id;
-                            option.textContent = banque.display;
-                            select.appendChild(option);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur lors du chargement des banques:', error);
-                    // En cas d'erreur, ajouter un message
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'Erreur de chargement';
-                    select.appendChild(option);
-                });
         });
     }
     
