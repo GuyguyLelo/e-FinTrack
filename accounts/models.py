@@ -155,4 +155,20 @@ class User(AbstractUser):
     def peut_voir_menu_banques(self):
         """Vérifie si l'utilisateur peut voir le menu banques"""
         return self.role in ['SUPER_ADMIN']
+    
+    def peut_voir_uniquement_tableau_bord_feuille(self):
+        """Vérifie si l'utilisateur ne peut voir que le tableau de bord feuille"""
+        return self.role in ['DG', 'CD_FINANCE']
+    
+    def peut_ajouter_nature_economique(self):
+        """Vérifie si l'utilisateur peut ajouter des natures économiques"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
+    
+    def peut_ajouter_recette_depense(self):
+        """Vérifie si l'utilisateur peut ajouter des recettes et dépenses"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN', 'OPERATEUR_SAISIE']
+    
+    def peut_generer_etats(self):
+        """Vérifie si l'utilisateur peut générer les états"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN', 'OPERATEUR_SAISIE']
 

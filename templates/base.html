@@ -190,15 +190,15 @@
         <div class="row">
             {% if user.is_authenticated %}
             <!-- Redirection automatique pour l'admin simple -->
-            {% if user.role == 'ADMIN' %}
+            {% if user.role == 'ADMIN' and request.path == '/' %}
             <script>
-                window.location.href = '/admin/';
+                window.location.href = '/demandes/natures/';
             </script>
             {% endif %}
             
             <!-- Sidebar -->
             <div class="col-md-2 sidebar">
-                {% if user.peut_acceder_admin_django and not user.peut_voir_tableau_bord %}
+                {% if user.peut_acceder_admin_django and not user.peut_voir_tableau_bord and not user.peut_ajouter_nature_economique %}
                 <!-- Admin simple : seulement accès à l'admin Django -->
                 <nav class="nav flex-column">
                     {% if user.peut_acceder_admin_django %}
@@ -211,19 +211,27 @@
                 {% else %}
                 <!-- Autres rôles : menu selon permissions spécifiées -->
                 <nav class="nav flex-column">
-                    {% if user.peut_voir_tableau_bord %}
+                    {% if user.peut_voir_uniquement_tableau_bord_feuille %}
+                    <!-- DG et CD_FINANCE : uniquement tableau de bord feuille -->
+                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <i class="bi bi-speedometer2"></i> Tableau de bord
+                    </a>
+                    
+                    {% else %}
+                    <!-- Autres rôles : menu selon permissions spécifiées -->
+                    {% if user.peut_voir_tableau_bord and user.role != 'ADMIN' %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                         <i class="bi bi-speedometer2"></i> Tableau de bord
                     </a>
                     {% endif %}
                     
-                    {% if user.peut_creer_entites_base %}
+                    {% if user.peut_ajouter_nature_economique %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'nature' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
                         <i class="bi bi-diagram-3"></i> Natures Économiques
                     </a>
                     {% endif %}
                     
-                    {% if user.peut_saisir_demandes_recettes %}
+                    {% if user.peut_ajouter_recette_depense and user.role != 'ADMIN' %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'depense_feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:depense_feuille_liste' %}">
                         <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
                     </a>
@@ -233,13 +241,12 @@
                     </a>
                     {% endif %}
                     
-                    {% if user.peut_voir_tableau_bord or user.peut_creer_etats or user.peut_saisir_demandes_recettes %}
+                    {% if user.peut_generer_etats and user.role != 'ADMIN' %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and 'etats' in request.resolver_match.url_name %}active{% elif request.resolver_match.app_name == 'tableau_bord_feuilles' and 'rapport' in request.resolver_match.url_name %}active{% endif %}" href="#" id="rapportsFeuillesDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="#" id="rapportsFeuillesDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-file-pdf"></i> Rapports feuilles
                         </a>
                         <ul class="dropdown-menu">
-                            {% if user.role != 'DG' and user.role != 'CD_FINANCE' %}
                             <li><a class="dropdown-item" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
                                 <i class="bi bi-file-earmark-text"></i> État Dépense
                             </a></li>
@@ -248,11 +255,11 @@
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'tableau_bord_feuilles:rapport_selection' %}">
-                                <i class="bi bi-file-pdf"></i> Rapports (sélection)
+                                <i class="bi bi-file-pdf"></i> Rapports (selection)
                             </a></li>
-                            {% endif %}
                         </ul>
                     </li>
+                    {% endif %}
                     {% endif %}                  
                 </nav>
                 {% endif %}
@@ -275,10 +282,6 @@
                 
                 {% block content %}{% endblock %}
             </div>
-        {% endif %}
-        
-        </div>
-    </div>
         </div>
     </div>
 
