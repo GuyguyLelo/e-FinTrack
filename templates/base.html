@@ -217,6 +217,10 @@
                     </a>
                     {% endif %}
                     
+                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'nature' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
+                        <i class="bi bi-diagram-3"></i> Articles Littera
+                    </a>
+                    
                     {% if user.peut_voir_menu_banques %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'banques' %}active{% endif %}" href="{% url 'banques:liste' %}">
                         <i class="bi bi-bank"></i> Banques
