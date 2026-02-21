@@ -29,7 +29,7 @@ class LoginView(BaseLoginView):
             login(self.request, user)
             
             # Redirection selon le rôle
-            if user.role == 'DG' or user.role == 'CD_FINANCE':
+            if user.role == 'DG' or user.role == 'CD_FINANCE' or user.role == 'ADMIN':
                 return redirect('/tableau-bord-feuilles/')
             else:
                 return redirect('/')
