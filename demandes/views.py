@@ -2421,6 +2421,26 @@ class DepenseFeuilleListView(RoleRequiredMixin, ListView):
         banque_id = self.request.GET.get('banque')
         if banque_id:
             qs = qs.filter(banque_id=banque_id)
+        
+        # Filtres par date
+        date_debut = self.request.GET.get('date_debut')
+        if date_debut:
+            try:
+                from datetime import datetime
+                date_debut_obj = datetime.strptime(date_debut, '%Y-%m-%d').date()
+                qs = qs.filter(date__gte=date_debut_obj)
+            except ValueError:
+                pass
+        
+        date_fin = self.request.GET.get('date_fin')
+        if date_fin:
+            try:
+                from datetime import datetime
+                date_fin_obj = datetime.strptime(date_fin, '%Y-%m-%d').date()
+                qs = qs.filter(date__lte=date_fin_obj)
+            except ValueError:
+                pass
+        
         return qs
 
     def get_context_data(self, **kwargs):
@@ -2434,6 +2454,8 @@ class DepenseFeuilleListView(RoleRequiredMixin, ListView):
             'annee': self.request.GET.get('annee', ''),
             'mois': self.request.GET.get('mois', ''),
             'banque': self.request.GET.get('banque', ''),
+            'date_debut': self.request.GET.get('date_debut', ''),
+            'date_fin': self.request.GET.get('date_fin', ''),
         }
         return context
 
