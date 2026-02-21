@@ -3,10 +3,11 @@ Vues pour l'authentification
 """
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.views import LoginView as BaseLoginView
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.decorators.csrf import csrf_exempt
 
 
 class LoginView(BaseLoginView):
@@ -26,10 +27,50 @@ class LoginView(BaseLoginView):
         
         if user is not None and user.is_active:
             login(self.request, user)
-            # Redirection vers le dashboard (racine)
-            return redirect('/')
+            
+            # Redirection selon le rôle
+            if user.role == 'DG' or user.role == 'CD_FINANCE':
+                return redirect('/tableau-bord-feuilles/')
+            else:
+                return redirect('/')
         
         return super().form_valid(form)
+
+
+class LoginTestView(TemplateView):
+    """Vue de connexion de test sans CSRF pour les tests"""
+    template_name = 'accounts/login_test.html'
+    
+    def post(self, request):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(username=username, password=password)
+        
+        if user is not None and user.is_active:
+            login(request, user)
+            return redirect('/')
+        
+        return render(request, self.template_name, {
+            'error': 'Identifiants invalides'
+        })
+
+
+class LoginSimpleView(TemplateView):
+    """Vue de connexion simple sans middleware"""
+    template_name = 'accounts/login_simple.html'
+    
+    def post(self, request):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(username=username, password=password)
+        
+        if user is not None and user.is_active:
+            login(request, user)
+            return redirect('/')
+        
+        return render(request, self.template_name, {
+            'error': 'Identifiants invalides'
+        })
 
 
 class ProfileView(LoginRequiredMixin, TemplateView):
@@ -63,4 +104,3 @@ class IdentifiantsView(TemplateView):
         }
         
         return context
-

@@ -1,0 +1,1 @@
+default_app_config = 'tableau_bord_feuilles.apps.TableauBordFeuillesConfig'

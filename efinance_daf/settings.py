@@ -70,6 +70,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'efinance_daf.urls'
 
+
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
