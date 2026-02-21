@@ -31,7 +31,7 @@ class DemandePaiementForm(forms.ModelForm):
     )
     nature_economique = forms.ModelChoiceField(
         queryset=NatureEconomique.objects.none(),
-        label="Nature économique",
+        label="Article Littera",
         widget=StyledSelectWidget(attrs={'class': 'form-select'})
     )
     
@@ -107,7 +107,7 @@ class DemandePaiementForm(forms.ModelForm):
     
     def _get_styled_choices(self):
         """Génère les choices avec style CSS pour différencier les niveaux hiérarchiques"""
-        choices = [('', '--- Sélectionner une nature économique ---')]
+        choices = [('', '--- Sélectionner un article littera ---')]
         
         # Récupérer toutes les natures actives organisées par hiérarchie
         natures = NatureEconomique.objects.filter(active=True).order_by('code')
@@ -320,10 +320,11 @@ class DepenseForm(forms.ModelForm):
 class NatureEconomiqueForm(forms.ModelForm):
     class Meta:
         model = NatureEconomique
-        fields = ['code', 'titre', 'code_parent', 'parent', 'active']
+        fields = ['code', 'titre', 'description', 'code_parent', 'parent', 'active']
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 1.1.1'}),
             'titre': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'code_parent': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Code du parent (ex: 1 pour 1-171)'}),
             'parent': forms.Select(attrs={'class': 'form-select'}),
             'active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
@@ -552,7 +553,7 @@ class DepenseFeuilleForm(forms.ModelForm):
             self.fields['mois'].initial = now.month
             self.fields['annee'].initial = now.year
         self.fields['nature_economique'].queryset = NatureEconomique.objects.filter(active=True).order_by('code')
-        self.fields['nature_economique'].empty_label = "Sélectionner une nature économique"
+        self.fields['nature_economique'].empty_label = "Sélectionner un article littera"
         self.fields['service_beneficiaire'].queryset = Service.objects.filter(actif=True).order_by('nom_service')
         self.fields['service_beneficiaire'].empty_label = "Sélectionner un service bénéficiaire"
         self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')

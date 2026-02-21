@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Détails de la Nature Économique - e-Finance DAF{% endblock %}
+{% block title %}Détails de l'Article Littera - e-Finance DAF{% endblock %}
 
 {% block content %}
 <div class="row">
@@ -8,7 +8,7 @@
         <div class="card">
             <div class="card-header">
                 <h4 class="mb-0">
-                    <i class="bi bi-diagram-3"></i> Détails de la Nature Économique
+                    <i class="bi bi-diagram-3"></i> Détails de l'Article Littera
                 </h4>
             </div>
             <div class="card-body">
@@ -28,7 +28,7 @@
                         {% endif %}
                     </dd>
                     
-                    <dt class="col-sm-3">Nature parente:</dt>
+                    <dt class="col-sm-3">Article Littera parent :</dt>
                     <dd class="col-sm-9">
                         {% if nature.parent %}
                         <span class="badge bg-info">
@@ -42,7 +42,7 @@
                 
                 {% if nature.children.exists %}
                 <div class="mt-4">
-                    <h5>Natures économiques enfants</h5>
+                    <h5>Articles Littera enfants</h5>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>

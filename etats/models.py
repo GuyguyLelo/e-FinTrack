@@ -50,7 +50,7 @@ class EtatGenerique(models.Model):
     
     # Filtres
     services = models.ManyToManyField(Service, blank=True, verbose_name="Services")
-    natures_economiques = models.ManyToManyField(NatureEconomique, blank=True, verbose_name="Natures économiques")
+    natures_economiques = models.ManyToManyField(NatureEconomique, blank=True, verbose_name="Articles Littera")
     banques = models.ManyToManyField(Banque, blank=True, verbose_name="Banques")
     comptes_bancaires = models.ManyToManyField(CompteBancaire, blank=True, verbose_name="Comptes bancaires")
     

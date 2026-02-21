@@ -513,7 +513,7 @@ class ReleveDepensePDFView(LoginRequiredMixin, ListView):
         
         # Tableau principal
         # En-têtes
-        table_data = [['N°', 'Code', 'Nature économique', 'Montant USD', 'IPR USD', 
+        table_data = [['N°', 'Code', 'Article Littera', 'Montant USD', 'IPR USD', 
                       'Montant CDF', 'IPR CDF', 'Net à payer USD', 'Net à payer CDF']]
         
         numero = 1
@@ -842,7 +842,7 @@ class ReleveDepenseExcelView(LoginRequiredMixin, ListView):
         row += 2
         
         # Tableau principal - En-têtes
-        headers = ['N°', 'Code', 'Nature économique', 'Montant USD', 'IPR USD', 
+        headers = ['N°', 'Code', 'Article Littera', 'Montant USD', 'IPR USD', 
                    'Montant CDF', 'IPR CDF', 'Net à payer USD', 'Net à payer CDF']
         for col, header in enumerate(headers, start=1):
             cell = ws.cell(row=row, column=col, value=header)
@@ -1092,7 +1092,7 @@ class ReleveDepenseReprintPDFView(LoginRequiredMixin, View):
         elements.append(Spacer(1, 0.5*cm))
         
         # Tableau principal
-        table_data = [['N°', 'Code', 'Nature économique', 'Montant USD', 'IPR USD', 
+        table_data = [['N°', 'Code', 'Article Littera', 'Montant USD', 'IPR USD', 
                       'Montant CDF', 'IPR CDF', 'Net à payer USD', 'Net à payer CDF']]
         
         numero_dem = 1
@@ -2545,7 +2545,7 @@ class NatureEconomiqueCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('demandes:nature_liste')
     
     def form_valid(self, form):
-        messages.success(self.request, 'Nature économique créée avec succès.')
+        messages.success(self.request, 'Article Littera créé avec succès.')
         return super().form_valid(form)
 
 
@@ -2557,7 +2557,7 @@ class NatureEconomiqueUpdateView(LoginRequiredMixin, UpdateView):
     success_url = reverse_lazy('demandes:nature_liste')
     
     def form_valid(self, form):
-        messages.success(self.request, 'Nature économique modifiée avec succès.')
+        messages.success(self.request, 'Article Littera modifié avec succès.')
         return super().form_valid(form)
 
 

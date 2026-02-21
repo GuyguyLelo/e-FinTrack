@@ -1,26 +1,26 @@
 {% extends 'base.html' %}
 
-{% block title %}Natures Économiques - e-Finance DAF{% endblock %}
+{% block title %}Articles Littera - e-Finance DAF{% endblock %}
 
 {% block extra_css %}
 <style>
-.nature-niveau-0 { background-color: #1a4d6e !important; color: #fff; font-weight: 600; }
-.nature-niveau-0 td { color: #fff; border-color: rgba(255,255,255,0.2); }
-.nature-niveau-0 .badge { background-color: rgba(255,255,255,0.3) !important; color: #fff; }
-.nature-niveau-0 .btn { color: #fff; border-color: rgba(255,255,255,0.5); }
-.nature-niveau-0 .btn:hover { background-color: rgba(255,255,255,0.2); }
-.nature-niveau-1 { background-color: #e8f4f8 !important; }
-.nature-niveau-1 td { padding-left: 2rem; border-left: 3px solid #1a4d6e; }
-.nature-niveau-2 { background-color: #f8fbfc !important; }
-.nature-niveau-2 td { padding-left: 3rem; border-left: 3px solid #2d6a8f; font-size: 0.95rem; }
+.nature-niveau-0 { background-color: #e8f4f8 !important; color: #1a3a5f; font-weight: 600; }
+.nature-niveau-0 td { color: #1a3a5f; border-color: rgba(26,58,95,0.3); }
+.nature-niveau-0 .badge { background-color: #1a3a5f !important; color: #fff; }
+.nature-niveau-0 .btn { color: #1a3a5f; border-color: #1a3a5f; }
+.nature-niveau-0 .btn:hover { background-color: rgba(26,58,95,0.15); color: #1a3a5f; }
+.nature-niveau-1 { background-color: #e8f4f8 !important; color: #1a3a5f; }
+.nature-niveau-1 td { padding-left: 2rem; border-left: 3px solid #1a3a5f; color: #1a3a5f; }
+.nature-niveau-2 { background-color: #f8fbfc !important; color: #1a3a5f; }
+.nature-niveau-2 td { padding-left: 3rem; border-left: 3px solid #1a3a5f; font-size: 0.95rem; color: #1a3a5f; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-diagram-3"></i> Natures Économiques</h2>
+    <h2><i class="bi bi-diagram-3"></i> Articles Littera</h2>
     <a href="{% url 'demandes:nature_creer' %}" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Créer une nature économique
+        <i class="bi bi-plus-circle"></i> Créer un article littera
     </a>
 </div>
 
@@ -32,7 +32,7 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-4">
-                <label for="parent" class="form-label">Nature parente</label>
+                <label for="parent" class="form-label">Article Littera parent</label>
                 <select name="parent" id="parent" class="form-select">
                     <option value="">Toutes</option>
                     {% for parent in parents %}
@@ -60,7 +60,7 @@
     </div>
 </div>
 
-<!-- Tableau des natures économiques -->
+<!-- Tableau des articles littera -->
 <div class="card">
     <div class="card-body">
         <div class="table-responsive">
@@ -108,7 +108,7 @@
                     <tr>
                         <td colspan="5" class="text-center text-muted py-4">
                             <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                            <p class="mt-2">Aucune nature économique trouvée</p>
+                            <p class="mt-2">Aucun article littera trouvé</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -118,7 +118,7 @@
         
         <!-- Pagination -->
         {% if is_paginated %}
-        <nav aria-label="Pagination des natures économiques">
+        <nav aria-label="Pagination des articles littera">
             <ul class="pagination justify-content-center mt-4">
                 {% if page_obj.has_previous %}
                 <li class="page-item">

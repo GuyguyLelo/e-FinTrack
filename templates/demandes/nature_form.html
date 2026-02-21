@@ -1,75 +1,99 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
 
-{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} une Nature Économique - e-Finance DAF{% endblock %}
-
-{% block extra_css %}
-<style>
-    .nature-form-card {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    
-    .nature-form-card .card-header {
-        background: linear-gradient(135deg, #1a3a5f 0%, #2a4a6f 100%);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-bottom: none;
-    }
-    
-    .nature-form-card .card-body {
-        padding: 1.5rem;
-        background-color: #f8f9fa;
-    }
-    
-    .form-control, .form-select {
-        border-radius: 6px;
-        border: 1px solid #ced4da;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.9rem;
-        transition: all 0.3s;
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: #1a3a5f;
-        box-shadow: 0 0 0 0.2rem rgba(26, 58, 95, 0.25);
-    }
-    
-    .form-label {
-        font-weight: 500;
-        font-size: 0.9rem;
-        color: #495057;
-        margin-bottom: 0.5rem;
-    }
-</style>
-{% endblock %}
+{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} un Article Littera - e-Finance DAF{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card nature-form-card">
-            <div class="card-header">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
                 <h4 class="mb-0">
-                    <i class="bi bi-diagram-3"></i> 
-                    {% if object %}Modifier{% else %}Créer{% endif %} une Nature Économique
+                    <i class="bi bi-diagram-3"></i>
+                    {% if object %}Modifier{% else %}Créer{% endif %} un Article Littera
                 </h4>
             </div>
             <div class="card-body">
                 <form method="post" novalidate>
                     {% csrf_token %}
-                    {% crispy form %}
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="id_parent" class="form-label">Article Littera parent</label>
+                        <select name="parent" id="id_parent" class="form-select">
+                            <option value="">---------</option>
+                            {% for p in form.fields.parent.queryset %}
+                            <option value="{{ p.pk }}" {% if form.parent.value == p.pk %}selected{% endif %}>
+                                {{ p.code }} - {{ p.titre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.parent.errors %}
+                        <div class="invalid-feedback d-block">{{ form.parent.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="id_code" class="form-label">Code <span class="text-danger">*</span></label>
+                            <input type="text" name="code" id="id_code" class="form-control {% if form.code.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.code.value|default:'' }}" placeholder="Ex: 1.1.1" required>
+                            {% if form.code.errors %}
+                            <div class="invalid-feedback">{{ form.code.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <label for="id_titre" class="form-label">Titre <span class="text-danger">*</span></label>
+                            <input type="text" name="titre" id="id_titre" class="form-control {% if form.titre.errors %}is-invalid{% endif %}" 
+                                   value="{{ form.titre.value|default:'' }}" required>
+                            {% if form.titre.errors %}
+                            <div class="invalid-feedback">{{ form.titre.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea name="description" id="id_description" class="form-control" rows="3" 
+                                  placeholder="Description optionnelle">{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_code_parent" class="form-label">Code parent</label>
+                        <input type="text" name="code_parent" id="id_code_parent" class="form-control" 
+                               value="{{ form.code_parent.value|default:'' }}" placeholder="Ex: 1">
+                        {% if form.code_parent.errors %}
+                        <div class="invalid-feedback d-block">{{ form.code_parent.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input type="checkbox" name="active" id="id_active" class="form-check-input" 
+                                   {% if form.initial.active|default:True %}checked{% endif %}>
+                            <label for="id_active" class="form-check-label">Actif</label>
+                        </div>
+                        {% if form.active.errors %}
+                        <div class="invalid-feedback d-block">{{ form.active.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'demandes:nature_liste' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Enregistrer
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
-        
         <div class="mt-3">
-            <a href="{% url 'demandes:nature_liste' %}" class="btn btn-secondary">
+            <a href="{% url 'demandes:nature_liste' %}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Retour à la liste
             </a>
         </div>
     </div>
 </div>
 {% endblock %}
-
-

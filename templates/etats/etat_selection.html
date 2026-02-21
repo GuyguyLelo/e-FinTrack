@@ -152,9 +152,9 @@
                             </select>
                         </div>
                         
-                        <!-- Natures économiques -->
+                        <!-- Articles Littera -->
                         <div class="col-md-3 mb-3">
-                            <label for="id_natures_economiques" class="form-label">Natures Économiques</label>
+                            <label for="id_natures_economiques" class="form-label">Articles Littera</label>
                             <select name="natures_economiques" id="id_natures_economiques" class="form-select" multiple>
                                 {% for nature in form.natures_economiques.field.queryset %}
                                     <option value="{{ nature.pk }}">{{ nature.titre }} ({{ nature.code }})</option>
@@ -284,7 +284,7 @@
 <script>
 // Configuration des en-têtes de tableau par type d'état
 const tableHeaders = {
-    'DEMANDE_PAIEMENT': ['Référence', 'Service', 'Nature Économique', 'Description', 'Montant', 'Devise', 'Statut', 'Date'],
+    'DEMANDE_PAIEMENT': ['Référence', 'Service', 'Article Littera', 'Description', 'Montant', 'Devise', 'Statut', 'Date'],
     'PAIEMENT': ['Référence', 'Demande', 'Montant Payé', 'Devise', 'Date', 'Bénéficiaire'],
     'RECETTE': ['Référence', 'Banque', 'Source', 'Description', 'Montant USD', 'Montant CDF', 'Date'],
     'DEPENSE': ['Code', 'Libellé', 'Banque', 'Montant USD', 'Montant CDF', 'Date'],

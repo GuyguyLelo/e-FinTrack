@@ -61,7 +61,7 @@ class EtatSelectionForm(forms.Form):
         queryset=NatureEconomique.objects.all(),
         required=False,
         widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': '4'}),
-        label="Natures économiques"
+        label="Articles Littera"
     )
     
     banques = forms.ModelMultipleChoiceField(

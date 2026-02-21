@@ -33,7 +33,7 @@ class RapportFeuilleSelectionForm(forms.Form):
     # Critère de regroupement
     critere_groupement = forms.ChoiceField(
         choices=[
-            ('nature', 'Par Nature Économique'),
+            ('nature', 'Par Article Littera'),
             ('service', 'Par Service Bénéficiaire'),
             ('banque', 'Par Banque'),
             ('mois', 'Par Mois'),
@@ -107,7 +107,7 @@ class RapportFeuilleSelectionForm(forms.Form):
     natures_depenses = forms.ChoiceField(
         choices=[],
         widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Natures Économiques",
+        label="Articles Littera",
         required=False
     )
     

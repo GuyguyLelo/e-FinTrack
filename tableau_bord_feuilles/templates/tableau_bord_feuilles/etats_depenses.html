@@ -122,7 +122,7 @@
         <div class="col-md-4">
             <label for="nature_economique" class="form-label">
                 <i class="fas fa-tags me-1"></i>
-                Nature économique
+                Article Littera
             </label>
             <select class="form-select" id="nature_economique" name="nature_economique">
                 <option value="">-- Toutes les natures --</option>
@@ -285,6 +285,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let etatActuel = null;
+    // URL de base pour les API (dérivée du formulaire, fonctionne en sous-dossier ou sous-domaine)
+    const formEl = document.getElementById('etatForm');
+    const baseUrl = formEl && formEl.action ? formEl.action.replace(/\/generer-etats\/?$/, '') : '';
     
     // Gestion des clics sur les boutons d'état
     document.querySelectorAll('.etat-btn').forEach(btn => {
@@ -359,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Charger les natures économiques depuis l'API
-            fetch('/tableau-bord-feuilles/api/natures-economiques/')
+            fetch((baseUrl || '/tableau-bord-feuilles') + '/api/natures-economiques/')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.natures) {
@@ -372,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch(error => {
-                    console.error('Erreur lors du chargement des natures économiques:', error);
+                    console.error('Erreur lors du chargement des articles littera:', error);
                     // En cas d'erreur, ajouter un message
                     const option = document.createElement('option');
                     option.value = '';
@@ -394,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Charger les banques depuis l'API
-                fetch('/tableau-bord-feuilles/api/banques/')
+                fetch((baseUrl || '/tableau-bord-feuilles') + '/api/banques/')
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.banques) {
@@ -426,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
         previewZone.style.display = 'block';
         previewContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement de l\'aperçu...</div>';
         
-        fetch('/tableau-bord-feuilles/preview-etats/', {
+        fetch((baseUrl || '/tableau-bord-feuilles') + '/preview-etats/', {
             method: 'POST',
             body: formData,
             headers: {
@@ -442,7 +445,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
-            previewContent.innerHTML = '<div class="alert alert-danger">Erreur de chargement: ' + error.message + '</div>';
+            let msg = error.message || 'Erreur réseau';
+            if (msg === 'Failed to fetch') {
+                msg = 'Impossible de joindre le serveur. Vérifiez que l\'application Django est démarrée (python manage.py runserver) et que vous accédez à la page via le serveur (ex. http://127.0.0.1:8000/...).';
+            }
+            previewContent.innerHTML = '<div class="alert alert-danger">Erreur de chargement: ' + msg + '</div>';
         });
     }
     
@@ -518,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function genererEtat() {
         const form = document.getElementById('etatForm');
         const formData = new FormData(form);
-        fetch(form.action || '/tableau-bord-feuilles/generer-etats/', {
+        fetch(form.action || (baseUrl || '/tableau-bord-feuilles') + '/generer-etats/', {
             method: 'POST',
             body: formData,
             headers: { 'X-CSRFToken': formData.get('csrfmiddlewaretoken') }

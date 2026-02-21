@@ -600,44 +600,73 @@ class EtatsFeuillesGenererView(View):
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
             elements.append(Paragraph(titre, styles['Title']))
-            if type_etat == 'depense_par_mois' and mois and mois.isdigit() and annee and annee.isdigit():
-                style_mois = ParagraphStyle('MoisConcerne', parent=styles['Normal'], fontSize=12, leading=14)
-                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-                mois_lib = mois_noms[int(mois)] if 1 <= int(mois) <= 12 else f"Mois {mois}"
-                mois_para = Paragraph(f"<b>Mois concerné :</b> {mois_lib} {annee}", style_mois)
-                col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
-                mois_table = Table([[mois_para, '', '', '', '']], colWidths=col_widths)
-                mois_table.setStyle(TableStyle([('SPAN', (0, 0), (2, 0)), ('ALIGN', (0, 0), (0, 0), 'LEFT')]))
-                elements.append(mois_table)
-                elements.append(Spacer(1, 0.3*cm))
-            else:
-                elements.append(Spacer(1, 0.5*cm))
+            # Ligne « Émis le / Période » au format reçu, pour tous les états simples
+            mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                         'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+            periode_label = 'Toutes périodes'
+            if 'depense' in type_etat or 'synthese_par_depenses' in type_etat:
+                # Période basée sur les filtres de dépenses
+                if 'mois' in locals() and mois and str(mois).isdigit() and annee and str(annee).isdigit() and 1 <= int(mois) <= 12:
+                    periode_label = f'{mois_noms[int(mois)].upper()} {annee}'
+                elif 'annee' in locals() and annee and str(annee).isdigit():
+                    periode_label = annee
+            elif 'recette' in type_etat:
+                # Période basée sur les filtres de recettes
+                if 'mois' in locals() and mois and str(mois).isdigit() and annee and str(annee).isdigit() and 1 <= int(mois) <= 12:
+                    periode_label = f'{mois_noms[int(mois)].upper()} {annee}'
+                elif 'annee' in locals() and annee and str(annee).isdigit():
+                    periode_label = annee
+            date_emission = datetime.now().strftime('%d/%m/%Y %H:%M')
+            col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
+            periode_row = [
+                Paragraph(f'<b>Émis le : {date_emission}   |   Période : {periode_label}</b>', styles['Normal']),
+                '', '', '', ''
+            ]
+            periode_table = Table([periode_row], colWidths=col_widths)
+            periode_table.setStyle(TableStyle([
+                ('SPAN', (0, 0), (-1, 0)),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('LINEBELOW', (0, 0), (-1, 0), 1.2, colors.HexColor('#888888')),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(periode_table)
+            elements.append(Spacer(1, 0.3*cm))
             
-            table_data = [headers] + rows
+            # En-têtes en majuscules comme dépense par nature
+            headers_upper = [h.upper() for h in headers]
+            table_data = [headers_upper] + rows
             if table_data:
                 table = Table(table_data, colWidths=[2*cm, 14*cm, 4*cm, 4*cm, 4*cm])
                 table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    # En-tête en gris clair, texte noir
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dddddd')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                    # Alignements
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('ALIGN', (1, 0), (2, -1), 'LEFT'),
                     ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 8),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    # Corps du tableau
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+                    # Bordures type reçu
+                    ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                    ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
                 ]))
                 elements.append(table)
                 elements.append(Spacer(1, 0.3*cm))
                 total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
                 total_table = Table([total_row], colWidths=[2*cm, 14*cm, 4*cm, 4*cm, 4*cm])
                 total_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9f9f9')),
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                     ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                    ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
                 ]))
                 elements.append(total_table)
             else:
@@ -679,15 +708,17 @@ class EtatsFeuillesGenererView(View):
                 elements.append(Spacer(1, 0.3*cm))
             mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
                          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-            titre = 'ÉTAT DES DÉPENSES PAR NATURE ÉCONOMIQUE'
+            titre = 'ÉTAT DES DÉPENSES PAR ARTICLE LITTERA'
             elements.append(Paragraph(titre, styles['Title']))
             if annee and str(annee).isdigit():
                 periode_label = f'{mois_noms[int(mois)].upper()} {annee}' if (mois and str(mois).isdigit() and 1 <= int(mois) <= 12) else annee
             else:
                 periode_label = 'Toutes périodes'
+            # Ligne de style reçu : Émis le + Période sur la même ligne
+            date_emission = datetime.now().strftime('%d/%m/%Y %H:%M')
             col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
             periode_row = [
-                Paragraph(f'<b>Période : {periode_label}</b>', styles['Normal']),
+                Paragraph(f'<b>Émis le : {date_emission}   |   Période : {periode_label}</b>', styles['Normal']),
                 '', '', '', ''
             ]
             t_periode = Table([periode_row], colWidths=col_widths)
@@ -695,6 +726,8 @@ class EtatsFeuillesGenererView(View):
                 ('SPAN', (0, 0), (-1, 0)),
                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                # Ligne de séparation épaisse grise sous l'en-tête
+                ('LINEBELOW', (0, 0), (-1, 0), 1.2, colors.HexColor('#888888')),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             elements.append(t_periode)
@@ -703,7 +736,7 @@ class EtatsFeuillesGenererView(View):
             groups = list(queryset.values('nature_economique_id', 'nature_economique__titre').annotate(
                 total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
             ).order_by('nature_economique__titre'))
-            headers_detail = ['Date', 'Libellé', 'Observation', 'Montant FC', 'Montant $us']
+            headers_detail = ['DATE', 'LIBELLÉ', 'OBSERVATION', 'MONTANT FC', 'MONTANT $US']
             total_general_fc = Decimal('0')
             total_general_usd = Decimal('0')
             for idx, g in enumerate(groups):
@@ -726,22 +759,31 @@ class EtatsFeuillesGenererView(View):
                     nature_cell = Paragraph(f"<b>{nature_titre.upper()}</b>", style_regroupement)
                     table_data = [[nature_cell, '', '', '', '']] + [headers_detail] + rows
                     t = Table(table_data, colWidths=col_widths)
+                    # Style type « reçu » : en-tête foncé, texte blanc, bordures nettes
                     t.setStyle(TableStyle([
-                        ('SPAN', (0, 0), (2, 0)),
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8e8e8')),
+                        # Ligne de titre de la nature (fond clair sur toute la ligne)
+                        ('SPAN', (0, 0), (4, 0)),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f2f2f2')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (0, 0), 9),
-                        ('BOTTOMPADDING', (0, 0), (0, 0), 6),
-                        ('BACKGROUND', (0, 1), (-1, 1), colors.grey),
-                        ('TEXTCOLOR', (0, 1), (-1, 1), colors.whitesmoke),
+                        ('FONTSIZE', (0, 0), (-1, 0), 9),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                        # En-tête du tableau (Date / Libellé / …) en gris clair
+                        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#dddddd')),
+                        ('TEXTCOLOR', (0, 1), (-1, 1), colors.black),
+                        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 1), (-1, 1), 8),
+                        # Alignements
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                         ('ALIGN', (1, 1), (2, -1), 'LEFT'),
                         ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 1), (-1, -1), 8),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        # Corps de tableau
+                        ('FONTSIZE', (0, 2), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 2), (-1, -1), 3),
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        # Bordures type reçu
+                        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
                     ]))
                     total_fc = g['total_cdf'] or Decimal('0')
                     total_usd = g['total_usd'] or Decimal('0')
@@ -750,20 +792,20 @@ class EtatsFeuillesGenererView(View):
                     total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
                     tt = Table([total_row], colWidths=col_widths)
                     tt.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9f9f9')),
                         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                         ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
                     ]))
                     if is_last:
                         grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
                         grand_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
-                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#eeeeee')),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
                             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                             ('FONTSIZE', (0, 0), (-1, -1), 9),
                             ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                         ]))
                         elements.append(KeepTogether([t, tt, Spacer(1, 0.3*cm), grand_table]))
                     else:
@@ -774,12 +816,11 @@ class EtatsFeuillesGenererView(View):
                     if is_last:
                         grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
                         grand_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
-                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#eeeeee')),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
                             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                             ('FONTSIZE', (0, 0), (-1, -1), 9),
                             ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                         ]))
                         elements.append(KeepTogether([Paragraph("Aucune dépense pour cette nature.", styles['Normal']), Spacer(1, 0.3*cm), grand_table]))
                     else:
@@ -788,12 +829,11 @@ class EtatsFeuillesGenererView(View):
             if not groups:
                 grand_table = Table([['TOTAL GÉNÉRAL', '', '', '0,00', '0,00']], colWidths=col_widths)
                 grand_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#eeeeee')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, -1), 9),
                     ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                 ]))
                 elements.append(grand_table)
             doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
@@ -828,19 +868,36 @@ class EtatsFeuillesGenererView(View):
                 logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
+            # Titre sans période (comme dépense par nature)
             titre = 'RAPPORT DES DÉPENSES PAR BANQUE'
-            if annee and annee.isdigit():
-                titre += f' - {annee}'
-            if mois and mois.isdigit():
-                mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-                             'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-                titre += f' - {mois_noms[int(mois)]}'
             elements.append(Paragraph(titre, styles['Title']))
-            elements.append(Spacer(1, 0.5*cm))
+            # Ligne « Émis le / Période » au format reçu
+            mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                         'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+            if annee and str(annee).isdigit():
+                periode_label = f'{mois_noms[int(mois)].upper()} {annee}' if (mois and str(mois).isdigit() and 1 <= int(mois) <= 12) else annee
+            else:
+                periode_label = 'Toutes périodes'
+            date_emission = datetime.now().strftime('%d/%m/%Y %H:%M')
+            col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
+            periode_row = [
+                Paragraph(f'<b>Émis le : {date_emission}   |   Période : {periode_label}</b>', styles['Normal']),
+                '', '', '', ''
+            ]
+            t_periode = Table([periode_row], colWidths=col_widths)
+            t_periode.setStyle(TableStyle([
+                ('SPAN', (0, 0), (-1, 0)),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('LINEBELOW', (0, 0), (-1, 0), 1.2, colors.HexColor('#888888')),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(t_periode)
+            elements.append(Spacer(1, 0.3*cm))
             groups = list(queryset.values('banque_id', 'banque__nom_banque').annotate(
                 total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
             ).order_by('banque__nom_banque'))
-            headers_detail = ['Date', 'Libellé', 'Observation', 'Montant FC', 'Montant $us']
+            headers_detail = ['DATE', 'LIBELLÉ', 'OBSERVATION', 'MONTANT FC', 'MONTANT $US']
             col_widths = [2*cm, 14*cm, 4*cm, 4*cm, 4*cm]
             total_general_fc = Decimal('0')
             total_general_usd = Decimal('0')
@@ -863,22 +920,31 @@ class EtatsFeuillesGenererView(View):
                     banque_cell = Paragraph(f"<b>{banque_titre.upper()}</b>", style_regroupement)
                     table_data = [[banque_cell, '', '', '', '']] + [headers_detail] + rows
                     t = Table(table_data, colWidths=col_widths)
+                    # Reprendre exactement le style reçu de dépense par nature
                     t.setStyle(TableStyle([
-                        ('SPAN', (0, 0), (2, 0)),
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e8e8e8')),
+                        # Ligne de titre de la banque (fond clair sur toute la ligne)
+                        ('SPAN', (0, 0), (4, 0)),
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f2f2f2')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (0, 0), 9),
-                        ('BOTTOMPADDING', (0, 0), (0, 0), 6),
-                        ('BACKGROUND', (0, 1), (-1, 1), colors.grey),
-                        ('TEXTCOLOR', (0, 1), (-1, 1), colors.whitesmoke),
+                        ('FONTSIZE', (0, 0), (-1, 0), 9),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                        # En-tête du tableau (DATE / LIBELLÉ / …) en gris clair
+                        ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#dddddd')),
+                        ('TEXTCOLOR', (0, 1), (-1, 1), colors.black),
+                        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 1), (-1, 1), 8),
+                        # Alignements
                         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                         ('ALIGN', (1, 1), (2, -1), 'LEFT'),
                         ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 1), (-1, -1), 8),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        # Corps de tableau
+                        ('FONTSIZE', (0, 2), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 2), (-1, -1), 3),
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        # Bordures type reçu
+                        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
                     ]))
                     total_fc = g['total_cdf'] or Decimal('0')
                     total_usd = g['total_usd'] or Decimal('0')
@@ -887,20 +953,20 @@ class EtatsFeuillesGenererView(View):
                     total_row = ['TOTAL', '', '', f"{float(total_fc):,.2f}".replace(',', ' '), f"{float(total_usd):,.2f}".replace(',', ' ')]
                     tt = Table([total_row], colWidths=col_widths)
                     tt.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), colors.lightgrey),
+                        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9f9f9')),
                         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                         ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                        ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                        ('BOX', (0, 0), (-1, -1), 0.8, colors.black),
                     ]))
                     if is_last:
                         grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
                         grand_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
-                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#eeeeee')),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
                             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                             ('FONTSIZE', (0, 0), (-1, -1), 9),
                             ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                         ]))
                         elements.append(KeepTogether([t, tt, Spacer(1, 0.3*cm), grand_table]))
                     else:
@@ -911,12 +977,11 @@ class EtatsFeuillesGenererView(View):
                     if is_last:
                         grand_table = Table([['TOTAL GÉNÉRAL', '', '', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]], colWidths=col_widths)
                         grand_table.setStyle(TableStyle([
-                            ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
-                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#eeeeee')),
+                            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
                             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                             ('FONTSIZE', (0, 0), (-1, -1), 9),
                             ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                         ]))
                         elements.append(KeepTogether([Paragraph("Aucune dépense pour cette banque.", styles['Normal']), Spacer(1, 0.3*cm), grand_table]))
                     else:
@@ -925,12 +990,11 @@ class EtatsFeuillesGenererView(View):
             if not groups:
                 grand_table = Table([['TOTAL GÉNÉRAL', '', '', '0,00', '0,00']], colWidths=col_widths)
                 grand_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#eeeeee')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, -1), 9),
                     ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
                 ]))
                 elements.append(grand_table)
             doc.build(elements, onFirstPage=_footer_on_first, onLaterPages=_footer_on_later)
@@ -974,8 +1038,9 @@ class EtatsFeuillesGenererView(View):
             else:
                 periode_label = 'Toutes périodes'
             col_widths = [12*cm, 6*cm, 6*cm]
+            date_emission = datetime.now().strftime('%d/%m/%Y %H:%M')
             periode_row = [
-                Paragraph(f'<b>Période : {periode_label}</b>', styles['Normal']),
+                Paragraph(f'<b>Émis le : {date_emission}   |   Période : {periode_label}</b>', styles['Normal']),
                 '', ''
             ]
             t_periode = Table([periode_row], colWidths=col_widths)
@@ -983,6 +1048,8 @@ class EtatsFeuillesGenererView(View):
                 ('SPAN', (0, 0), (-1, 0)),
                 ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                # Ligne de séparation épaisse grise sous l'en-tête
+                ('LINEBELOW', (0, 0), (-1, 0), 1.2, colors.HexColor('#888888')),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ]))
             elements.append(t_periode)
@@ -990,7 +1057,7 @@ class EtatsFeuillesGenererView(View):
             groups = list(queryset.values('banque_id', 'banque__nom_banque').annotate(
                 total_cdf=Sum('montant_fc'), total_usd=Sum('montant_usd')
             ).order_by('banque__nom_banque'))
-            headers = ['Banque', 'Total FC', 'Total $us']
+            headers = ['BANQUE', 'TOTAL FC', 'TOTAL $US']
             total_general_fc = Decimal('0')
             total_general_usd = Decimal('0')
             rows = []
@@ -1008,27 +1075,33 @@ class EtatsFeuillesGenererView(View):
             table_data = [headers] + rows
             if table_data:
                 t = Table(table_data, colWidths=col_widths)
+                # Style type reçu : en-tête gris, texte foncé, bordures nettes
                 t.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#dddddd')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
                     ('ALIGN', (0, 0), (0, -1), 'LEFT'),
                     ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 9),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                    ('BOX', (0, 0), (-1, -1), 0.9, colors.black),
                 ]))
                 elements.append(t)
                 elements.append(Spacer(1, 0.3*cm))
                 total_row = ['TOTAL GÉNÉRAL', f"{float(total_general_fc):,.2f}".replace(',', ' '), f"{float(total_general_usd):,.2f}".replace(',', ' ')]
                 tt = Table([total_row], colWidths=col_widths)
                 tt.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.grey),
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#222222')),
                     ('TEXTCOLOR', (0, 0), (-1, -1), colors.whitesmoke),
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
                     ('FONTSIZE', (0, 0), (-1, -1), 10),
                     ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('GRID', (0, 0), (-1, -1), 0.6, colors.black),
+                    ('BOX', (0, 0), (-1, -1), 0.9, colors.black),
                 ]))
                 elements.append(tt)
             else:
@@ -1375,7 +1448,7 @@ class RapportGroupePDFView(LoginRequiredMixin, View):
                 }
             else:
                 critere_labels = {
-                    'nature': 'Nature Économique',
+                    'nature': 'Article Littera',
                     'service': 'Service Bénéficiaire', 
                     'banque': 'Banque',
                     'mois': 'Mois'

@@ -72,7 +72,7 @@ class DemandePaiement(models.Model):
         related_name='demandes',
         null=True,
         blank=True,
-        verbose_name="Nature économique"
+        verbose_name="Article Littera"
     )
     description = models.TextField()
     montant = models.DecimalField(
@@ -462,8 +462,8 @@ class NatureEconomique(models.Model):
     )
 
     class Meta:
-        verbose_name = "Nature économique"
-        verbose_name_plural = "Natures économiques"
+        verbose_name = "Article Littera"
+        verbose_name_plural = "Articles Littera"
         ordering = ['code']
 
     def __str__(self):
@@ -678,7 +678,7 @@ class DepenseFeuille(models.Model):
         null=True,
         blank=True,
         related_name='depense_feuilles',
-        verbose_name="Nature économique"
+        verbose_name="Article Littera"
     )
     service_beneficiaire = models.ForeignKey(
         Service,
