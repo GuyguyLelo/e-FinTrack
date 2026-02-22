@@ -11,12 +11,15 @@
                     <h4><i class="bi bi-key"></i> Identifiants d'accès - e-Finance DAF</h4>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i> 
-                        <strong>Attention:</strong> Ces identifiants sont destinés au développement et aux tests. 
-                        Changez tous les mots de passe en production.
+                    <div class="alert alert-info">
+                        <i class="bi bi-database"></i> 
+                        <strong>Utilisateurs actifs</strong> — Données issues de la base de données. 
+                        Les mots de passe ne sont pas affichés (stockés de manière sécurisée).
                     </div>
                     
+                    {% if not identifiants %}
+                    <p class="text-muted text-center py-4">Aucun utilisateur actif dans la base de données.</p>
+                    {% endif %}
                     {% for categorie, users in identifiants.items %}
                     <div class="mb-4">
                         <h5 class="border-bottom pb-2 mb-3">
@@ -27,7 +30,6 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Nom d'utilisateur</th>
-                                        <th>Mot de passe</th>
                                         <th>Rôle</th>
                                         <th>Service</th>
                                     </tr>
@@ -36,7 +38,6 @@
                                     {% for user in users %}
                                     <tr>
                                         <td><strong class="text-primary">{{ user.username }}</strong></td>
-                                        <td><code class="text-success">{{ user.password }}</code></td>
                                         <td><span class="badge bg-info">{{ user.role }}</span></td>
                                         <td>{{ user.service }}</td>
                                     </tr>
@@ -47,13 +48,11 @@
                     </div>
                     {% endfor %}
                     
-                    <div class="alert alert-info">
-                        <h6><i class="bi bi-info-circle"></i> Instructions:</h6>
+                    <div class="alert alert-secondary">
+                        <h6><i class="bi bi-info-circle"></i> Gestion des mots de passe:</h6>
                         <ul class="mb-0">
-                            <li>Utilisez ces identifiants pour vous connecter au système</li>
-                            <li>Le compte <strong>admin</strong> a toutes les permissions</li>
-                            <li>Pour réinitialiser les mots de passe, utilisez: <code>python manage.py create_users_by_role</code></li>
-                            <li>Pour changer un mot de passe spécifique: <code>python manage.py changepassword &lt;username&gt;</code></li>
+                            <li>Pour changer un mot de passe: <code>python manage.py changepassword &lt;username&gt;</code></li>
+                            <li>La gestion des utilisateurs se fait via l'admin Django ou la commande <code>create_users_by_role</code></li>
                         </ul>
                     </div>
                     

@@ -10,7 +10,7 @@
             <div class="card">
                 <div class="card-header bg-danger text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-minus-circle me-2"></i>
+                        <i class="bi bi-credit-card me-2"></i>
                         {{ title }}
                     </h5>
                 </div>
@@ -23,35 +23,35 @@
                         <div class="col-md-6 col-lg-4 mb-3">
                             <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
                                     data-etat="depense_par_nature">
-                                <i class="fas fa-tags me-2"></i>
+                                <i class="bi bi-tags me-2"></i>
                                 Dépense par nature
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4 mb-3">
                             <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
                                     data-etat="depense_par_mois">
-                                <i class="fas fa-calendar me-2"></i>
+                                <i class="bi bi-calendar me-2"></i>
                                 Dépense par mois
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4 mb-3">
                             <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
                                     data-etat="rapport_par_banque">
-                                <i class="fas fa-university me-2"></i>
+                                <i class="bi bi-bank me-2"></i>
                                 Rapport par banque
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4 mb-3">
                             <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
                                     data-etat="synthese_par_banque">
-                                <i class="fas fa-chart-pie me-2"></i>
+                                <i class="bi bi-pie-chart me-2"></i>
                                 Synthèse par banque
                             </button>
                         </div>
                         <div class="col-md-6 col-lg-4 mb-3">
                             <button type="button" class="btn btn-outline-danger w-100 etat-btn" 
                                     data-etat="synthese_par_depenses">
-                                <i class="fas fa-file-invoice me-2"></i>
+                                <i class="bi bi-receipt me-2"></i>
                                 Synthèse par dépenses
                             </button>
                         </div>
@@ -72,13 +72,13 @@
                         <div class="row mt-4">
                             <div class="col-md-6">
                                 <button type="button" class="btn btn-primary w-100" id="previewBtn">
-                                    <i class="fas fa-eye me-2"></i>
+                                    <i class="bi bi-eye me-2"></i>
                                     Aperçu
                                 </button>
                             </div>
                             <div class="col-md-6">
-                                <button type="submit" class="btn btn-danger w-100">
-                                    <i class="fas fa-download me-2"></i>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-download me-2"></i>
                                     Imprimer l'état
                                 </button>
                             </div>
@@ -90,7 +90,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <h6 class="mb-0">
-                                    <i class="fas fa-eye me-2"></i>
+                                    <i class="bi bi-eye me-2"></i>
                                     Aperçu de l'état
                                 </h6>
                             </div>
@@ -106,7 +106,7 @@
                     <div class="text-center mt-4">
                         <a href="{% url 'tableau_bord_feuilles:rapport_selection' %}" 
                            class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-2"></i>
+                            <i class="bi bi-arrow-left me-2"></i>
                             Retour
                         </a>
                     </div>
@@ -121,7 +121,7 @@
     <div class="row mb-4">
         <div class="col-md-4">
             <label for="nature_economique" class="form-label">
-                <i class="fas fa-tags me-1"></i>
+                <i class="bi bi-tags me-1"></i>
                 Article Littera
             </label>
             <select class="form-select" id="nature_economique" name="nature_economique">
@@ -131,7 +131,7 @@
         </div>
         <div class="col-md-4">
             <label for="mois_nature" class="form-label">
-                <i class="fas fa-calendar me-1"></i>
+                <i class="bi bi-calendar me-1"></i>
                 Mois
             </label>
             <select class="form-select" id="mois_nature" name="mois_nature">
@@ -143,7 +143,7 @@
         </div>
         <div class="col-md-4">
             <label for="annee_nature" class="form-label">
-                <i class="fas fa-calendar-alt me-1"></i>
+                <i class="bi bi-calendar3 me-1"></i>
                 Année
             </label>
             <select class="form-select" id="annee_nature" name="annee_nature">
@@ -160,7 +160,7 @@
     <div class="row mb-4">
         <div class="col-md-6">
             <label for="mois_depense" class="form-label">
-                <i class="fas fa-calendar me-1"></i>
+                <i class="bi bi-calendar me-1"></i>
                 Mois
             </label>
             <select class="form-select" id="mois_depense" name="mois_depense">
@@ -172,7 +172,7 @@
         </div>
         <div class="col-md-6">
             <label for="annee_mois" class="form-label">
-                <i class="fas fa-calendar-alt me-1"></i>
+                <i class="bi bi-calendar3 me-1"></i>
                 Année
             </label>
             <select class="form-select" id="annee_mois" name="annee_mois">
@@ -189,7 +189,7 @@
     <div class="row mb-4">
         <div class="col-md-4">
             <label for="banque_rapport" class="form-label">
-                <i class="fas fa-university me-1"></i>
+                <i class="bi bi-bank me-1"></i>
                 Banque
             </label>
             <select class="form-select" id="banque_rapport" name="banque_rapport">
@@ -199,7 +199,7 @@
         </div>
         <div class="col-md-4">
             <label for="mois_banque" class="form-label">
-                <i class="fas fa-calendar me-1"></i>
+                <i class="bi bi-calendar me-1"></i>
                 Mois
             </label>
             <select class="form-select" id="mois_banque" name="mois_banque">
@@ -211,7 +211,7 @@
         </div>
         <div class="col-md-4">
             <label for="annee_banque" class="form-label">
-                <i class="fas fa-calendar-alt me-1"></i>
+                <i class="bi bi-calendar3 me-1"></i>
                 Année
             </label>
             <select class="form-select" id="annee_banque" name="annee_banque">
@@ -228,7 +228,7 @@
     <div class="row mb-4">
         <div class="col-md-6">
             <label for="mois_synthese_banque" class="form-label">
-                <i class="fas fa-calendar me-1"></i>
+                <i class="bi bi-calendar me-1"></i>
                 Mois
             </label>
             <select class="form-select" id="mois_synthese_banque" name="mois_synthese_banque">
@@ -240,7 +240,7 @@
         </div>
         <div class="col-md-6">
             <label for="annee_synthese_banque" class="form-label">
-                <i class="fas fa-calendar-alt me-1"></i>
+                <i class="bi bi-calendar3 me-1"></i>
                 Année
             </label>
             <select class="form-select" id="annee_synthese_banque" name="annee_synthese_banque">
@@ -257,7 +257,7 @@
     <div class="row mb-4">
         <div class="col-md-6">
             <label for="annee_synthese_depenses" class="form-label">
-                <i class="fas fa-calendar-alt me-1"></i>
+                <i class="bi bi-calendar3 me-1"></i>
                 Année
             </label>
             <select class="form-select" id="annee_synthese_depenses" name="annee_synthese_depenses">
@@ -269,7 +269,7 @@
         </div>
         <div class="col-md-6">
             <label for="mois_synthese_depenses" class="form-label">
-                <i class="fas fa-calendar me-1"></i>
+                <i class="bi bi-calendar me-1"></i>
                 Mois (optionnel)
             </label>
             <select class="form-select" id="mois_synthese_depenses" name="mois_synthese_depenses">
@@ -285,9 +285,10 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let etatActuel = null;
-    // URL de base pour les API (dérivée du formulaire, fonctionne en sous-dossier ou sous-domaine)
-    const formEl = document.getElementById('etatForm');
-    const baseUrl = formEl && formEl.action ? formEl.action.replace(/\/generer-etats\/?$/, '') : '';
+    // URL de base pour les API (dérivée de la page courante pour éviter erreurs de chargement)
+    const baseUrl = (typeof window !== 'undefined' && window.location.pathname) 
+        ? window.location.origin + window.location.pathname.replace(/\/etats-depenses\/?$/, '') 
+        : '/tableau-bord-feuilles';
     
     // Gestion des clics sur les boutons d'état
     document.querySelectorAll('.etat-btn').forEach(btn => {
@@ -427,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const previewContent = document.getElementById('previewContent');
         
         previewZone.style.display = 'block';
-        previewContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Chargement de l\'aperçu...</div>';
+        previewContent.innerHTML = '<div class="text-center"><i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i> Chargement de l\'aperçu...</div>';
         
         fetch((baseUrl || '/tableau-bord-feuilles') + '/preview-etats/', {
             method: 'POST',
@@ -557,6 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .etat-btn {
     transition: all 0.3s ease;
 }

@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Avg, Q, F, DecimalField
 from django.db.models.functions import ExtractYear, ExtractMonth, TruncMonth
 from django.utils.timezone import now
@@ -316,6 +317,7 @@ def detail_operations(request):
     return render(request, 'tableau_bord_feuilles/detail_operations.html', context)
 
 
+@login_required
 def etats_depenses(request):
     """
     Page des états de dépenses avec tous les boutons de rapport
@@ -326,6 +328,7 @@ def etats_depenses(request):
         from banques.models import Banque
         
         context = {
+            'title': 'États des dépenses',
             'natures': NatureEconomique.objects.filter(active=True).order_by('code'),
             'services': Service.objects.all().order_by('nom_service'),
             'banques': Banque.objects.filter(active=True).order_by('nom_banque'),

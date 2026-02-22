@@ -8,6 +8,7 @@ from django.views.generic import TemplateView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.decorators.csrf import csrf_exempt
+from .models import User
 
 
 class LoginView(BaseLoginView):
@@ -79,28 +80,30 @@ class ProfileView(LoginRequiredMixin, TemplateView):
 
 
 class IdentifiantsView(TemplateView):
-    """Vue pour afficher les identifiants de connexion (développement/test uniquement)"""
+    """Vue pour afficher les utilisateurs de la base de données (identifiants d'accès)"""
     template_name = 'accounts/identifiants.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Liste des identifiants par défaut
-        context['identifiants'] = {
-            'Direction': [
-                {'username': 'admin', 'password': 'admin', 'role': 'Administrateur', 'service': 'Direction Générale'},
-                {'username': 'dg', 'password': 'dg123456', 'role': 'Directeur Général', 'service': 'Direction Générale'},
-                {'username': 'daf', 'password': 'daf123456', 'role': 'Directeur Administratif et Financier', 'service': 'Direction Générale'},
-                {'username': 'df', 'password': 'df123456', 'role': 'Directeur Financier', 'service': 'Service Financier'},
-            ],
-            'Opérationnel': [
-                {'username': 'comptable1', 'password': 'comptable123', 'role': 'Comptable', 'service': 'Service Comptable'},
-                {'username': 'comptable2', 'password': 'comptable123', 'role': 'Comptable', 'service': 'Service Comptable'},
-                {'username': 'chef_service', 'password': 'chef123456', 'role': 'Chef de Service', 'service': 'Service Financier'},
-                {'username': 'auditeur', 'password': 'audit123456', 'role': 'Auditeur', 'service': 'Service Audit'},
-                {'username': 'operateur1', 'password': 'operateur123', 'role': 'Opérateur de Saisie', 'service': 'Service Comptable'},
-                {'username': 'operateur2', 'password': 'operateur123', 'role': 'Opérateur de Saisie', 'service': 'Service Comptable'},
-            ]
-        }
+        # Récupérer les utilisateurs actifs depuis la base de données
+        users = User.objects.filter(is_active=True).select_related('service').order_by('role', 'username')
         
+        # Grouper par catégorie (Direction / Opérationnel)
+        ROLES_DIRECTION = {'SUPER_ADMIN', 'ADMIN', 'DG', 'DF', 'CD_FINANCE'}
+        identifiants = {'Direction': [], 'Opérationnel': []}
+        
+        for u in users:
+            item = {
+                'username': u.username,
+                'role': u.get_role_display(),
+                'service': u.service.nom_service if u.service else '—',
+            }
+            if u.role in ROLES_DIRECTION:
+                identifiants['Direction'].append(item)
+            else:
+                identifiants['Opérationnel'].append(item)
+        
+        # Retirer les catégories vides
+        context['identifiants'] = {k: v for k, v in identifiants.items() if v}
         return context

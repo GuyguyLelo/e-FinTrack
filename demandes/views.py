@@ -2422,6 +2422,17 @@ class DepenseFeuilleListView(RoleRequiredMixin, ListView):
         if banque_id:
             qs = qs.filter(banque_id=banque_id)
         
+        nature_id = self.request.GET.get('nature_economique')
+        if nature_id:
+            qs = qs.filter(nature_economique_id=nature_id)
+        
+        mots_cles = self.request.GET.get('mots_cles', '').strip()
+        if mots_cles:
+            qs = qs.filter(
+                Q(libelle_depenses__icontains=mots_cles) |
+                Q(observation__icontains=mots_cles)
+            )
+        
         # Filtres par date
         date_debut = self.request.GET.get('date_debut')
         if date_debut:
@@ -2450,10 +2461,13 @@ class DepenseFeuilleListView(RoleRequiredMixin, ListView):
         context['total_usd'] = qs.aggregate(t=Sum('montant_usd'))['t'] or 0
         context['annees'] = DepenseFeuille.objects.values_list('annee', flat=True).distinct().order_by('-annee')
         context['banques'] = Banque.objects.filter(active=True).order_by('nom_banque')
+        context['natures_economiques'] = NatureEconomique.objects.filter(active=True).order_by('code')
         context['filtres'] = {
             'annee': self.request.GET.get('annee', ''),
             'mois': self.request.GET.get('mois', ''),
             'banque': self.request.GET.get('banque', ''),
+            'nature_economique': self.request.GET.get('nature_economique', ''),
+            'mots_cles': self.request.GET.get('mots_cles', ''),
             'date_debut': self.request.GET.get('date_debut', ''),
             'date_fin': self.request.GET.get('date_fin', ''),
         }

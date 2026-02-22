@@ -215,6 +215,10 @@ class RecetteFeuilleListView(RoleRequiredMixin, ListView):
         if banque_id:
             qs = qs.filter(banque_id=banque_id)
         
+        mots_cles = self.request.GET.get('mots_cles', '').strip()
+        if mots_cles:
+            qs = qs.filter(libelle_recette__icontains=mots_cles)
+        
         # Filtres par date
         date_debut = self.request.GET.get('date_debut')
         if date_debut:
@@ -248,6 +252,7 @@ class RecetteFeuilleListView(RoleRequiredMixin, ListView):
             'annee': self.request.GET.get('annee', ''),
             'mois': self.request.GET.get('mois', ''),
             'banque': self.request.GET.get('banque', ''),
+            'mots_cles': self.request.GET.get('mots_cles', ''),
             'date_debut': self.request.GET.get('date_debut', ''),
             'date_fin': self.request.GET.get('date_fin', ''),
         }
