@@ -29,48 +29,50 @@ def format_montant_decimal(montant):
 def tableau_bord_feuilles(request):
     """
     Tableau de bord dédié aux données des feuilles DEPENSES et RECETTES
+    avec intégration des clôtures mensuelles
     """
+    from clotures.models import ClotureMensuelle
+    
     today = now()
     current_year = today.year
     current_month = today.month
     
-    # Récupérer les données des dépenses (feuille)
-    depenses = DepenseFeuille.objects.all()
-    recettes = RecetteFeuille.objects.all()
+    # Récupérer la période actuelle (clôture)
+    try:
+        periode_actuelle = ClotureMensuelle.get_periode_actuelle()
+        # Calculer les soldes de la période
+        periode_actuelle.calculer_soldes()
+        periode_actuelle.refresh_from_db()
+    except:
+        # En cas d'erreur, créer une période par défaut
+        periode_actuelle = ClotureMensuelle.objects.create(
+            mois=current_month,
+            annee=current_year,
+            statut='OUVERT',
+            solde_ouverture_fc=0,
+            solde_ouverture_usd=0
+        )
     
-    # Récupérer le mois et année les plus récents avec des données
-    derniere_depense = DepenseFeuille.objects.order_by('-annee', '-mois').first()
-    derniere_recette = RecetteFeuille.objects.order_by('-annee', '-mois').first()
+    # Récupérer les données des dépenses et recettes de la période actuelle
+    depenses = DepenseFeuille.objects.filter(
+        mois=periode_actuelle.mois,
+        annee=periode_actuelle.annee
+    )
+    recettes = RecetteFeuille.objects.filter(
+        mois=periode_actuelle.mois,
+        annee=periode_actuelle.annee
+    )
     
-    # Déterminer le mois et année les plus récents
-    if derniere_depense and derniere_recette:
-        if (derniere_depense.annee > derniere_recette.annee) or \
-           (derniere_depense.annee == derniere_recette.annee and derniere_depense.mois >= derniere_recette.mois):
-            default_year = derniere_depense.annee
-            default_month = derniere_depense.mois
-        else:
-            default_year = derniere_recette.annee
-            default_month = derniere_recette.mois
-    elif derniere_depense:
-        default_year = derniere_depense.annee
-        default_month = derniere_depense.mois
-    elif derniere_recette:
-        default_year = derniere_recette.annee
-        default_month = derniere_recette.mois
-    else:
-        default_year = current_year
-        default_month = current_month
-    
-    # Filtres par année et mois (valeurs par défaut : mois et année les plus récents)
+    # Filtres par année et mois
     annee_filter = request.GET.get('annee')
     mois_filter = request.GET.get('mois')
     banque_filter = request.GET.get('banque')
     
-    # Par défaut, utiliser le mois et année les plus récents
+    # Par défaut, utiliser la période actuelle
     if annee_filter is None:
-        annee_filter = default_year
+        annee_filter = periode_actuelle.annee
     if mois_filter is None:
-        mois_filter = default_month
+        mois_filter = periode_actuelle.mois
     
     # Appliquer les filtres
     if annee_filter:
@@ -196,13 +198,22 @@ def tableau_bord_feuilles(request):
         'banques': banques,
         'current_year': current_year,
         'current_month': current_month,
-        'default_year': default_year,
-        'default_month': default_month,
+        'default_year': periode_actuelle.annee,
+        'default_month': periode_actuelle.mois,
         'annee_filter': annee_filter,
         'mois_filter': mois_filter,
         'banque_filter': banque_filter,
         'mois_choices': [(i, ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'][i-1]) for i in range(1, 13)],
         'annees_disponibles': annees_disponibles,
+        # Informations sur la période actuelle
+        'periode_actuelle': periode_actuelle,
+        'solde_ouverture_fc': periode_actuelle.solde_ouverture_fc,
+        'solde_ouverture_usd': periode_actuelle.solde_ouverture_usd,
+        'solde_net_fc': periode_actuelle.solde_net_fc,
+        'solde_net_usd': periode_actuelle.solde_net_usd,
+        'statut_periode': periode_actuelle.statut,
+        'peut_cloturer_periode': periode_actuelle.peut_etre_cloture()[0] if request.user.role in ['DG', 'CD_FINANCE'] else False,
+        'message_cloture': periode_actuelle.peut_etre_cloture()[1] if request.user.role in ['DG', 'CD_FINANCE'] else '',
         # Ajout des fonctions de formatage
         'format_montant': format_montant,
         'format_montant_decimal': format_montant_decimal,

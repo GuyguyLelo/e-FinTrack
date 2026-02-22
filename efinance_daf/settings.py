@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rapports',
     'etats',
     'tableau_bord_feuilles',
+    'clotures',
 ]
 
 MIDDLEWARE = [

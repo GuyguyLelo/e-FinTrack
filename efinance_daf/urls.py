@@ -16,6 +16,7 @@ urlpatterns = [
     path('releves/', include('releves.urls')),
     path('etats/', include('etats.urls')),
     path('tableau-bord-feuilles/', include('tableau_bord_feuilles.urls')),
+    path('clotures/', include('clotures.urls')),
 ]
 
 # Serve media files in development

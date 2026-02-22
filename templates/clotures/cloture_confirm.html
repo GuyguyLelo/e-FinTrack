@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Clôturer la période {{ cloture.mois|stringformat:"02d" }}/{{ cloture.annee }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmation de clôture
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Attention !</strong> La clôture d'une période est une action irréversible.
+                        Une fois clôturée, vous ne pourrez plus ajouter ou modifier des transactions pour cette période.
+                    </div>
+
+                    <h5 class="mb-3">Résumé de la période</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Période :</strong></td>
+                                    <td>{{ cloture.mois|stringformat:"02d" }}/{{ cloture.annee }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Statut actuel :</strong></td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-unlock me-1"></i>Ouvert
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Solde d'ouverture FC :</strong></td>
+                                    <td>{{ cloture.solde_ouverture_fc|floatformat:2 }} FC</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Solde d'ouverture USD :</strong></td>
+                                    <td>{{ cloture.solde_ouverture_usd|floatformat:2 }} $</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Total Recettes FC :</strong></td>
+                                    <td class="text-success">{{ cloture.total_recettes_fc|floatformat:2 }} FC</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Dépenses FC :</strong></td>
+                                    <td class="text-danger">{{ cloture.total_depenses_fc|floatformat:2 }} FC</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Solde Net FC :</strong></td>
+                                    <td class="{% if cloture.solde_net_fc >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ cloture.solde_net_fc|floatformat:2 }} FC
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Solde Net USD :</strong></td>
+                                    <td class="{% if cloture.solde_net_usd >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ cloture.solde_net_usd|floatformat:2 }} $
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Après clôture :</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Le solde net de cette période deviendra le solde d'ouverture de la période suivante</li>
+                            <li>La période {{ cloture.mois|stringformat:"02d" }}/{{ cloture.annee }} sera verrouillée et non modifiable</li>
+                            <li>Une nouvelle période sera automatiquement créée si elle n'existe pas</li>
+                            <li>Seuls les utilisateurs avec les droits appropriés pourront consulter cette période</li>
+                        </ul>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.observations.id_for_label }}" class="form-label">
+                                <strong>Observations (optionnel) :</strong>
+                            </label>
+                            {{ form.observations }}
+                            <small class="form-text text-muted">
+                                Ajoutez des commentaires ou des remarques sur cette clôture.
+                            </small>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'clotures:cloture_detail' cloture.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Annuler
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-lock me-2"></i>
+                                Confirmer la clôture
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

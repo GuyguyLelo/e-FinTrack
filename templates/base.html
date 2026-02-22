@@ -217,6 +217,13 @@
                         <i class="bi bi-speedometer2"></i> Tableau de bord
                     </a>
                     
+                    <!-- Menu Clôtures pour DG et CD_FINANCE -->
+                    {% if user.role == 'DG' or user.role == 'CD_FINANCE' %}
+                    <a class="nav-link {% if request.resolver_match.app_name == 'clotures' %}active{% endif %}" href="{% url 'clotures:periode_actuelle' %}">
+                        <i class="bi bi-lock"></i> Clôtures
+                    </a>
+                    {% endif %}
+                    
                     {% else %}
                     <!-- Autres rôles : menu selon permissions spécifiées -->
                     {% if user.peut_voir_tableau_bord and user.role != 'ADMIN' %}

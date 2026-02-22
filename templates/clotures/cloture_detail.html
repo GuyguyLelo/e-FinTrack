@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Détails Clôture {{ cloture.mois|stringformat:"02d" }}/{{ cloture.annee }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-lock me-2"></i>
+                    Clôture {{ cloture.mois|stringformat:"02d" }}/{{ cloture.annee }}
+                </h1>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'clotures:cloture_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Retour à la liste
+                    </a>
+                    {% if cloture.peut_etre_modifie and peut_cloturer %}
+                        {% with cloture.peut_etre_cloture as peut_cloturer_info %}
+                        {% if peut_cloturer_info.0 %}
+                            <form method="post" action="{% url 'clotures:cloture_periode' cloture.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success" 
+                                        onclick="return confirm('Êtes-vous sûr de vouloir clôturer cette période ? Cette action est irréversible.')">
+                                    <i class="fas fa-lock me-2"></i>
+                                    Clôturer la période
+                                </button>
+                            </form>
+                        {% else %}
+                            <button type="button" class="btn btn-success" disabled title="{{ peut_cloturer_info.1 }}">
+                                <i class="fas fa-lock me-2"></i>
+                                Clôturer la période
+                            </button>
+                        {% endif %}
+                        {% endwith %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations générales -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informations générales
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-2">
+                                <strong>Période :</strong> {{ cloture.mois|stringformat:"02d" }}/{{ cloture.annee }}
+                            </p>
+                            <p class="mb-2">
+                                <strong>Statut :</strong>
+                                {% if cloture.statut == 'CLOTURE' %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-lock me-1"></i>Clôturé
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-unlock me-1"></i>Ouvert
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-6">
+                            {% if cloture.date_cloture %}
+                                <p class="mb-2">
+                                    <strong>Date clôture :</strong> {{ cloture.date_cloture|date:"d/m/Y H:i" }}
+                                </p>
+                                <p class="mb-2">
+                                    <strong>Clôturé par :</strong> {{ cloture.cloture_par.get_full_name|default:cloture.cloture_par.username }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if cloture.observations %}
+                        <div class="mt-3">
+                            <strong>Observations :</strong>
+                            <p class="mb-0">{{ cloture.observations|linebreaks }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        Soldes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6 class="text-muted">Solde d'ouverture</h6>
+                            <p class="mb-2">
+                                <strong>FC :</strong> {{ cloture.solde_ouverture_fc|floatformat:2 }} FC
+                            </p>
+                            <p class="mb-2">
+                                <strong>USD :</strong> {{ cloture.solde_ouverture_usd|floatformat:2 }} $
+                            </p>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-muted">Solde net</h6>
+                            <p class="mb-2">
+                                <strong>FC :</strong> 
+                                {% if cloture.solde_net_fc >= 0 %}
+                                    <span class="text-success">{{ cloture.solde_net_fc|floatformat:2 }} FC</span>
+                                {% else %}
+                                    <span class="text-danger">{{ cloture.solde_net_fc|floatformat:2 }} FC</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-2">
+                                <strong>USD :</strong>
+                                {% if cloture.solde_net_usd >= 0 %}
+                                    <span class="text-success">{{ cloture.solde_net_usd|floatformat:2 }} $</span>
+                                {% else %}
+                                    <span class="text-danger">{{ cloture.solde_net_usd|floatformat:2 }} $</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if periode_modifiable %}
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="calculerSoldes()">
+                                <i class="fas fa-sync me-2"></i>
+                                Recalculer les soldes
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résumé financier -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Résumé financier de la période
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted mb-2">Total Recettes</h6>
+                                <h4 class="text-success mb-0">{{ cloture.total_recettes_fc|floatformat:2 }} FC</h4>
+                                <small class="text-muted">{{ cloture.total_recettes_usd|floatformat:2 }} $</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted mb-2">Total Dépenses</h6>
+                                <h4 class="text-danger mb-0">{{ cloture.total_depenses_fc|floatformat:2 }} FC</h4>
+                                <small class="text-muted">{{ cloture.total_depenses_usd|floatformat:2 }} $</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted mb-2">Solde Net</h6>
+                                <h4 class="{% if cloture.solde_net_fc >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                                    {{ cloture.solde_net_fc|floatformat:2 }} FC
+                                </h4>
+                                <small class="text-muted">{{ cloture.solde_net_usd|floatformat:2 }} $</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 bg-light rounded">
+                                <h6 class="text-muted mb-2">Nombre d'opérations</h6>
+                                <h4 class="text-primary mb-0">{{ depenses.count|add:recettes.count }}</h4>
+                                <small class="text-muted">{{ depenses.count }} dépenses, {{ recettes.count }} recettes</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-arrow-down me-2"></i>
+                        Recettes ({{ recettes.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recettes %}
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Libellé</th>
+                                        <th>Banque</th>
+                                        <th class="text-end">FC</th>
+                                        <th class="text-end">$</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for recette in recettes %}
+                                        <tr>
+                                            <td>{{ recette.date|date:"d/m/Y" }}</td>
+                                            <td>{{ recette.libelle_recette|truncatechars:30 }}</td>
+                                            <td>{{ recette.banque.nom_banque|default:"-" }}</td>
+                                            <td class="text-end">{{ recette.montant_fc|floatformat:2 }}</td>
+                                            <td class="text-end">{{ recette.montant_usd|floatformat:2 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">Aucune recette pour cette période</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-arrow-up me-2"></i>
+                        Dépenses ({{ depenses.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if depenses %}
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Libellé</th>
+                                        <th>Banque</th>
+                                        <th class="text-end">FC</th>
+                                        <th class="text-end">$</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for depense in depenses %}
+                                        <tr>
+                                            <td>{{ depense.date|date:"d/m/Y" }}</td>
+                                            <td>{{ depense.libelle_depenses|truncatechars:30 }}</td>
+                                            <td>{{ depense.banque.nom_banque|default:"-" }}</td>
+                                            <td class="text-end">{{ depense.montant_fc|floatformat:2 }}</td>
+                                            <td class="text-end">{{ depense.montant_usd|floatformat:2 }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-3">Aucune dépense pour cette période</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculerSoldes() {
+    fetch(`/clotures/{{ cloture.pk }}/calculer-soldes/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Une erreur est survenue lors du calcul des soldes');
+        });
+}
+</script>
+{% endblock %}

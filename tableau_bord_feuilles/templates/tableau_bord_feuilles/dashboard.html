@@ -100,6 +100,99 @@
 
     <!-- Cartes statistiques -->
     <div class="row mb-4">
+        <!-- Carte Période Actuelle -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-2">Période Actuelle</h6>
+                            <div class="mb-1"><span class="fw-bold">{{ periode_actuelle.mois|stringformat:"02d" }}/{{ periode_actuelle.annee }}</span></div>
+                            <div><span class="badge {% if statut_periode == 'OUVERT' %}bg-success{% else %}bg-danger{% endif %}">{{ statut_periode }}</span></div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar text-primary fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            {% if peut_cloturer_periode %}
+                                <i class="fas fa-check-circle text-success"></i> Clôture autorisée
+                            {% else %}
+                                <i class="fas fa-times-circle text-warning"></i> {{ message_cloture }}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte Solde d'Ouverture -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-2">Solde d'Ouverture</h6>
+                            <div class="mb-1"><span class="fw-bold text-info">{{ solde_ouverture_fc|floatformat:0|format_montant }}</span> FC</div>
+                            <div><span class="fw-bold text-info">{{ solde_ouverture_usd|floatformat:0|format_montant }}</span> USD</div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-wallet text-info fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Solde reporté du mois précédent</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte Solde Net -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat h-100 {% if solde_net_fc >= 0 %}success{% else %}danger{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-2">Solde Net Actuel</h6>
+                            <div class="mb-1"><span class="fw-bold {% if solde_net_fc >= 0 %}text-success{% else %}text-danger{% endif %}">{{ solde_net_fc|floatformat:0|format_montant }}</span> FC</div>
+                            <div><span class="fw-bold {% if solde_net_usd >= 0 %}text-success{% else %}text-danger{% endif %}">{{ solde_net_usd|floatformat:0|format_montant }}</span> USD</div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-balance-scale {% if solde_net_fc >= 0 %}text-success{% else %}text-danger{% endif %} fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Total recettes - Total dépenses</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carte Total du Mois -->
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-stat h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="flex-grow-1">
+                            <h6 class="card-subtitle mb-2">Total Mois Actuel</h6>
+                            <div class="mb-1"><span class="fw-bold text-warning">{{ total_recettes_cdf|floatformat:0|format_montant }}</span> FC</div>
+                            <div><span class="fw-bold text-warning">{{ total_recettes_usd|floatformat:0|format_montant }}</span> USD</div>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line text-warning fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Recettes du mois en cours</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes détaillées -->
+    <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card card-stat h-100">
                 <div class="card-body">
@@ -145,7 +238,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div class="flex-grow-1">
-                            <h6 class="card-subtitle mb-2">Solde Net</h6>
+                            <h6 class="card-subtitle mb-2">Solde du Mois</h6>
                             <div class="mb-1"><span class="fw-bold {% if solde_cdf >= 0 %}text-success{% else %}text-danger{% endif %}">{{ solde_cdf|floatformat:0|format_montant }}</span> FC</div>
                             <div><span class="fw-bold {% if solde_usd >= 0 %}text-success{% else %}text-danger{% endif %}">{{ solde_usd|floatformat:0|format_montant }}</span> USD</div>
                         </div>
@@ -154,9 +247,7 @@
                         </div>
                     </div>
                     <div class="mt-2">
-                        <span class="badge {% if solde_cdf >= 0 %}bg-success{% else %}bg-danger{% endif %}">
-                            {% if solde_cdf >= 0 %}Excédent{% else %}Déficit{% endif %}
-                        </span>
+                        <small class="text-muted">Recettes - Dépenses (mois actuel)</small>
                     </div>
                 </div>
             </div>

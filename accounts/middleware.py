@@ -33,6 +33,7 @@ class AdminAccessMiddleware:
             elif user.role in ['DG', 'CD_FINANCE']:
                 allowed_urls = [
                     '/tableau-bord-feuilles/',
+                    '/clotures/',
                     '/accounts/logout/',
                     '/static/',
                     '/media/',
