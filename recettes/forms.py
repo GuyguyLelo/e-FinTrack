@@ -93,13 +93,13 @@ class RecetteFeuilleForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['mois'].choices = MOIS_FEUILLE
-        # Mois et année en cours par défaut à l'ajout
-        if not self.instance or not self.instance.pk:
-            now = datetime.now()
-            self.fields['mois'].initial = now.month
-            self.fields['annee'].initial = now.year
         self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')
         self.fields['banque'].empty_label = "Sélectionner une banque"
+        
+        # Rendre les champs mois, annee et date en lecture seule
+        self.fields['mois'].widget.attrs['disabled'] = True
+        self.fields['annee'].widget.attrs['readonly'] = True
+        self.fields['date'].widget.attrs['readonly'] = True
 
     def clean_annee(self):
         annee = self.cleaned_data.get('annee')

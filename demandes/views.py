@@ -2481,6 +2481,39 @@ class DepenseFeuilleCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy('demandes:depense_feuille_liste')
     permission_function = 'peut_saisir_demandes_recettes'
 
+    def get_initial(self):
+        """Pré-remplir le mois et l'année avec la période actuelle"""
+        initial = super().get_initial()
+        try:
+            from clotures.models import ClotureMensuelle
+            from django.utils import timezone
+            
+            # Récupérer la période actuelle (non clôturée)
+            periode_actuelle = ClotureMensuelle.get_periode_actuelle()
+            today = timezone.now()
+            
+            # Si la période actuelle est ouverte, utiliser son mois et année
+            if periode_actuelle.statut == 'OUVERT':
+                initial['mois'] = periode_actuelle.mois
+                initial['annee'] = periode_actuelle.annee
+            else:
+                # Sinon, utiliser le mois et année actuels
+                initial['mois'] = today.month
+                initial['annee'] = today.year
+                
+            # Pré-remplir la date avec la date du jour
+            initial['date'] = today.date()
+            
+        except Exception as e:
+            # En cas d'erreur, utiliser les valeurs par défaut
+            from django.utils import timezone
+            today = timezone.now()
+            initial['mois'] = today.month
+            initial['annee'] = today.year
+            initial['date'] = today.date()
+            
+        return initial
+
     def form_valid(self, form):
         messages.success(self.request, 'Ligne dépense (feuille) enregistrée.')
         return super().form_valid(form)

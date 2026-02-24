@@ -266,6 +266,49 @@ class RecetteFeuilleCreateView(RoleRequiredMixin, CreateView):
     success_url = reverse_lazy('recettes:feuille_liste')
     permission_function = 'peut_saisir_demandes_recettes'
 
+    def get_initial(self):
+        """Pré-remplir le mois et l'année avec la période actuelle"""
+        initial = super().get_initial()
+        
+        # DEBUG : Afficher les valeurs calculées
+        try:
+            from clotures.models import ClotureMensuelle
+            from django.utils import timezone
+            
+            # Récupérer la période actuelle (non clôturée)
+            periode_actuelle = ClotureMensuelle.get_periode_actuelle()
+            today = timezone.now()
+            
+            print(f"DEBUG: Période actuelle = {periode_actuelle.mois:02d}/{periode_actuelle.annee} - {periode_actuelle.statut}")
+            print(f"DEBUG: Date actuelle = {today.date()}")
+            
+            # Si la période actuelle est ouverte, utiliser son mois et année
+            if periode_actuelle.statut == 'OUVERT':
+                initial['mois'] = periode_actuelle.mois
+                initial['annee'] = periode_actuelle.annee
+                print(f"DEBUG: Initial avec période ouverte - mois={periode_actuelle.mois}, annee={periode_actuelle.annee}")
+            else:
+                # Sinon, utiliser le mois et année actuels
+                initial['mois'] = today.month
+                initial['annee'] = today.year
+                print(f"DEBUG: Initial avec date actuelle - mois={today.month}, annee={today.year}")
+                
+            # Pré-remplir la date avec la date du jour
+            initial['date'] = today.date()
+            print(f"DEBUG: Date initial = {today.date()}")
+            
+        except Exception as e:
+            # En cas d'erreur, utiliser les valeurs par défaut
+            from django.utils import timezone
+            today = timezone.now()
+            initial['mois'] = today.month
+            initial['annee'] = today.year
+            initial['date'] = today.date()
+            print(f"DEBUG: Exception - valeurs par défaut - {e}")
+        
+        print(f"DEBUG: Initial final = {initial}")
+        return initial
+
     def form_valid(self, form):
         messages.success(self.request, 'Ligne recette (feuille) enregistrée.')
         return super().form_valid(form)

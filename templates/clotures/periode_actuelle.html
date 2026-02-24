@@ -154,25 +154,13 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-3">
-                                <a href="{% url 'recettes:feuille_creer' %}" class="btn btn-success w-100 mb-2">
-                                    <i class="fas fa-plus-circle me-2"></i>
-                                    Ajouter une recette
-                                </a>
-                            </div>
-                            <div class="col-md-3">
-                                <a href="{% url 'demandes:depense_feuille_creer' %}" class="btn btn-danger w-100 mb-2">
-                                    <i class="fas fa-plus-circle me-2"></i>
-                                    Ajouter une dépense
-                                </a>
-                            </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="calculerSoldes()">
                                     <i class="fas fa-sync me-2"></i>
                                     Recalculer les soldes
                                 </button>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 {% if peut_cloturer %}
                                     <a href="{% url 'clotures:cloture_periode' cloture.pk %}" class="btn btn-warning w-100 mb-2">
                                         <i class="fas fa-lock me-2"></i>
@@ -188,120 +176,7 @@
     {% endif %}
 
     <!-- Transactions récentes -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-arrow-down me-2"></i>
-                        Recettes récentes
-                        <span class="badge bg-light text-dark float-end">{{ recettes.count }}</span>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if recettes %}
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-sm table-striped">
-                                <thead class="table-dark sticky-top">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Libellé</th>
-                                        <th class="text-end">FC</th>
-                                        <th class="text-end">$</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for recette in recettes %}
-                                        <tr>
-                                            <td>{{ recette.date|date:"d/m/Y" }}</td>
-                                            <td>{{ recette.libelle_recette|truncatechars:25 }}</td>
-                                            <td class="text-end text-success">{{ recette.montant_fc|floatformat:2 }}</td>
-                                            <td class="text-end text-success">{{ recette.montant_usd|floatformat:2 }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-2">
-                            <a href="{% url 'recettes:feuille_liste' %}" class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-list me-2"></i>
-                                Voir toutes les recettes
-                            </a>
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center py-3">
-                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                            Aucune recette pour cette période
-                        </p>
-                        {% if periode_modifiable %}
-                            <div class="text-center">
-                                <a href="{% url 'recettes:feuille_creer' %}" class="btn btn-success">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Ajouter une recette
-                                </a>
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-arrow-up me-2"></i>
-                        Dépenses récentes
-                        <span class="badge bg-light text-dark float-end">{{ depenses.count }}</span>
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if depenses %}
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-sm table-striped">
-                                <thead class="table-dark sticky-top">
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Libellé</th>
-                                        <th class="text-end">FC</th>
-                                        <th class="text-end">$</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for depense in depenses %}
-                                        <tr>
-                                            <td>{{ depense.date|date:"d/m/Y" }}</td>
-                                            <td>{{ depense.libelle_depenses|truncatechars:25 }}</td>
-                                            <td class="text-end text-danger">{{ depense.montant_fc|floatformat:2 }}</td>
-                                            <td class="text-end text-danger">{{ depense.montant_usd|floatformat:2 }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-2">
-                            <a href="{% url 'demandes:depense_feuille_liste' %}" class="btn btn-outline-danger btn-sm">
-                                <i class="fas fa-list me-2"></i>
-                                Voir toutes les dépenses
-                            </a>
-                        </div>
-                    {% else %}
-                        <p class="text-muted text-center py-3">
-                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                            Aucune dépense pour cette période
-                        </p>
-                        {% if periode_modifiable %}
-                            <div class="text-center">
-                                <a href="{% url 'demandes:depense_feuille_creer' %}" class="btn btn-danger">
-                                    <i class="fas fa-plus me-2"></i>
-                                    Ajouter une dépense
-                                </a>
-                            </div>
-                        {% endif %}
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
+    
 </div>
 
 <script>

@@ -246,9 +246,16 @@ class ClotureMensuelle(models.Model):
 
     @classmethod
     def get_periode_actuelle(cls):
-        """Obtenir la période actuelle (mois et année courants)"""
+        """Obtenir la période actuelle (première période ouverte ou en créer une nouvelle)"""
         from django.utils import timezone
         now = timezone.now()
+        
+        # D'abord, chercher la première période ouverte
+        periode_ouverte = cls.objects.filter(statut='OUVERT').first()
+        if periode_ouverte:
+            return periode_ouverte
+        
+        # Si aucune période ouverte n'existe, créer la période actuelle
         periode, created = cls.objects.get_or_create(
             mois=now.month,
             annee=now.year,

@@ -130,7 +130,7 @@ class User(AbstractUser):
     
     def peut_saisir_demandes_recettes(self):
         """Vérifie si l'utilisateur peut saisir des demandes et recettes"""
-        return self.role in ['SUPER_ADMIN', 'OPERATEUR_SAISIE']
+        return self.role in ['SUPER_ADMIN', 'OPERATEUR_SAISIE', 'ADMIN', 'DG', 'CD_FINANCE']
     
     def peut_acceder_admin_django(self):
         """Vérifie si l'utilisateur peut accéder à l'administration Django"""
