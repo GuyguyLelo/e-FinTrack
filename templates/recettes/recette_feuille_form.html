@@ -99,7 +99,8 @@
                         <div class="form-section-title"><i class="bi bi-calendar3"></i> Période</div>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="id_mois" class="form-label">Mois</label>
+                                <label for="id_mois_display" class="form-label">Mois</label>
+                                {{ form.mois_display }}
                                 {{ form.mois }}
                                 {% if form.mois.errors %}<div class="invalid-feedback d-block">{{ form.mois.errors.0 }}</div>{% endif %}
                             </div>

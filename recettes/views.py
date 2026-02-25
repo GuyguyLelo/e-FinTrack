@@ -293,7 +293,7 @@ class RecetteFeuilleCreateView(RoleRequiredMixin, CreateView):
                 initial['annee'] = today.year
                 print(f"DEBUG: Initial avec date actuelle - mois={today.month}, annee={today.year}")
                 
-            # Pré-remplir la date avec la date du jour
+            # Pré-remplir la date avec la date actuelle (qui correspond à la période)
             initial['date'] = today.date()
             print(f"DEBUG: Date initial = {today.date()}")
             

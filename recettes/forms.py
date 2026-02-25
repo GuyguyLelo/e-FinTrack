@@ -96,10 +96,25 @@ class RecetteFeuilleForm(forms.ModelForm):
         self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')
         self.fields['banque'].empty_label = "Sélectionner une banque"
         
-        # Rendre les champs mois, annee et date en lecture seule
-        self.fields['mois'].widget.attrs['disabled'] = True
+        # Rendre le champ annee en lecture seule
         self.fields['annee'].widget.attrs['readonly'] = True
-        self.fields['date'].widget.attrs['readonly'] = True
+        
+        # Pour le mois, on va le rendre caché et afficher la valeur en lecture seule
+        self.fields['mois'].widget = forms.HiddenInput()
+        
+        # Ajouter un champ d'affichage pour le mois (non lié au modèle)
+        self.fields['mois_display'] = forms.CharField(
+            required=False,
+            widget=forms.TextInput(attrs={'readonly': True, 'class': 'form-control'})
+        )
+        
+        # Pré-remplir le champ d'affichage avec la valeur du mois
+        if self.initial.get('mois'):
+            mois_dict = dict(MOIS_FEUILLE)
+            mois_value = self.initial.get('mois')
+            self.fields['mois_display'].initial = mois_dict.get(mois_value, '')
+        
+        # Le champ date reste modifiable mais sera pré-rempli avec la période en cours
 
     def clean_annee(self):
         annee = self.cleaned_data.get('annee')
