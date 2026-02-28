@@ -103,7 +103,7 @@ class ClotureDetailView(LoginRequiredMixin, DetailView, FormMixin):
             cloture.cloturer(self.request.user, observations)
             messages.success(
                 self.request, 
-                f"La période {cloture.mois|stringformat:\"02d\"}/{cloture.annee} a été clôturée avec succès."
+                f"La période {cloture.mois:02d}/{cloture.annee} a été clôturée avec succès."
             )
         except Exception as e:
             messages.error(self.request, f"Erreur lors de la clôture : {str(e)}")
@@ -138,7 +138,7 @@ def cloture_periode(request, pk):
                 cloture.cloturer(request.user, observations)
                 messages.success(
                     request, 
-                    f"La période {cloture.mois|stringformat:\"02d\"}/{cloture.annee} a été clôturée avec succès."
+                    f"La période {cloture.mois:02d}/{cloture.annee} a été clôturée avec succès."
                 )
             except Exception as e:
                 messages.error(request, f"Erreur lors de la clôture : {str(e)}")
