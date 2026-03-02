@@ -19,7 +19,15 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-producti
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=lambda v: [s.strip() for s in v.split(',')])
+from decouple import config
+
+ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver').split(',')]
+
+# Ajoute manuellement le host avec port si tu utilises runserver
+if '187.77.171.80:8000' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('187.77.171.80')
+
+print("ALLOWED_HOSTS =", ALLOWED_HOSTS)
 
 # Force HTTP en développement
 SECURE_SSL_REDIRECT = False
@@ -264,3 +272,4 @@ LOGGING = {
         },
     },
 }
+CSRF_TRUSTED_ORIGINS = ['http://187.77.171.80:8000']
