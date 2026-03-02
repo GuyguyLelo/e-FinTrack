@@ -180,6 +180,19 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = False  # Mettre à True si vous avez HTTPS
+    
+    # CSRF settings for multiple domains
+    CSRF_TRUSTED_ORIGINS = [
+        "http://votre-domaine.com",
+        "https://votre-domaine.com", 
+        "http://www.votre-domaine.com",
+        "https://www.votre-domaine.com",
+        "http://votre-ip-vps",
+        "https://votre-ip-vps"
+    ]
+    
+    # Session settings for multiple domains
+    SESSION_COOKIE_DOMAIN = None  # Permet le partage entre sous-domaines
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
