@@ -184,23 +184,44 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     
-    # Session security
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = False  # Mettre à True si vous avez HTTPS
+    # Session security - MODIFIÉ pour multi-machines
+    SESSION_COOKIE_SECURE = False  # False pour HTTP
+    CSRF_COOKIE_SECURE = False     # False pour HTTP
+    SECURE_SSL_REDIRECT = False    # False pour HTTP
     
-    # CSRF settings for multiple domains
+    # CSRF settings for multiple domains/machines
     CSRF_TRUSTED_ORIGINS = [
-        "http://votre-domaine.com",
-        "https://votre-domaine.com", 
-        "http://www.votre-domaine.com",
-        "https://www.votre-domaine.com",
-        "http://votre-ip-vps",
-        "https://votre-ip-vps"
+        "http://187.77.171.80:8000",
+        "http://187.77.171.80",
+        "https://187.77.171.80",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
     ]
     
     # Session settings for multiple domains
     SESSION_COOKIE_DOMAIN = None  # Permet le partage entre sous-domaines
+    SESSION_COOKIE_AGE = 86400 * 7  # 7 jours
+    SESSION_SAVE_EVERY_REQUEST = True
+    
+    # CORS settings pour multi-machines
+    CORS_ALLOWED_ORIGINS = [
+        "http://187.77.171.80:8000",
+        "http://187.77.171.80",
+        "https://187.77.171.80",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+else:
+    # Settings pour DEBUG=True
+    CSRF_TRUSTED_ORIGINS = [
+        "http://187.77.171.80:8000",
+        "http://187.77.171.80",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_DOMAIN = None
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
