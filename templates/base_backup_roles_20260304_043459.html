@@ -199,19 +199,18 @@
                     </a>
                     {% endif %}
                     
-                    <!-- Menu pour DirDaf et DivDaf -->
-                    {% if user.role == 'DirDaf' or user.role == 'DivDaf' %}
+                    <!-- Menu pour les autres utilisateurs -->
+                    {% if user.username != 'AdminDaf' %}
                     <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                         <i class="bi bi-speedometer2"></i> Tableau de bord
                     </a>
                     
-                    <a class="nav-link" href="{% url 'clotures:periode_actuelle' %}">
-                        <i class="bi bi-lock"></i> Clôtures
-                    </a>
-                    
+                    <!-- Natures pour tout le monde sauf SuperAdmin -->
+                    {% if user.username != 'SuperAdmin' %}
                     <a class="nav-link" href="{% url 'demandes:nature_liste' %}">
                         <i class="bi bi-diagram-3"></i> Natures Économiques
                     </a>
+                    {% endif %}
                     
                     <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
                         <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
@@ -219,46 +218,22 @@
                     
                     <a class="nav-link" href="{% url 'recettes:feuille_liste' %}">
                         <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
+                    </a>
+                    
+                    <!-- Clôtures pour DG et CD_FINANCE -->
+                    {% if user.role == 'DG' or user.role == 'CD_FINANCE' %}
+                    <a class="nav-link" href="{% url 'clotures:periode_actuelle' %}">
+                        <i class="bi bi-lock"></i> Clôtures
                     </a>
                     {% endif %}
                     
-                    <!-- Menu pour SuperAdmin -->
-                    {% if user.username == 'SuperAdmin' %}
-                    <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
-                        <i class="bi bi-speedometer2"></i> Tableau de bord
-                    </a>
-                    
-                    <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
-                        <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
-                    </a>
-                    
-                    <a class="nav-link" href="{% url 'recettes:feuille_liste' %}">
-                        <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
-                    </a>
-                    
+                    <!-- Admin Django pour SuperAdmin -->
+                    {% if user.is_superuser %}
                     <hr style="border-color: rgba(255,255,255,0.2);">
                     <a class="nav-link" href="/admin/">
                         <i class="bi bi-gear"></i> Administration Django
                     </a>
                     {% endif %}
-                    
-                    <!-- Menu pour OpsDaf (comme avant) -->
-                    {% if user.role == 'OpsDaf' %}
-                    <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
-                        <i class="bi bi-speedometer2"></i> Tableau de bord
-                    </a>
-                    
-                    <a class="nav-link" href="{% url 'demandes:nature_liste' %}">
-                        <i class="bi bi-diagram-3"></i> Natures Économiques
-                    </a>
-                    
-                    <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
-                        <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
-                    </a>
-                    
-                    <a class="nav-link" href="{% url 'recettes:feuille_liste' %}">
-                        <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
-                    </a>
                     {% endif %}
                 </nav>
             </div>
@@ -282,7 +257,6 @@
             {% else %}
             <!-- Page de connexion (pas de sidebar) -->
             <div class="col-12">
-                {% block content %}{% endblock %}
             </div>
             {% endif %}
         </div>
@@ -295,64 +269,30 @@
     <!-- Chart.js -->
     <script src="{% static 'js/chart.umd.min.js' %}"></script>
     
-    <!-- Script de redirection corrigé -->
+    <!-- Script de redirection simple -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             {% if user.is_authenticated %}
             var username = "{{ user.username }}";
             var currentPath = "{{ request.path }}";
-            var userRole = "{{ user.role }}";
             
             console.log("Redirection check:", {
                 path: currentPath,
                 username: username,
-                userRole: userRole
+                userRole: "{{ user.role }}"
             });
             
-            // Éviter les boucles de redirection
-            var redirected = sessionStorage.getItem('redirected');
-            if (redirected) {
-                console.log("Déjà redirigé dans cette session");
-                return;
-            }
-            
-            // AdminDaf : uniquement les natures
+            // AdminDaf : redirigé vers les natures depuis la racine
             if (username === 'AdminDaf' && currentPath === '/') {
                 console.log("Redirection AdminDaf vers natures");
-                sessionStorage.setItem('redirected', 'true');
                 window.location.href = '/demandes/natures/';
-                return;
             }
             
-            // SuperAdmin : tableau de bord, pas les natures
+            // SuperAdmin : redirigé loin des natures
             if (username === 'SuperAdmin' && currentPath === '/demandes/natures/') {
                 console.log("Redirection SuperAdmin loin des natures");
-                sessionStorage.setItem('redirected', 'true');
-                window.location.href = '/tableau-bord-feuilles/';
-                return;
+                window.location.href = '/dashboard/';
             }
-            
-            // DirDaf et DivDaf : tableau de bord
-            if ((userRole === 'DirDaf' || userRole === 'DivDaf') && currentPath === '/') {
-                console.log("Redirection DirDaf/DivDaf vers tableau de bord");
-                sessionStorage.setItem('redirected', 'true');
-                window.location.href = '/tableau-bord-feuilles/';
-                return;
-            }
-            
-            // OpsDaf : tableau de bord (comme avant)
-            if (userRole === 'OpsDaf' && currentPath === '/') {
-                console.log("Redirection OpsDaf vers tableau de bord");
-                sessionStorage.setItem('redirected', 'true');
-                window.location.href = '/tableau-bord-feuilles/';
-                return;
-            }
-            
-            // Réinitialiser le flag de redirection après 5 secondes
-            setTimeout(function() {
-                sessionStorage.removeItem('redirected');
-            }, 5000);
-            
             {% endif %}
         });
     </script>

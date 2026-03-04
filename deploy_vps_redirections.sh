@@ -1,3 +1,21 @@
+#!/bin/bash
+# deploy_vps_redirections.sh - Script pour déploiement VPS des redirections corrigées
+
+set -e
+
+echo "🚀 Déploiement VPS - Correction des Redirections par Rôle"
+echo "=================================================="
+
+echo "🔍 1. Configuration des redirections souhaitées:"
+echo "📋 DirDaf, DivDaf → Tableau de bord + Clôtures"
+echo "📋 SuperAdmin → Tableau de bord (tout sauf natures dans menu)"
+echo "📋 AdminDaf → Uniquement /demandes/natures/"
+echo "📋 OpsDaf → Comme avant"
+
+echo ""
+echo "🔧 2. Création du template base.html corrigé..."
+
+cat > templates/base_vps.html << 'BASE_VPS'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -309,7 +327,7 @@
                 userRole: userRole
             });
             
-            // Éviter les boucles de redirection
+            // Éviter les boucles de redirection avec sessionStorage
             var redirected = sessionStorage.getItem('redirected');
             if (redirected) {
                 console.log("Déjà redirigé dans cette session");
@@ -360,3 +378,48 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_VPS
+
+echo "✅ Template base_vps.html créé"
+
+echo ""
+echo "🔧 3. Remplacement du template base.html..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_vps_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version VPS
+cp templates/base_vps.html templates/base.html
+
+echo "✅ Template base.html remplacé"
+
+echo ""
+echo "🔄 4. Redémarrage des services (VPS)..."
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+echo ""
+echo "🌐 5. Vérification du déploiement..."
+
+echo "📋 Fichiers modifiés:"
+ls -la templates/base.html*
+echo ""
+echo "📋 Services:"
+sudo systemctl status gunicorn --no-pager -l
+sudo systemctl status nginx --no-pager -l
+
+echo ""
+echo "✅ Déploiement VPS terminé !"
+echo ""
+echo "🎯 Configuration appliquée:"
+echo "📋 AdminDaf → Uniquement /demandes/natures/"
+echo "📋 SuperAdmin → Tableau de bord (pas les natures dans menu)"
+echo "📋 DirDaf, DivDaf → Tableau de bord + Clôtures"
+echo "📋 OpsDaf → Comme avant"
+echo ""
+echo "🌐 Testez sur votre VPS:"
+echo "   http://187.77.171.80/accounts/login/"
+echo ""
+echo "🔍 Pour vérifier les logs en cas de problème:"
+echo "   sudo journalctl -u gunicorn -f"
+echo "   sudo journalctl -u nginx -f"

@@ -1,3 +1,24 @@
+#!/bin/bash
+# fix_redirections_roles.sh - Correction des redirections par rôle
+
+set -e
+
+echo "🔧 Correction des Redirections par Rôle"
+echo "=================================="
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Configuration des redirections souhaitées:"
+echo "📋 DirDaf, DivDaf → Tableau de bord + Clôtures"
+echo "📋 SuperAdmin → Tableau de bord (tout sauf natures dans menu)"
+echo "📋 AdminDaf → Uniquement /demandes/natures/"
+echo "📋 OpsDaf → Comme avant"
+
+echo ""
+echo "🔧 2. Création d'un template base.html avec redirections corrigées..."
+
+cat > templates/base_roles.html << 'BASE_ROLES'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -360,3 +381,120 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_ROLES
+
+echo "✅ Template base_roles.html créé"
+
+echo ""
+echo "🔧 3. Sauvegarde et remplacement..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_roles_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version avec rôles
+cp templates/base_roles.html templates/base.html
+
+echo "✅ Template base.html remplacé"
+
+echo ""
+echo "🔄 4. Redémarrage des services..."
+sudo systemctl restart gunicorn 2>/dev/null || echo "Gunicorn non trouvé sur cette machine"
+sudo systemctl restart nginx 2>/dev/null || echo "Nginx non trouvé sur cette machine"
+
+echo ""
+echo "🌐 5. Test des redirections..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+from accounts.models import User
+
+print("🧪 Test des redirections par rôle:")
+print("=" * 50)
+
+# Test AdminDaf
+try:
+    admin_daf = User.objects.get(username='AdminDaf')
+    client = Client()
+    client.force_login(admin_daf)
+    
+    response = client.get('/')
+    print(f"AdminDaf vers / → Status: {response.status_code}")
+    if response.status_code == 302:
+        print(f"   Redirection vers: {response.url}")
+    
+    response = client.get('/demandes/natures/')
+    print(f"AdminDaf vers /demandes/natures/ → Status: {response.status_code}")
+    
+except Exception as e:
+    print(f"AdminDaf erreur: {e}")
+
+print("")
+
+# Test SuperAdmin
+try:
+    superadmin = User.objects.get(username='SuperAdmin')
+    client = Client()
+    client.force_login(superadmin)
+    
+    response = client.get('/')
+    print(f"SuperAdmin vers / → Status: {response.status_code}")
+    if response.status_code == 302:
+        print(f"   Redirection vers: {response.url}")
+    
+    response = client.get('/tableau-bord-feuilles/')
+    print(f"SuperAdmin vers /tableau-bord-feuilles/ → Status: {response.status_code}")
+    
+except Exception as e:
+    print(f"SuperAdmin erreur: {e}")
+
+print("")
+
+# Test DirDaf
+try:
+    dir_daf = User.objects.filter(role='DirDaf').first()
+    if dir_daf:
+        client = Client()
+        client.force_login(dir_daf)
+        
+        response = client.get('/')
+        print(f"DirDaf vers / → Status: {response.status_code}")
+        if response.status_code == 302:
+            print(f"   Redirection vers: {response.url}")
+    else:
+        print("DirDaf non trouvé")
+        
+except Exception as e:
+    print(f"DirDaf erreur: {e}")
+
+print("")
+
+# Test DivDaf
+try:
+    div_daf = User.objects.filter(role='DivDaf').first()
+    if div_daf:
+        client = Client()
+        client.force_login(div_daf)
+        
+        response = client.get('/')
+        print(f"DivDaf vers / → Status: {response.status_code}")
+        if response.status_code == 302:
+            print(f"   Redirection vers: {response.url}")
+    else:
+        print("DivDaf non trouvé")
+        
+except Exception as e:
+    print(f"DivDaf erreur: {e}")
+
+EOF
+
+echo ""
+echo "✅ Correction des redirections terminée !"
+echo ""
+echo "🎯 Configuration appliquée:"
+echo "📋 AdminDaf → Uniquement /demandes/natures/"
+echo "📋 SuperAdmin → Tableau de bord (pas les natures dans menu)"
+echo "📋 DirDaf, DivDaf → Tableau de bord + Clôtures"
+echo "📋 OpsDaf → Comme avant"
+echo ""
+echo "🌐 Déployez sur votre VPS et testez:"
+echo "   http://187.77.171.80/accounts/login/"
