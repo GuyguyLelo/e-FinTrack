@@ -1,0 +1,241 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+/* Styles personnalisés pour l'admin Django */
+:root {
+    --dgrad-bleu: #1a3a5f;
+    --dgrad-dore: #d4af37;
+    --dgrad-blanc: #ffffff;
+    --dgrad-gris-clair: #f5f5f5;
+}
+
+/* Header */
+#header {
+    background: linear-gradient(135deg, var(--dgrad-bleu) 0%, #2a4a6f 100%) !important;
+    border-bottom: 2px solid var(--dgrad-dore) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+#branding h1, #branding h1 a:link, #branding h1 a:visited {
+    color: var(--dgrad-dore) !important;
+    font-weight: bold !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+/* Navigation */
+#nav-sidebar {
+    background-color: var(--dgrad-bleu) !important;
+    border-right: 1px solid rgba(212, 175, 55, 0.3) !important;
+}
+
+#nav-sidebar .nav-item a {
+    color: rgba(255,255,255,0.8) !important;
+    border-radius: 5px !important;
+    margin: 2px 0 !important;
+    transition: all 0.3s !important;
+}
+
+#nav-sidebar .nav-item a:hover,
+#nav-sidebar .nav-item a:focus {
+    background-color: rgba(212, 175, 55, 0.2) !important;
+    color: var(--dgrad-dore) !important;
+    transform: translateX(5px) !important;
+}
+
+#nav-sidebar .nav-item.current-app a {
+    background-color: rgba(212, 175, 55, 0.3) !important;
+    color: var(--dgrad-dore) !important;
+    font-weight: bold !important;
+}
+
+/* Main content */
+.main {
+    background-color: var(--dgrad-gris-clair) !important;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    background-color: var(--dgrad-blanc) !important;
+    border-bottom: 1px solid #e0e0e0 !important;
+    padding: 10px 15px !important;
+    margin: 0 !important;
+}
+
+.breadcrumbs a {
+    color: var(--dgrad-bleu) !important;
+    text-decoration: none !important;
+}
+
+.breadcrumbs a:hover {
+    color: var(--dgrad-dore) !important;
+}
+
+/* Module headers */
+.module h2, .module caption {
+    background: linear-gradient(135deg, var(--dgrad-bleu) 0%, #2a4a6f 100%) !important;
+    color: var(--dgrad-blanc) !important;
+    border-radius: 5px 5px 0 0 !important;
+    padding: 10px 15px !important;
+    margin: 0 !important;
+}
+
+/* Tables */
+#result_list thead th {
+    background-color: var(--dgrad-bleu) !important;
+    color: var(--dgrad-blanc) !important;
+    border-bottom: 2px solid var(--dgrad-dore) !important;
+    font-weight: bold !important;
+}
+
+#result_list tbody tr:nth-child(even) {
+    background-color: rgba(26, 58, 95, 0.05) !important;
+}
+
+#result_list tbody tr:hover {
+    background-color: rgba(212, 175, 55, 0.1) !important;
+}
+
+/* Forms */
+.form-row {
+    background-color: var(--dgrad-blanc) !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 5px !important;
+    padding: 15px !important;
+    margin-bottom: 15px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+}
+
+.form-row label {
+    color: var(--dgrad-bleu) !important;
+    font-weight: bold !important;
+}
+
+/* Buttons */
+.button, input[type=submit], input[type=button], .submit-row input {
+    background: linear-gradient(135deg, var(--dgrad-bleu) 0%, #2a4a6f 100%) !important;
+    color: var(--dgrad-blanc) !important;
+    border: 1px solid var(--dgrad-bleu) !important;
+    border-radius: 5px !important;
+    padding: 8px 16px !important;
+    font-weight: bold !important;
+    transition: all 0.3s !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
+    background: linear-gradient(135deg, #2a4a6f 0%, var(--dgrad-bleu) 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
+
+.button.default, .submit-row input.default {
+    background: linear-gradient(135deg, var(--dgrad-dore) 0%, #c4941f 100%) !important;
+    border-color: var(--dgrad-dore) !important;
+    color: #000 !important;
+}
+
+/* Messages */
+.messagelist .success {
+    background-color: #d4edda !important;
+    border-color: #c3e6cb !important;
+    color: #155724 !important;
+    border-radius: 5px !important;
+}
+
+.messagelist .warning {
+    background-color: #fff3cd !important;
+    border-color: #ffeaa7 !important;
+    color: #856404 !important;
+    border-radius: 5px !important;
+}
+
+.messagelist .error {
+    background-color: #f8d7da !important;
+    border-color: #f5c6cb !important;
+    color: #721c24 !important;
+    border-radius: 5px !important;
+}
+
+/* Footer */
+#footer {
+    background-color: var(--dgrad-bleu) !important;
+    color: var(--dgrad-blanc) !important;
+    border-top: 2px solid var(--dgrad-dore) !important;
+    text-align: center !important;
+    padding: 15px !important;
+}
+
+/* Object tools */
+.object-tools {
+    background-color: var(--dgrad-blanc) !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 5px !important;
+    padding: 10px !important;
+    margin-bottom: 15px !important;
+}
+
+.object-tools li a {
+    background-color: var(--dgrad-bleu) !important;
+    color: var(--dgrad-blanc) !important;
+    border-radius: 3px !important;
+    padding: 5px 10px !important;
+    text-decoration: none !important;
+    transition: all 0.3s !important;
+}
+
+.object-tools li a:hover {
+    background-color: var(--dgrad-dore) !important;
+    color: #000 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Paginator */
+.paginator {
+    background-color: var(--dgrad-blanc) !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 5px !important;
+    padding: 10px !important;
+}
+
+.paginator a, .paginator .this-page {
+    background-color: var(--dgrad-bleu) !important;
+    color: var(--dgrad-blanc) !important;
+    border-radius: 3px !important;
+    padding: 5px 8px !important;
+    margin: 0 2px !important;
+    text-decoration: none !important;
+}
+
+.paginator a:hover {
+    background-color: var(--dgrad-dore) !important;
+    color: #000 !important;
+}
+
+.paginator .this-page {
+    background-color: var(--dgrad-dore) !important;
+    color: #000 !important;
+    font-weight: bold !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #header {
+        padding: 10px !important;
+    }
+    
+    #branding h1 {
+        font-size: 18px !important;
+    }
+    
+    .form-row {
+        padding: 10px !important;
+    }
+    
+    .button, input[type=submit], input[type=button] {
+        padding: 6px 12px !important;
+        font-size: 14px !important;
+    }
+}
+</style>
+{% endblock %}

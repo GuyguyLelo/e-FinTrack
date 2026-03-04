@@ -264,13 +264,19 @@
                     </div>
                     {% endif %}
                     
-                    <!-- Menu pour SuperAdmin (tout sauf natures) -->
+                    <!-- Menu pour SuperAdmin (tout sauf restrictions) -->
                     {% if user.is_super_admin or user.is_superuser %}
                     <div class="menu-section">
                         <div class="menu-title">Menu SuperAdmin</div>
                         {% if user.peut_voir_tableau_bord %}
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de bord
+                        </a>
+                        {% endif %}
+                        
+                        {% if user.peut_ajouter_nature_economique %}
+                        <a class="nav-link" href="{% url 'demandes:nature_liste' %}">
+                            <i class="bi bi-diagram-3"></i> Natures Économiques
                         </a>
                         {% endif %}
                         
@@ -366,9 +372,9 @@
                 return;
             }
             
-            // SuperAdmin : tout sauf les natures
-            if ((isSuperAdmin || isSuperuser) && currentPath === '/demandes/natures/') {
-                console.log("Redirection SuperAdmin loin des natures");
+            // SuperAdmin : tout sauf restrictions spécifiques
+            if ((isSuperAdmin || isSuperuser) && currentPath === '/') {
+                console.log("Redirection SuperAdmin vers tableau de bord");
                 sessionStorage.setItem('redirected', 'true');
                 window.location.href = '/tableau-bord-feuilles/';
                 return;
