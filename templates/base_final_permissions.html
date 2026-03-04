@@ -223,7 +223,7 @@
                     <!-- Menu pour DirDaf et DivDaf (uniquement tableau de bord et clôtures) -->
                     {% if user.role == 'DG' or user.role == 'DF' or user.role == 'CD_FINANCE' %}
                     <div class="menu-section">
-                        <div class="menu-title">Menu Direction</div>
+                        
                         {% if user.peut_voir_tableau_bord %}
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de bord
@@ -241,7 +241,7 @@
                     <!-- Menu pour OpsDaf (recettes, dépenses et états) -->
                     {% if user.role == 'OPERATEUR_SAISIE' %}
                     <div class="menu-section">
-                        <div class="menu-title">Menu Opérations</div>
+                        
                         {% if user.peut_ajouter_recette_depense %}
                         <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
@@ -266,7 +266,7 @@
                     <!-- Menu pour SuperAdmin (tout sauf natures) -->
                     {% if user.is_super_admin or user.is_superuser %}
                     <div class="menu-section">
-                        <div class="menu-title">Menu SuperAdmin</div>
+                        
                         {% if user.peut_voir_tableau_bord %}
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de bord
