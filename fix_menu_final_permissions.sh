@@ -1,3 +1,25 @@
+#!/bin/bash
+# fix_menu_final_permissions.sh - Correction finale avec les vraies permissions
+
+set -e
+
+echo "🔧 Correction Finale avec les Vraies Permissions"
+echo "============================================="
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Permissions détectées dans le modèle:"
+echo "   peut_voir_tableau_bord() → DG, DF, CD_FINANCE, SUPER_ADMIN"
+echo "   peut_cloturer() → NON EXISTE (utilise peut_creer_releves)"
+echo "   peut_ajouter_nature_economique() → SUPER_ADMIN, ADMIN"
+echo "   peut_ajouter_recette_depense() → SUPER_ADMIN, ADMIN, OPERATEUR_SAISIE"
+echo "   peut_generer_etats() → SUPER_ADMIN, ADMIN, OPERATEUR_SAISIE"
+
+echo ""
+echo "🔧 2. Création du template avec les vraies permissions..."
+
+cat > templates/base_final_permissions.html << 'BASE_FINAL_PERMISSIONS'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -320,6 +342,7 @@
             {% else %}
             <!-- Page de connexion (pas de sidebar) -->
             <div class="col-12">
+                {% block content %}{% endblock %}
             </div>
             {% endif %}
         </div>
@@ -401,3 +424,103 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_FINAL_PERMISSIONS
+
+echo "✅ Template base_final_permissions.html créé"
+
+echo ""
+echo "🔧 3. Remplacement du template..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_final_permissions_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version finale avec permissions
+cp templates/base_final_permissions.html templates/base.html
+
+echo "✅ Template base.html remplacé"
+
+echo ""
+echo "🌐 4. Test final des menus..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+from accounts.models import User
+
+print("🧪 Test final des menus basés sur les permissions:")
+print("=" * 60)
+
+# Test AdminDaf
+try:
+    admin_daf = User.objects.get(username='AdminDaf')
+    client = Client()
+    client.force_login(admin_daf)
+    
+    response = client.get('/tableau-bord-feuilles/')
+    content = response.content.decode('utf-8')
+    
+    print(f"🔍 Test AdminDaf ({admin_daf.role}):")
+    print(f"   Status: {response.status_code}")
+    print(f"   Menu AdminDaf: {'✅' if 'Menu AdminDaf' in content else '❌'}")
+    print(f"   Permissions: peut_ajouter_nature_economique={admin_daf.peut_ajouter_nature_economique}")
+    print(f"   Natures Économiques: {'✅' if 'Natures Économiques' in content else '❌'}")
+    
+except Exception as e:
+    print(f"AdminDaf erreur: {e}")
+
+print("")
+
+# Test DirDaf
+try:
+    dir_daf = User.objects.get(username='DirDaf')
+    client = Client()
+    client.force_login(dir_daf)
+    
+    response = client.get('/tableau-bord-feuilles/')
+    content = response.content.decode('utf-8')
+    
+    print(f"🔍 Test DirDaf ({dir_daf.role}):")
+    print(f"   Status: {response.status_code}")
+    print(f"   Menu Direction: {'✅' if 'Menu Direction' in content else '❌'}")
+    print(f"   Permissions: peut_voir_tableau_bord={dir_daf.peut_voir_tableau_bord}, peut_creer_releves={dir_daf.peut_creer_releves}")
+    print(f"   Tableau de bord: {'✅' if 'Tableau de bord' in content else '❌'}")
+    print(f"   Clôtures: {'✅' if 'Clôtures' in content else '❌'}")
+    
+except Exception as e:
+    print(f"DirDaf erreur: {e}")
+
+print("")
+
+# Test OpsDaf
+try:
+    ops_daf = User.objects.get(username='OpsDaf')
+    client = Client()
+    client.force_login(ops_daf)
+    
+    response = client.get('/tableau-bord-feuilles/')
+    content = response.content.decode('utf-8')
+    
+    print(f"🔍 Test OpsDaf ({ops_daf.role}):")
+    print(f"   Status: {response.status_code}")
+    print(f"   Menu Opérations: {'✅' if 'Menu Opérations' in content else '❌'}")
+    print(f"   Permissions: peut_ajouter_recette_depense={ops_daf.peut_ajouter_recette_depense}, peut_generer_etats={ops_daf.peut_generer_etats}")
+    print(f"   Gestion dépenses: {'✅' if 'Gestion dépenses' in content else '❌'}")
+    print(f"   Gestion recettes: {'✅' if 'Gestion recettes' in content else '❌'}")
+    print(f"   État Dépense: {'✅' if 'État Dépense' in content else '❌'}")
+    print(f"   État Recette: {'✅' if 'État Recette' in content else '❌'}")
+    
+except Exception as e:
+    print(f"OpsDaf erreur: {e}")
+
+EOF
+
+echo ""
+echo "✅ Correction finale des permissions terminée !"
+echo ""
+echo "🎯 Configuration finale basée sur les permissions:"
+echo "📋 SuperAdmin → Voit tout SAUF les natures économiques"
+echo "📋 DirDaf, DivDaf → Uniquement tableau de bord et clôtures"
+echo "📋 AdminDaf → Uniquement natures économiques"
+echo "📋 OpsDaf → Recettes, dépenses et états"
+echo ""
+echo "🌐 Testez maintenant en local:"
+echo "   python manage.py runserver 127.0.0.1:8000"
