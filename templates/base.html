@@ -230,7 +230,8 @@
                         </a>
                         {% endif %}
                         
-                        {% if user.peut_creer_releves %}
+                        <!-- Clôtures pour DirDaf et DivDaf -->
+                        {% if user.role == 'DG' or user.role == 'DF' or user.role == 'CD_FINANCE' %}
                         <a class="nav-link" href="{% url 'clotures:periode_actuelle' %}">
                             <i class="bi bi-lock"></i> Clôtures
                         </a>
