@@ -6,7 +6,7 @@ set -e
 echo "🔍 Diagnostic des Accès Utilisateur"
 echo "=================================="
 
-cd /var/www/e-fintrack
+cd ~/e-FinTrack
 source venv/bin/activate
 
 echo "👤 1. Vérification du SuperAdmin..."
