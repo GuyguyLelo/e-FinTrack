@@ -1,3 +1,22 @@
+#!/bin/bash
+# fix_duplicate_blocks.sh - Correction des blocks dupliqués
+
+set -e
+
+echo "🔧 Correction des Blocks Dupliqués"
+echo "=============================="
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Diagnostic du problème..."
+echo "Erreur: 'block' tag with name 'content' appears more than once"
+echo "Cause: Deux {% block content %} dans le template"
+
+echo ""
+echo "🔧 2. Création d'un template corrigé..."
+
+cat > templates/base_fixed.html << 'BASE_FIXED'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -257,6 +276,7 @@
             {% else %}
             <!-- Page de connexion (pas de sidebar) -->
             <div class="col-12">
+                {% block content %}{% endblock %}
             </div>
             {% endif %}
         </div>
@@ -300,3 +320,81 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_FIXED
+
+echo "✅ Template base_fixed.html créé"
+
+echo ""
+echo "🔧 3. Sauvegarde et remplacement..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_duplicate_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version corrigée
+cp templates/base_fixed.html templates/base.html
+
+echo "✅ Template base.html remplacé"
+
+echo ""
+echo "🌐 4. Test du template corrigé..."
+
+python manage.py shell << 'EOF'
+from django.template import Template, Context
+
+print("🧪 Test du template corrigé:")
+try:
+    with open('templates/base.html', 'r') as f:
+        template_content = f.read()
+    
+    template = Template(template_content)
+    print("   ✅ Syntaxe du template correcte")
+    
+    # Compter les blocks
+    if_count = template_content.count('{% if ')
+    endif_count = template_content.count('{% endif %}')
+    block_count = template_content.count('{% block ')
+    endblock_count = template_content.count('{% endblock %}')
+    
+    print(f"   📊 Blocks if/endif: {if_count}/{endif_count}")
+    print(f"   📊 Blocks block/endblock: {block_count}/{endblock_count}")
+    
+    if if_count == endif_count and block_count == endblock_count:
+        print("   ✅ Toutes les balises sont correctement fermées")
+    else:
+        print("   ❌ Déséquilibre des balises détecté")
+    
+except Exception as e:
+    print(f"   ❌ Erreur de syntaxe: {e}")
+
+EOF
+
+echo ""
+echo "🌐 5. Test du login..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+
+print("🧪 Test du login:")
+try:
+    client = Client()
+    response = client.get('/accounts/login/')
+    print(f"   Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        content = response.content.decode('utf-8')
+        if 'form-control' in content:
+            print("   ✅ Page de login fonctionne")
+        else:
+            print("   ❌ Page de login cassée")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "✅ Correction des blocks dupliqués terminée !"
+echo "🎊 Testez maintenant en local avec:"
+echo "   python manage.py runserver 127.0.0.1:8000"

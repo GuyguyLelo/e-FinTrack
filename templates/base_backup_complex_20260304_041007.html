@@ -51,7 +51,7 @@
         }
         
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             padding: 12px 20px;
             margin: 5px 0;
             border-radius: 5px;
@@ -133,7 +133,7 @@
             background-color: white;
         }
         
-        .table th {
+        .table thead {
             background-color: var(--dgrad-bleu);
             color: white;
         }
@@ -186,60 +186,106 @@
         </div>
     </nav>
 
-    <div class="container-fluid">
-        <div class="row">
+    <!-- Redirection automatique pour les rôles spécifiques -->
             {% if user.is_authenticated %}
-            <!-- Sidebar -->
+                <!-- AdminDaf : redirigé vers les natures depuis la racine -->
+                {% if user.username == 'AdminDaf' and request.path == '/' %}
+                <script>
+                    window.location.href = '/demandes/natures/';
+                </script>
+                {% endif %}
+                
+                <!-- SuperAdmin : redirigé loin des natures -->
+                {% if user.username == 'SuperAdmin' and request.path == '/demandes/natures/' %}
+                <script>
+                    window.location.href = '/dashboard/';
+                </script>
+                {% endif %}
+            {% endif %}          <!-- Sidebar -->
             <div class="col-md-2 sidebar">
+                {% if user.peut_acceder_admin_django and not user.peut_voir_tableau_bord and not user.peut_ajouter_nature_economique %}
+                <!-- Admin simple : seulement accès à l'admin Django -->
                 <nav class="nav flex-column">
-                    <!-- Menu pour AdminDaf -->
-                    {% if user.username == 'AdminDaf' %}
-                    <a class="nav-link" href="{% url 'demandes:nature_liste' %}">
-                        <i class="bi bi-diagram-3"></i> Natures Économiques
-                    </a>
-                    {% endif %}
-                    
-                    <!-- Menu pour les autres utilisateurs -->
-                    {% if user.username != 'AdminDaf' %}
-                    <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
-                        <i class="bi bi-speedometer2"></i> Tableau de bord
-                    </a>
-                    
-                    <!-- Natures pour tout le monde sauf SuperAdmin -->
-                    {% if user.username != 'SuperAdmin' %}
-                    <a class="nav-link" href="{% url 'demandes:nature_liste' %}">
-                        <i class="bi bi-diagram-3"></i> Natures Économiques
-                    </a>
-                    {% endif %}
-                    
-                    <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
-                        <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
-                    </a>
-                    
-                    <a class="nav-link" href="{% url 'recettes:feuille_liste' %}">
-                        <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
-                    </a>
-                    
-                    <!-- Clôtures pour DG et CD_FINANCE -->
-                    {% if user.role == 'DG' or user.role == 'CD_FINANCE' %}
-                    <a class="nav-link" href="{% url 'clotures:periode_actuelle' %}">
-                        <i class="bi bi-lock"></i> Clôtures
-                    </a>
-                    {% endif %}
-                    
-                    <!-- Admin Django pour SuperAdmin -->
-                    {% if user.is_superuser %}
+                    {% if user.peut_acceder_admin_django %}
                     <hr style="border-color: rgba(255,255,255,0.2);">
                     <a class="nav-link" href="/admin/">
                         <i class="bi bi-gear"></i> Administration Django
                     </a>
                     {% endif %}
+                </nav>
+                {% else %}
+                <!-- Autres rôles : menu selon permissions spécifiées -->
+                <nav class="nav flex-column">
+                    {% if user.peut_voir_uniquement_tableau_bord_feuille %}
+                    <!-- DG et CD_FINANCE : uniquement tableau de bord feuille -->
+                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <i class="bi bi-speedometer2"></i> Tableau de bord
+                    </a>
+                    
+                    <!-- Menu Clôtures pour DG et CD_FINANCE -->
+                    {% if user.role == 'DG' or user.role == 'CD_FINANCE' %}
+                    <a class="nav-link {% if request.resolver_match.app_name == 'clotures' %}active{% endif %}" href="{% url 'clotures:periode_actuelle' %}">
+                        <i class="bi bi-lock"></i> Clôtures
+                    </a>
                     {% endif %}
+                    
+                    {% else %}
+                    <!-- Autres rôles : menu selon permissions spécifiées -->
+                    {% if user.username == 'AdminDaf' %}
+                    <!-- AdminDaf : ne voit pas le tableau de bord -->
+                    {% else %}
+                    <!-- Autres : tableau de bord -->
+                    {% if user.peut_voir_tableau_bord and user.role != 'ADMIN' %}
+                    <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <i class="bi bi-speedometer2"></i> Tableau de bord
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                    
+                    {% if user.username == 'AdminDaf' %}
+                    <!-- AdminDaf : uniquement les natures économiques -->
+                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'nature' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
+                        <i class="bi bi-diagram-3"></i> Natures Économiques
+                    </a>
+                    {% endif %}
+                    
+                    {% if user.username == 'AdminDaf' %}
+                    <!-- AdminDaf : ne voit pas les recettes/dépenses -->
+                    {% else %}
+                    <!-- Autres : recettes et dépenses -->
+                    {% if user.peut_ajouter_recette_depense and user.role != 'ADMIN' %}
+                    <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'depense_feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:depense_feuille_liste' %}">
+                        <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
+                    </a>
+                    {% endif %}
+                    
+                    <a class="nav-link {% if request.resolver_match.app_name == 'recettes' and 'feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'recettes:feuille_liste' %}">
+                        <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
+                    </a>
+                    {% endif %}
+                    
+                    {% if user.peut_generer_etats and user.role != 'ADMIN' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="#" id="rapportsFeuillesDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-file-pdf"></i> Rapports feuilles
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
+                                <i class="bi bi-file-earmark-text"></i> État Dépense
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'tableau_bord_feuilles:etats_recettes' %}">
+                                <i class="bi bi-cash-coin"></i> État Recette
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            
+                        </ul>
+                    </li>
+                    {% endif %}                  
                 </nav>
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-10 main-content">
+            <div class="{% if user.is_authenticated %}col-md-10{% else %}col-12{% endif %} main-content">
                 <!-- Messages -->
                 {% if messages %}
                 <div class="messages">
@@ -254,11 +300,6 @@
                 
                 {% block content %}{% endblock %}
             </div>
-            {% else %}
-            <!-- Page de connexion (pas de sidebar) -->
-            <div class="col-12">
-            </div>
-            {% endif %}
         </div>
     </div>
 
@@ -269,34 +310,7 @@
     <!-- Chart.js -->
     <script src="{% static 'js/chart.umd.min.js' %}"></script>
     
-    <!-- Script de redirection simple -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            {% if user.is_authenticated %}
-            var username = "{{ user.username }}";
-            var currentPath = "{{ request.path }}";
-            
-            console.log("Redirection check:", {
-                path: currentPath,
-                username: username,
-                userRole: "{{ user.role }}"
-            });
-            
-            // AdminDaf : redirigé vers les natures depuis la racine
-            if (username === 'AdminDaf' && currentPath === '/') {
-                console.log("Redirection AdminDaf vers natures");
-                window.location.href = '/demandes/natures/';
-            }
-            
-            // SuperAdmin : redirigé loin des natures
-            if (username === 'SuperAdmin' && currentPath === '/demandes/natures/') {
-                console.log("Redirection SuperAdmin loin des natures");
-                window.location.href = '/dashboard/';
-            }
-            {% endif %}
-        });
-    </script>
-    
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+

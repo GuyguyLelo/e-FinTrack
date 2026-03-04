@@ -1,3 +1,22 @@
+#!/bin/bash
+# create_autonomous_login.sh - Création d'un login autonome
+
+set -e
+
+echo "🔧 Création d'un Login Autonome"
+echo "=========================="
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Diagnostic du problème..."
+echo "Erreur: 'block' tag with name 'content' appears more than once"
+echo "Solution: Template de login autonome (pas d'héritage)"
+
+echo ""
+echo "🔧 2. Création d'un template de login autonome..."
+
+cat > templates/accounts/login_autonomous.html << 'LOGIN_AUTONOMOUS'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -138,3 +157,83 @@
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 </body>
 </html>
+LOGIN_AUTONOMOUS
+
+echo "✅ Template login_autonomous.html créé"
+
+echo ""
+echo "🔧 3. Remplacement du template de login..."
+
+# Sauvegarder l'ancien template
+cp templates/accounts/login.html templates/accounts/login_backup_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version autonome
+cp templates/accounts/login_autonomous.html templates/accounts/login.html
+
+echo "✅ Template de login remplacé"
+
+echo ""
+echo "🌐 4. Test du login autonome..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+
+print("🧪 Test du login autonome:")
+try:
+    client = Client()
+    response = client.get('/accounts/login/')
+    print(f"   Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        content = response.content.decode('utf-8')
+        if 'form-control' in content and 'btn-primary' in content:
+            print("   ✅ Page de login autonome fonctionne")
+        else:
+            print("   ❌ Page de login autonome cassée")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "🌐 5. Test de la vue de login..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+from django.urls import reverse
+
+print("🧪 Test de la vue de login:")
+try:
+    client = Client()
+    
+    # Test de la vue
+    response = client.post(reverse('accounts:login'), {
+        'username': 'AdminDaf',
+        'password': 'AdminDaf123!'
+    })
+    
+    print(f"   Status POST: {response.status_code}")
+    
+    if response.status_code == 302:
+        print("   ✅ Redirection après connexion fonctionne")
+        print(f"   📋 Redirection vers: {response.url}")
+    elif response.status_code == 200:
+        print("   ❌ Connexion échouée - reste sur la page")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "✅ Login autonome créé et testé !"
+echo "🎊 Testez maintenant en local avec:"
+echo "   python manage.py runserver 127.0.0.1:8000"
+echo ""
+echo "🌐 URL de test:"
+echo "   http://127.0.0.1:8000/accounts/login/"

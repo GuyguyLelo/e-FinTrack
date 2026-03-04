@@ -1,3 +1,28 @@
+#!/bin/bash
+# fix_template_syntax_final.sh - Correction finale de la syntaxe
+
+set -e
+
+echo "🔧 Correction Finale de la Syntaxe du Template"
+echo "=========================================="
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Diagnostic du problème..."
+echo "Erreur: Invalid block tag on line 288: 'endif'"
+echo "Cause: endif sans if correspondant"
+
+echo ""
+echo "🔍 2. Analyse du template actuel..."
+echo "Lignes 280-300 de base.html:"
+
+sed -n '280,300p' templates/base.html
+
+echo ""
+echo "🔧 3. Création d'un template base.html propre..."
+
+cat > templates/base_clean.html << 'BASE_CLEAN'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -257,6 +282,7 @@
             {% else %}
             <!-- Page de connexion (pas de sidebar) -->
             <div class="col-12">
+                {% block content %}{% endblock %}
             </div>
             {% endif %}
         </div>
@@ -300,3 +326,86 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_CLEAN
+
+echo "✅ Template base_clean.html créé"
+
+echo ""
+echo "🔧 4. Sauvegarde et remplacement..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_final_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version propre
+cp templates/base_clean.html templates/base.html
+
+echo "✅ Template base.html remplacé"
+
+echo ""
+echo "🔄 5. Redémarrage des services..."
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+echo ""
+echo "🌐 6. Test du template corrigé..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+
+print("🧪 Test du template corrigé:")
+try:
+    client = Client()
+    response = client.get('/accounts/login/')
+    print(f"   Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        content = response.content.decode('utf-8')
+        if 'form-control' in content:
+            print("   ✅ Template de login fonctionne")
+        else:
+            print("   ❌ Template de login cassé")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "🎯 7. Vérification de la syntaxe finale..."
+echo "Vérification des blocks dans le nouveau template:"
+
+python manage.py shell << 'EOF'
+from django.template import Template, Context
+
+print("🧪 Test de syntaxe finale:")
+try:
+    with open('templates/base.html', 'r') as f:
+        template_content = f.read()
+    
+    template = Template(template_content)
+    print("   ✅ Syntaxe du template correcte")
+    
+    # Compter les blocks
+    if_count = template_content.count('{% if ')
+    endif_count = template_content.count('{% endif %}')
+    block_count = template_content.count('{% block ')
+    endblock_count = template_content.count('{% endblock %}')
+    
+    print(f"   📊 Blocks if/endif: {if_count}/{endif_count}")
+    print(f"   📊 Blocks block/endblock: {block_count}/{endblock_count}")
+    
+    if if_count == endif_count and block_count == endblock_count:
+        print("   ✅ Toutes les balises sont correctement fermées")
+    else:
+        print("   ❌ Déséquilibre des balises détecté")
+    
+except Exception as e:
+    print(f"   ❌ Erreur de syntaxe: {e}")
+
+EOF
+
+echo ""
+echo "✅ Correction finale de la syntaxe terminée !"
+echo "🎊 Le template base.html est maintenant syntaxiquement parfait"

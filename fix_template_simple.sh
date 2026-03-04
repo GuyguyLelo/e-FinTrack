@@ -1,3 +1,22 @@
+#!/bin/bash
+# fix_template_simple.sh - Création d'un template simple et correct
+
+set -e
+
+echo "🔧 Création d'un Template Simple et Correct"
+echo "======================================"
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Diagnostic du problème..."
+echo "Erreur: Unclosed tag on line 219: 'if'"
+echo "Cause: Template trop complexe avec conditions imbriquées"
+
+echo ""
+echo "🔧 2. Création d'un template base.html simple et correct..."
+
+cat > templates/base_simple.html << 'BASE_SIMPLE'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -257,6 +276,7 @@
             {% else %}
             <!-- Page de connexion (pas de sidebar) -->
             <div class="col-12">
+                {% block content %}{% endblock %}
             </div>
             {% endif %}
         </div>
@@ -300,3 +320,86 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_SIMPLE
+
+echo "✅ Template base_simple.html créé"
+
+echo ""
+echo "🔧 3. Sauvegarde et remplacement..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_complex_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version simple
+cp templates/base_simple.html templates/base.html
+
+echo "✅ Template base.html remplacé par version simple"
+
+echo ""
+echo "🔄 4. Redémarrage des services..."
+sudo systemctl restart gunicorn
+sudo systemctl restart nginx
+
+echo ""
+echo "🌐 5. Test du template simple..."
+
+python manage.py shell << 'EOF'
+from django.template import Template, Context
+
+print("🧪 Test du template simple:")
+try:
+    with open('templates/base.html', 'r') as f:
+        template_content = f.read()
+    
+    template = Template(template_content)
+    print("   ✅ Syntaxe du template correcte")
+    
+    # Compter les blocks
+    if_count = template_content.count('{% if ')
+    endif_count = template_content.count('{% endif %}')
+    block_count = template_content.count('{% block ')
+    endblock_count = template_content.count('{% endblock %}')
+    
+    print(f"   📊 Blocks if/endif: {if_count}/{endif_count}")
+    print(f"   📊 Blocks block/endblock: {block_count}/{endblock_count}")
+    
+    if if_count == endif_count and block_count == endblock_count:
+        print("   ✅ Toutes les balises sont correctement fermées")
+    else:
+        print("   ❌ Déséquilibre des balises détecté")
+    
+except Exception as e:
+    print(f"   ❌ Erreur de syntaxe: {e}")
+
+EOF
+
+echo ""
+echo "🌐 6. Test du login..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+
+print("🧪 Test du login:")
+try:
+    client = Client()
+    response = client.get('/accounts/login/')
+    print(f"   Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        content = response.content.decode('utf-8')
+        if 'form-control' in content:
+            print("   ✅ Page de login fonctionne")
+        else:
+            print("   ❌ Page de login cassée")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "✅ Template simple créé et testé !"
+echo "🎊 Testez maintenant en local avec:"
+echo "   python manage.py runserver 127.0.0.1:8000"

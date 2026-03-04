@@ -1,3 +1,22 @@
+#!/bin/bash
+# fix_final_content_blocks.sh - Correction finale des blocks content
+
+set -e
+
+echo "🔧 Correction Finale des Blocks Content"
+echo "=================================="
+
+cd ~/e-FinTrack
+source venv/bin/activate
+
+echo "🔍 1. Diagnostic du problème..."
+echo "Erreur: 'block' tag with name 'content' appears more than once"
+echo "Cause: Deux {% block content %} dans base.html"
+
+echo ""
+echo "🔧 2. Création d'un template base.html correct..."
+
+cat > templates/base_final.html << 'BASE_FINAL'
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -257,6 +276,7 @@
             {% else %}
             <!-- Page de connexion (pas de sidebar) -->
             <div class="col-12">
+                {% block content %}{% endblock %}
             </div>
             {% endif %}
         </div>
@@ -300,3 +320,122 @@
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+BASE_FINAL
+
+echo "✅ Template base_final.html créé"
+
+echo ""
+echo "🔧 3. Sauvegarde et remplacement..."
+
+# Sauvegarder l'ancien template
+cp templates/base.html templates/base_backup_final_$(date +%Y%m%d_%H%M%S).html
+
+# Remplacer par la version finale
+cp templates/base_final.html templates/base.html
+
+echo "✅ Template base.html remplacé"
+
+echo ""
+echo "🌐 4. Test du template final..."
+
+python manage.py shell << 'EOF'
+from django.template import Template, Context
+
+print("🧪 Test du template final:")
+try:
+    with open('templates/base.html', 'r') as f:
+        template_content = f.read()
+    
+    template = Template(template_content)
+    print("   ✅ Syntaxe du template correcte")
+    
+    # Compter les blocks
+    if_count = template_content.count('{% if ')
+    endif_count = template_content.count('{% endif %}')
+    block_count = template_content.count('{% block ')
+    endblock_count = template_content.count('{% endblock %}')
+    content_count = template_content.count('{% block content %}')
+    
+    print(f"   📊 Blocks if/endif: {if_count}/{endif_count}")
+    print(f"   📊 Blocks block/endblock: {block_count}/{endblock_count}")
+    print(f"   📊 Blocks content: {content_count}")
+    
+    if if_count == endif_count and block_count == endblock_count and content_count == 1:
+        print("   ✅ Toutes les balises sont correctement fermées")
+        print("   ✅ Un seul block content trouvé")
+    else:
+        print("   ❌ Déséquilibre des balises détecté")
+    
+except Exception as e:
+    print(f"   ❌ Erreur de syntaxe: {e}")
+
+EOF
+
+echo ""
+echo "🌐 5. Test du login..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+
+print("🧪 Test du login:")
+try:
+    client = Client()
+    response = client.get('/accounts/login/')
+    print(f"   Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        content = response.content.decode('utf-8')
+        if 'form-control' in content:
+            print("   ✅ Page de login fonctionne")
+        else:
+            print("   ❌ Page de login cassée")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "🌐 6. Test du tableau de bord..."
+
+python manage.py shell << 'EOF'
+from django.test import Client
+from accounts.models import User
+
+print("🧪 Test du tableau de bord:")
+try:
+    # Créer un utilisateur de test si nécessaire
+    user, created = User.objects.get_or_create(
+        username='TestUser',
+        defaults={
+            'role': 'DG',
+            'is_active': True
+        }
+    )
+    
+    client = Client()
+    client.force_login(user)
+    
+    response = client.get('/tableau-bord-feuilles/')
+    print(f"   Status: {response.status_code}")
+    
+    if response.status_code == 200:
+        content = response.content.decode('utf-8')
+        if 'Tableau de bord' in content:
+            print("   ✅ Tableau de bord fonctionne")
+        else:
+            print("   ❌ Tableau de bord cassé")
+    else:
+        print(f"   ❌ Erreur: {response.status_code}")
+        
+except Exception as e:
+    print(f"   ❌ Erreur: {e}")
+
+EOF
+
+echo ""
+echo "✅ Correction finale terminée !"
+echo "🎊 Testez maintenant en local avec:"
+echo "   python manage.py runserver 127.0.0.1:8000"
