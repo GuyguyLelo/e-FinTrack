@@ -189,12 +189,18 @@
     <div class="container-fluid">
         <div class="row">
             {% if user.is_authenticated %}
-            <!-- Redirection automatique pour l'admin simple -->
-            {% if user.role == 'ADMIN' and request.path == '/' %}
-            <script>
-                window.location.href = '/demandes/natures/';
-            </script>
-            {% endif %}
+                <!-- Redirection automatique pour les rôles spécifiques -->
+                {% if user.username == 'AdminDaf' and request.path == '/' %}
+                <script>
+                    window.location.href = '/demandes/natures/';
+                </script>
+                {% endif %}
+                
+                {% if user.username == 'SuperAdmin' and request.path == '/demandes/natures/' %}
+                <script>
+                    window.location.href = '/dashboard/';
+                </script>
+                {% endif %}
             
             <!-- Sidebar -->
             <div class="col-md-2 sidebar">
@@ -226,22 +232,33 @@
                     
                     {% else %}
                     <!-- Autres rôles : menu selon permissions spécifiées -->
+                    {% if user.username == 'AdminDaf' %}
+                    <!-- AdminDaf : ne voit pas le tableau de bord -->
+                    {% else %}
+                    <!-- Autres : tableau de bord -->
                     {% if user.peut_voir_tableau_bord and user.role != 'ADMIN' %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                         <i class="bi bi-speedometer2"></i> Tableau de bord
                     </a>
                     {% endif %}
+                    {% endif %}
                     
-                    {% if user.peut_ajouter_nature_economique %}
+                    {% if user.username == 'AdminDaf' %}
+                    <!-- AdminDaf : uniquement les natures économiques -->
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'nature' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
                         <i class="bi bi-diagram-3"></i> Natures Économiques
                     </a>
                     {% endif %}
                     
+                    {% if user.username == 'AdminDaf' %}
+                    <!-- AdminDaf : ne voit pas les recettes/dépenses -->
+                    {% else %}
+                    <!-- Autres : recettes et dépenses -->
                     {% if user.peut_ajouter_recette_depense and user.role != 'ADMIN' %}
                     <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'depense_feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:depense_feuille_liste' %}">
                         <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
                     </a>
+                    {% endif %}
                     
                     <a class="nav-link {% if request.resolver_match.app_name == 'recettes' and 'feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'recettes:feuille_liste' %}">
                         <i class="bi bi-journal-spreadsheet"></i> Gestion recettes
