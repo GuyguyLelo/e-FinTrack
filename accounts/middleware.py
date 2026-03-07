@@ -18,6 +18,22 @@ class AdminAccessMiddleware:
     def __call__(self, request):
         user = request.user
         
+<<<<<<< HEAD
+        # Redirection prioritaire pour les admins vers les natures économiques
+        if user.is_authenticated and user.role == 'ADMIN' and request.path == '/':
+            return redirect('/demandes/natures/')  # Redirection immédiate pour les admins
+        
+        if user.is_authenticated:
+            # Redirection pour ADMIN : accès admin Django + natures économiques + services
+            if user.role == 'ADMIN':
+                # Rediriger les admins directement vers les natures économiques
+                if request.path == '/':
+                    return redirect('/demandes/natures/')  # Page par défaut pour les admins
+                # Laisser l'admin naviguer librement sur les autres pages
+                pass
+                
+                
+=======
         if user.is_authenticated:
             # Redirection pour ADMIN : accès admin Django + natures économiques
             if user.role == 'ADMIN':
@@ -28,6 +44,7 @@ class AdminAccessMiddleware:
                         request.path.startswith('/static/') or
                         request.path.startswith('/media/')):
                     return redirect('/demandes/natures/')
+>>>>>>> 5a1f2ed825b571d0531b0147150a27218e958d7a
             
             # Redirection pour DG et CD_FINANCE : uniquement tableau de bord feuille
             elif user.role in ['DG', 'CD_FINANCE']:
@@ -67,6 +84,10 @@ class AdminAccessMiddleware:
             elif request.path == '/' and not (user.peut_voir_tableau_bord() or user.peut_ajouter_nature_economique()):
                 # Rediriger vers une page appropriée selon le rôle
                 if user.role == 'ADMIN':
+<<<<<<< HEAD
+                    # Les admins ont accès aux natures et services - rediriger vers les natures
+=======
+>>>>>>> 5a1f2ed825b571d0531b0147150a27218e958d7a
                     return redirect('/demandes/natures/')  # Rediriger vers les natures économiques
                 elif user.role == 'OPERATEUR_SAISIE':
                     return redirect('/demandes/')  # Rediriger vers les demandes
@@ -78,6 +99,14 @@ class AdminAccessMiddleware:
                         return redirect('/admin/')
                     else:
                         return redirect('/accounts/login/')
+<<<<<<< HEAD
+            # Pour les admins, permettre l'accès libre aux pages autorisées
+            elif user.role == 'ADMIN' and request.path.startswith('/tableau-bord-feuilles/'):
+                # Les admins peuvent voir le tableau de bord même sans permission spéciale
+                # Ne pas rediriger - laisser passer
+                pass
+=======
+>>>>>>> 5a1f2ed825b571d0531b0147150a27218e958d7a
         
         response = self.get_response(request)
         return response
