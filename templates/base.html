@@ -388,6 +388,14 @@
                             <i class="bi bi-calendar-check"></i> Clôtures
                         </a>
                         
+                        <a class="nav-link" href="{% url 'demandes:nature_liste' %}">
+                            <i class="bi bi-diagram-3"></i> Natures Économiques
+                        </a>
+                        
+                        <a class="nav-link" href="{% url 'accounts:service_list' %}">
+                            <i class="bi bi-building"></i> Gestion des Services
+                        </a>
+                        
                         <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
                         </a>
@@ -404,7 +412,7 @@
                             <i class="bi bi-file-text"></i> États recettes
                         </a>
                         
-                        <a class="nav-link" href="{% url 'admin:index' %}">
+                        <a class="nav-link" href="/admin/">
                             <i class="bi bi-gear"></i> Admin Django
                         </a>
                     </div>
