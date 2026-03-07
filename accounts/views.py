@@ -170,7 +170,7 @@ class UserModificationMixin(UserManagementMixin):
     pass
 
 
-class UserListView(UserManagementMixin, ListView):
+class UserListView(SuperAdminRequiredMixin, ListView):
     """Liste des utilisateurs - SuperAdmin uniquement"""
     model = User
     template_name = 'accounts/user_list.html'
@@ -202,3 +202,58 @@ class UserListView(UserManagementMixin, ListView):
             )
             
         return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Gestion des Utilisateurs'
+        context['services'] = Service.objects.filter(actif=True)
+        return context
+
+
+class UserDetailView(SuperAdminRequiredMixin, DetailView):
+    """Détails d'un utilisateur - SuperAdmin uniquement"""
+    model = User
+    template_name = 'accounts/user_detail.html'
+    context_object_name = 'user_obj'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Détails de {self.object.username}'
+        return context
+
+
+class UserCreateView(SuperAdminRequiredMixin, CreateView):
+    """Création d'un utilisateur - SuperAdmin uniquement"""
+    model = User
+    template_name = 'accounts/user_form.html'
+    success_url = reverse_lazy('accounts:user_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Ajouter un utilisateur'
+        context['action'] = 'Ajouter'
+        context['services'] = Service.objects.filter(actif=True)
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Utilisateur créé avec succès')
+        return super().form_valid(form)
+
+
+class UserUpdateView(SuperAdminRequiredMixin, UpdateView):
+    """Modification d'un utilisateur - SuperAdmin uniquement"""
+    model = User
+    template_name = 'accounts/user_form.html'
+    success_url = reverse_lazy('accounts:user_list')
+    fields = ['username', 'email', 'first_name', 'last_name', 'role', 'service', 'is_active', 'is_superuser']
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Modifier un utilisateur'
+        context['action'] = 'Modifier'
+        context['services'] = Service.objects.filter(actif=True)
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Utilisateur modifié avec succès')
+        return super().form_valid(form)
