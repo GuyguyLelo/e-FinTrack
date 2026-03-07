@@ -592,7 +592,7 @@ class EtatsFeuillesGenererView(View):
             styles = getSampleStyleSheet()
             elements = []
             # Logo du projet en en-tête (à gauche)
-            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
                 logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
                 logo_table = Table([[logo]], colWidths=[3*cm])
@@ -699,7 +699,7 @@ class EtatsFeuillesGenererView(View):
             style_regroupement = ParagraphStyle('Regroupement', parent=styles['Heading2'], fontSize=9, leading=10)
             elements = []
             # Logo (à gauche)
-            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
                 logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
                 logo_table = Table([[logo]], colWidths=[3*cm])
@@ -861,7 +861,7 @@ class EtatsFeuillesGenererView(View):
             style_cell = ParagraphStyle('CellLibelle', parent=styles['Normal'], fontSize=8, leading=9)
             style_regroupement = ParagraphStyle('Regroupement', parent=styles['Heading2'], fontSize=9, leading=10)
             elements = []
-            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
                 logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
                 logo_table = Table([[logo]], colWidths=[3*cm])
@@ -1019,7 +1019,7 @@ class EtatsFeuillesGenererView(View):
                 topMargin=1.5*cm, bottomMargin=1.5*cm)
             styles = getSampleStyleSheet()
             elements = []
-            logo_path = settings.BASE_DIR / 'static' / 'img' / 'logo_e-FinTrack.png'
+            logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
                 logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
                 logo_table = Table([[logo]], colWidths=[3*cm])
