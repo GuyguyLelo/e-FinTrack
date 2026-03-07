@@ -598,8 +598,13 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                # Créer un tableau avec le logo aligné à gauche et en haut
-                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
+                
+                # Créer un tableau 2x2 pour positionnement absolu
+                # [ [logo, vide], [vide, titre] ]
+                logo_table = Table([
+                    [logo, ''],
+                    ['', '']
+                ], colWidths=[3*cm, 20*cm], rowHeights=[3*cm, 0.5*cm])
                 logo_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -607,6 +612,8 @@ class EtatsFeuillesGenererView(View):
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('TOPPADDING', (0, 0), (-1, -1), 0),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    # Masquer les bordures
+                    ('GRID', (0, 0), (-1, -1), 0, colors.white),
                 ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
@@ -716,8 +723,12 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                # Créer un tableau avec le logo aligné à gauche et en haut
-                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
+                
+                # Créer un tableau 2x2 pour positionnement absolu
+                logo_table = Table([
+                    [logo, ''],
+                    ['', '']
+                ], colWidths=[3*cm, 20*cm], rowHeights=[3*cm, 0.5*cm])
                 logo_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -725,6 +736,8 @@ class EtatsFeuillesGenererView(View):
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('TOPPADDING', (0, 0), (-1, -1), 0),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    # Masquer les bordures
+                    ('GRID', (0, 0), (-1, -1), 0, colors.white),
                 ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
@@ -889,7 +902,11 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
+                # Créer un tableau 2x2 pour positionnement absolu
+                logo_table = Table([
+                    [logo, ''],
+                    ['', '']
+                ], colWidths=[3*cm, 20*cm], rowHeights=[3*cm, 0.5*cm])
                 logo_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -897,6 +914,8 @@ class EtatsFeuillesGenererView(View):
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('TOPPADDING', (0, 0), (-1, -1), 0),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    # Masquer les bordures
+                    ('GRID', (0, 0), (-1, -1), 0, colors.white),
                 ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
@@ -1057,7 +1076,11 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
+                # Créer un tableau 2x2 pour positionnement absolu
+                logo_table = Table([
+                    [logo, ''],
+                    ['', '']
+                ], colWidths=[3*cm, 20*cm], rowHeights=[3*cm, 0.5*cm])
                 logo_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -1065,6 +1088,8 @@ class EtatsFeuillesGenererView(View):
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                     ('TOPPADDING', (0, 0), (-1, -1), 0),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                    # Masquer les bordures
+                    ('GRID', (0, 0), (-1, -1), 0, colors.white),
                 ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
