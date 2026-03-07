@@ -598,10 +598,15 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                logo_table = Table([[logo]], colWidths=[3*cm])
+                # Créer un tableau avec le logo aligné à gauche et en haut
+                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
                 logo_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
@@ -711,10 +716,15 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                logo_table = Table([[logo]], colWidths=[3*cm])
+                # Créer un tableau avec le logo aligné à gauche et en haut
+                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
                 logo_table.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
@@ -879,8 +889,15 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                logo_table = Table([[logo]], colWidths=[3*cm])
-                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
             # Titre sans période (comme dépense par nature)
@@ -1040,8 +1057,15 @@ class EtatsFeuillesGenererView(View):
                 # Rendre le logo circulaire
                 logo.drawHeight = 3*cm
                 logo.drawWidth = 3*cm
-                logo_table = Table([[logo]], colWidths=[3*cm])
-                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                logo_table = Table([[logo]], colWidths=[3*cm], rowHeights=[3*cm])
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+                ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
             titre = 'SYNTHÈSE PAR BANQUE'
