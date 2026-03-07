@@ -594,9 +594,15 @@ class EtatsFeuillesGenererView(View):
             # Logo du projet en en-tête (à gauche)
             logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
-                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo = Image(str(logo_path), width=3*cm, height=3*cm)
+                # Rendre le logo circulaire
+                logo.drawHeight = 3*cm
+                logo.drawWidth = 3*cm
                 logo_table = Table([[logo]], colWidths=[3*cm])
-                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
             elements.append(Paragraph(titre, styles['Title']))
@@ -701,9 +707,15 @@ class EtatsFeuillesGenererView(View):
             # Logo (à gauche)
             logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
-                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo = Image(str(logo_path), width=3*cm, height=3*cm)
+                # Rendre le logo circulaire
+                logo.drawHeight = 3*cm
+                logo.drawWidth = 3*cm
                 logo_table = Table([[logo]], colWidths=[3*cm])
-                logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+                logo_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
                 elements.append(logo_table)
                 elements.append(Spacer(1, 0.3*cm))
             mois_noms = ['', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -863,7 +875,10 @@ class EtatsFeuillesGenererView(View):
             elements = []
             logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
-                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo = Image(str(logo_path), width=3*cm, height=3*cm)
+                # Rendre le logo circulaire
+                logo.drawHeight = 3*cm
+                logo.drawWidth = 3*cm
                 logo_table = Table([[logo]], colWidths=[3*cm])
                 logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
                 elements.append(logo_table)
@@ -1021,7 +1036,10 @@ class EtatsFeuillesGenererView(View):
             elements = []
             logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
             if logo_path.exists():
-                logo = Image(str(logo_path), width=3*cm, height=1.5*cm)
+                logo = Image(str(logo_path), width=3*cm, height=3*cm)
+                # Rendre le logo circulaire
+                logo.drawHeight = 3*cm
+                logo.drawWidth = 3*cm
                 logo_table = Table([[logo]], colWidths=[3*cm])
                 logo_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
                 elements.append(logo_table)
