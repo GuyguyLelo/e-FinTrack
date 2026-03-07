@@ -587,8 +587,8 @@ class EtatsFeuillesGenererView(View):
             # Générer le PDF
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
-                rightMargin=0.5*cm, leftMargin=0.5*cm,
-                topMargin=0.8*cm, bottomMargin=0.8*cm)
+                rightMargin=0.5*cm, leftMargin=0.3*cm,
+                topMargin=0.5*cm, bottomMargin=0.8*cm)
             styles = getSampleStyleSheet()
             elements = []
             # Logo du projet en en-tête (à gauche)
@@ -710,8 +710,8 @@ class EtatsFeuillesGenererView(View):
             from reportlab.lib.styles import ParagraphStyle
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
-                rightMargin=1.5*cm, leftMargin=1.5*cm,
-                topMargin=1.5*cm, bottomMargin=1.5*cm)
+                rightMargin=1.5*cm, leftMargin=0.3*cm,
+                topMargin=0.5*cm, bottomMargin=1.5*cm)
             styles = getSampleStyleSheet()
             style_cell = ParagraphStyle('CellLibelle', parent=styles['Normal'], fontSize=8, leading=9)
             style_regroupement = ParagraphStyle('Regroupement', parent=styles['Heading2'], fontSize=9, leading=10)
@@ -890,8 +890,8 @@ class EtatsFeuillesGenererView(View):
             from reportlab.lib.styles import ParagraphStyle
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
-                rightMargin=1.5*cm, leftMargin=1.5*cm,
-                topMargin=1.5*cm, bottomMargin=1.5*cm)
+                rightMargin=1.5*cm, leftMargin=0.3*cm,
+                topMargin=0.5*cm, bottomMargin=1.5*cm)
             styles = getSampleStyleSheet()
             style_cell = ParagraphStyle('CellLibelle', parent=styles['Normal'], fontSize=8, leading=9)
             style_regroupement = ParagraphStyle('Regroupement', parent=styles['Heading2'], fontSize=9, leading=10)
@@ -1066,8 +1066,8 @@ class EtatsFeuillesGenererView(View):
         try:
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
-                rightMargin=1.5*cm, leftMargin=1.5*cm,
-                topMargin=1.5*cm, bottomMargin=1.5*cm)
+                rightMargin=1.5*cm, leftMargin=0.3*cm,
+                topMargin=0.5*cm, bottomMargin=1.5*cm)
             styles = getSampleStyleSheet()
             elements = []
             logo_path = settings.BASE_DIR / 'static' / 'img' / 'WhatsApp Image 2026-03-07 at 17.24.40.jpeg'
