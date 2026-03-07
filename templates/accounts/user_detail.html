@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+
+{% block title %}Détails de {{ user_obj.username }} - e-Finance DAF{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-person"></i> Détails de {{ user_obj.username }}
+                </h2>
+                <div>
+                    <a href="{% url 'accounts:user_update' user_obj.pk %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                    <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Informations principales -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person-vcard"></i> Informations principales
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Nom d'utilisateur:</strong></td>
+                                    <td>{{ user_obj.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ user_obj.email|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Nom complet:</strong></td>
+                                    <td>{{ user_obj.get_full_name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Prénom:</strong></td>
+                                    <td>{{ user_obj.first_name|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Nom:</strong></td>
+                                    <td>{{ user_obj.last_name|default:"-" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rôle et permissions -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-shield-check"></i> Rôle et permissions
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Rôle:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{{ user_obj.role|default:'secondary' }}">
+                                            {{ user_obj.get_role_display|default:user_obj.role }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Service:</strong></td>
+                                    <td>
+                                        {% if user_obj.service %}
+                                            {{ user_obj.service.nom_service }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Statut:</strong></td>
+                                    <td>
+                                        {% if user_obj.is_active %}
+                                            <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>SuperAdmin:</strong></td>
+                                    <td>
+                                        {% if user_obj.is_superuser %}
+                                            <span class="badge bg-warning">Oui</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Non</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Staff:</strong></td>
+                                    <td>
+                                        {% if user_obj.is_staff %}
+                                            <span class="badge bg-info">Oui</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Non</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permissions détaillées -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-key"></i> Permissions détaillées
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Permissions financières</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Voir tableau de bord:</td>
+                                            <td>
+                                                {% if user_obj.peut_voir_tableau_bord %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Ajouter nature économique:</td>
+                                            <td>
+                                                {% if user_obj.peut_ajouter_nature_economique %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Ajouter recette/dépense:</td>
+                                            <td>
+                                                {% if user_obj.peut_ajouter_recette_depense %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Voir états:</td>
+                                            <td>
+                                                {% if user_obj.peut_voir_etats %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Permissions système</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Clôturer période:</td>
+                                            <td>
+                                                {% if user_obj.peut_cloturer_periode %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Accéder admin Django:</td>
+                                            <td>
+                                                {% if user_obj.peut_acceder_admin_django %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Gérer les banques:</td>
+                                            <td>
+                                                {% if user_obj.peut_gerer_banques %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>Gérer les paiements:</td>
+                                            <td>
+                                                {% if user_obj.peut_gerer_paiements %}
+                                                    <span class="badge bg-success">Oui</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Non</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations système -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-info-circle"></i> Informations système
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td><strong>ID:</strong></td>
+                                            <td>{{ user_obj.pk }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Date de création:</strong></td>
+                                            <td>{{ user_obj.date_joined|date:"d/m/Y H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Dernière connexion:</strong></td>
+                                            <td>
+                                                {% if user_obj.last_login %}
+                                                    {{ user_obj.last_login|date:"d/m/Y H:i" }}
+                                                {% else %}
+                                                    <span class="text-muted">Jamais</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-4">
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td><strong>Dernière modification:</strong></td>
+                                            <td>
+                                                {% if user_obj.last_login %}
+                                                    {{ user_obj.last_login|date:"d/m/Y H:i" }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Groupe primaire:</strong></td>
+                                            <td>
+                                                {% if user_obj.groups.first %}
+                                                    {{ user_obj.groups.first.name }}
+                                                {% else %}
+                                                    <span class="text-muted">Aucun</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6>Groupes</h6>
+                                    {% if user_obj.groups.all %}
+                                        {% for group in user_obj.groups.all %}
+                                            <span class="badge bg-info">{{ group.name }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">Aucun groupe</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
