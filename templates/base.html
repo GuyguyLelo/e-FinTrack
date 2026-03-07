@@ -340,26 +340,23 @@
                     <!-- Menu pour DirDaf et DivDaf (uniquement tableau de bord et clôtures) -->
                     {% if user.role == 'DG' or user.role == 'DF' or user.role == 'CD_FINANCE' %}
                     <div class="menu-section">
+                        <div class="menu-title">Menu Direction</div>
                         
-                        {% if user.peut_voir_tableau_bord %}
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de bord
                         </a>
-                        {% endif %}
                         
-                        {% if user.peut_cloturer_periode %}
-                        <a class="nav-link" href="{% url 'clotures:cloture_liste' %}">
+                        <a class="nav-link" href="/clotures/">
                             <i class="bi bi-calendar-check"></i> Clôtures
                         </a>
-                        {% endif %}
                     </div>
                     {% endif %}
                     
-                    <!-- Menu pour OpsDaf (recettes, dépenses et états) -->
+                    <!-- Menu pour OpsDaf (dépenses, recettes et états) -->
                     {% if user.role == 'OPERATEUR_SAISIE' %}
                     <div class="menu-section">
+                        <div class="menu-title">Menu Opérations</div>
                         
-                        {% if user.peut_ajouter_recette_depense %}
                         <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
                         </a>
@@ -367,9 +364,7 @@
                         <a class="nav-link" href="{% url 'recettes:feuille_liste' %}">
                             <i class="bi bi-cash-stack"></i> Gestion recettes
                         </a>
-                        {% endif %}
                         
-                        {% if user.peut_voir_etats %}
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
                             <i class="bi bi-file-text"></i> États dépenses
                         </a>
@@ -377,19 +372,37 @@
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:etats_recettes' %}">
                             <i class="bi bi-file-text"></i> États recettes
                         </a>
-                        {% endif %}
                     </div>
                     {% endif %}
                     
                     <!-- Menu pour SuperAdmin (tout sauf restrictions) -->
                     {% if user.is_super_admin or user.is_superuser %}
                     <div class="menu-section">
+                        <div class="menu-title">Menu SuperAdmin</div>
                         
-                        {% if user.peut_voir_tableau_bord %}
                         <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de bord
                         </a>
-                        {% endif %}
+                        
+                        <a class="nav-link" href="/clotures/">
+                            <i class="bi bi-calendar-check"></i> Clôtures
+                        </a>
+                        
+                        <a class="nav-link" href="{% url 'demandes:depense_feuille_liste' %}">
+                            <i class="bi bi-journal-spreadsheet"></i> Gestion dépenses
+                        </a>
+                        
+                        <a class="nav-link" href="{% url 'recettes:feuille_liste' %}">
+                            <i class="bi bi-cash-stack"></i> Gestion recettes
+                        </a>
+                        
+                        <a class="nav-link" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
+                            <i class="bi bi-file-text"></i> États dépenses
+                        </a>
+                        
+                        <a class="nav-link" href="{% url 'tableau_bord_feuilles:etats_recettes' %}">
+                            <i class="bi bi-file-text"></i> États recettes
+                        </a>
                         
                         <a class="nav-link" href="{% url 'admin:index' %}">
                             <i class="bi bi-gear"></i> Admin Django
