@@ -33,6 +33,13 @@
             font-weight: bold;
             color: var(--dgrad-dore) !important;
             font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 30px;
+            margin-right: 10px;
         }
         
         .card {
@@ -68,9 +75,10 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-building"></i> e-FinTrack
-            </a>
+            <div class="navbar-brand" href="#">
+                <img src="{% static 'img/logo_e-FinTrack.png' %}" alt="e-FinTrack" height="30" class="d-inline-block align-text-top me-2">
+                e-FinTrack
+            </div>
         </div>
     </nav>
     

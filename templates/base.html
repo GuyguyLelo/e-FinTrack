@@ -271,7 +271,8 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% if user.is_authenticated and user.role == 'ADMIN' %}{% url 'demandes:nature_liste' %}{% else %}{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}{% endif %}">
-                <i class="bi bi-speedometer2"></i> e-FinTrack
+                <img src="{% static 'img/logo_e-FinTrack.png' %}" alt="e-FinTrack" height="30" class="d-inline-block align-text-top me-2">
+                e-FinTrack
             </a>
             <button class="navbar-toggler mobile-only" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
