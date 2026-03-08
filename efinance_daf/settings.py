@@ -21,7 +21,12 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 from decouple import config
 
+# Domain settings
+DOMAIN_NAME = config('DOMAIN_NAME', default='e-fintrack-dgrad.com')
+SITE_URL = config('SITE_URL', default=f'https://{DOMAIN_NAME}')
+
 ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver').split(',')]
+ALLOWED_HOSTS.append(DOMAIN_NAME)
 
 # Ajoute manuellement le host avec port si tu utilises runserver
 if '187.77.171.80:8000' not in ALLOWED_HOSTS:
