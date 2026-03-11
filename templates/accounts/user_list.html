@@ -176,30 +176,46 @@
         </div>
     </div>
 </div>
+
+<!-- Modale de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmation de suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer l'utilisateur "<span id="deleteUsername"></span>" ?</p>
+                <p class="text-danger"><strong>Cette action est irréversible.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 function confirmDeleteUser(userId, username) {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est irréversible.`)) {
-        // Créer et soumettre un formulaire de suppression
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/accounts/utilisateurs/supprimer/${userId}/`;
-        
-        // Ajouter le token CSRF
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (csrfToken) {
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrfmiddlewaretoken';
-            csrfInput.value = csrfToken.value;
-            form.appendChild(csrfInput);
-        }
-        
-        document.body.appendChild(form);
-        form.submit();
-    }
+    // Mettre à jour la modale
+    document.getElementById('deleteUsername').textContent = username;
+    
+    // Mettre à jour l'action du formulaire
+    const deleteForm = document.getElementById('deleteForm');
+    deleteForm.action = `{% url 'accounts:user_delete' pk=0 %}`.replace('0', userId);
+    
+    // Afficher la modale
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
 }
 </script>
 {% endblock %}
