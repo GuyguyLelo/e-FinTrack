@@ -56,7 +56,7 @@
         }
 
         .nav-link {
-            color: var(--dgrad-blanc);
+            color: var(--dgrad-blanc) !important;
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             transition: all 0.3s ease;
@@ -67,14 +67,41 @@
 
         .nav-link:hover {
             background-color: rgba(255,255,255,0.1);
-            color: var(--dgrad-blanc);
+            color: var(--dgrad-blanc) !important;
             transform: translateX(5px);
         }
 
         .nav-link.active {
             background-color: var(--dgrad-dore);
-            color: var(--dgrad-bleu);
+            color: var(--dgrad-blanc) !important;
             font-weight: bold;
+        }
+
+        /* Correction pour le texte du tableau de bord */
+        .main-content h1, .main-content h2, .main-content h3, 
+        .main-content h4, .main-content h5, .main-content h6,
+        .main-content p, .main-content span, .main-content div {
+            color: #333 !important;
+        }
+
+        /* Correction pour les tableaux */
+        .table {
+            color: #333 !important;
+        }
+
+        .table th {
+            color: var(--dgrad-bleu) !important;
+            background-color: var(--dgrad-gris-clair) !important;
+        }
+
+        /* Correction pour les cartes */
+        .card {
+            color: #333 !important;
+        }
+
+        .card-header {
+            color: var(--dgrad-blanc) !important;
+            background-color: var(--dgrad-bleu) !important;
         }
 
         .main-content {
