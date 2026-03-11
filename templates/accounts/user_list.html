@@ -121,12 +121,14 @@
                                                 <i class="bi bi-pencil"></i>
                                             </a>
                                             {% if request.user.is_super_admin or request.user.is_superuser %}
+                                            {% if user.pk != request.user.pk %}
                                             <button type="button" 
                                                     class="btn btn-sm btn-outline-danger" 
                                                     onclick="confirmDeleteUser('{{ user.pk }}', '{{ user.username }}')"
                                                     title="Supprimer">
                                                 <i class="bi bi-trash"></i>
                                             </button>
+                                            {% endif %}
                                             {% endif %}
                                         </div>
                                     </td>
