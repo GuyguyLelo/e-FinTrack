@@ -227,6 +227,7 @@ class UserCreateView(SuperAdminRequiredMixin, CreateView):
     model = User
     template_name = 'accounts/user_form.html'
     success_url = reverse_lazy('accounts:user_list')
+    fields = ['username', 'email', 'first_name', 'last_name', 'role', 'service']
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
