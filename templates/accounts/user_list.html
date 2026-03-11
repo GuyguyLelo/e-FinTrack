@@ -120,6 +120,14 @@
                                                title="Modifier">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
+                                            {% if request.user.is_super_admin or request.user.is_superuser %}
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-danger" 
+                                                    onclick="confirmDeleteUser('{{ user.pk }}', '{{ user.username }}')"
+                                                    title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -168,4 +176,30 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDeleteUser(userId, username) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur "${username}" ?\n\nCette action est irréversible.`)) {
+        // Créer et soumettre un formulaire de suppression
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/accounts/utilisateurs/supprimer/${userId}/`;
+        
+        // Ajouter le token CSRF
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
 {% endblock %}

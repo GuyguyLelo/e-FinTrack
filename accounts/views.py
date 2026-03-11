@@ -1,6 +1,7 @@
 """
 Vues pour l'authentification et la gestion des utilisateurs
 """
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView as BaseLoginView
 from django.shortcuts import redirect, render, get_object_or_404
@@ -13,6 +14,7 @@ from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import JsonResponse
 from .models import User, Service
+from .forms import UserCreationForm
 
 
 class LoginView(BaseLoginView):
@@ -225,9 +227,9 @@ class UserDetailView(SuperAdminRequiredMixin, DetailView):
 class UserCreateView(SuperAdminRequiredMixin, CreateView):
     """Création d'un utilisateur - SuperAdmin uniquement"""
     model = User
+    form_class = UserCreationForm
     template_name = 'accounts/user_form.html'
     success_url = reverse_lazy('accounts:user_list')
-    fields = ['username', 'email', 'first_name', 'last_name', 'role', 'service']
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -237,7 +239,7 @@ class UserCreateView(SuperAdminRequiredMixin, CreateView):
         return context
     
     def form_valid(self, form):
-        messages.success(self.request, 'Utilisateur créé avec succès')
+        messages.success(self.request, f'Utilisateur {form.instance.username} créé avec succès')
         return super().form_valid(form)
 
 
@@ -258,3 +260,22 @@ class UserUpdateView(SuperAdminRequiredMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Utilisateur modifié avec succès')
         return super().form_valid(form)
+
+
+class UserDeleteView(SuperAdminRequiredMixin, DetailView):
+    """Suppression d'un utilisateur - SuperAdmin uniquement"""
+    model = User
+    template_name = 'accounts/user_confirm_delete.html'
+    
+    def post(self, request, *args, **kwargs):
+        user = self.get_object()
+        
+        # Empêcher la suppression de soi-même
+        if user == request.user:
+            messages.error(request, "Vous ne pouvez pas supprimer votre propre compte.")
+            return redirect('accounts:user_list')
+        
+        username = user.username
+        user.delete()
+        messages.success(request, f'Utilisateur "{username}" supprimé avec succès.')
+        return redirect('accounts:user_list')
