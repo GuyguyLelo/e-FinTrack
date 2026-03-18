@@ -79,7 +79,6 @@ class User(AbstractUser):
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='OPERATEUR_SAISIE')
-    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='membres')
     telephone = models.CharField(max_length=20, blank=True)
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)

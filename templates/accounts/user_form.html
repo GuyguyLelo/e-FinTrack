@@ -98,22 +98,6 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="{{ form.service.id_for_label }}" class="form-label">
-                                        Service
-                                    </label>
-                                    {{ form.service }}
-                                    {% if form.service.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.service.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">
-                                        Optionnel : assignez l'utilisateur à un service
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         {% if form.password1 %}

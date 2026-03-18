@@ -13,11 +13,10 @@ class UserCreationForm(BaseUserCreationForm):
     first_name = forms.CharField(max_length=30, required=False)
     last_name = forms.CharField(max_length=30, required=False)
     role = forms.ChoiceField(choices=User.ROLE_CHOICES, required=True)
-    service = forms.ModelChoiceField(queryset=Service.objects.filter(actif=True), required=False)
     
     class Meta(BaseUserCreationForm.Meta):
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'role', 'service', 'password1', 'password2')
+        fields = ('username', 'email', 'first_name', 'last_name', 'role', 'password1', 'password2')
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -30,7 +29,6 @@ class UserCreationForm(BaseUserCreationForm):
         self.fields['first_name'].label = "Prénom"
         self.fields['last_name'].label = "Nom"
         self.fields['role'].label = "Rôle"
-        self.fields['service'].label = "Service"
         self.fields['password1'].label = "Mot de passe"
         self.fields['password2'].label = "Confirmer le mot de passe"
         
@@ -45,7 +43,6 @@ class UserCreationForm(BaseUserCreationForm):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.role = self.cleaned_data['role']
-        user.service = self.cleaned_data.get('service')
         
         if commit:
             user.save()

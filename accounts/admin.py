@@ -42,8 +42,8 @@ class ServiceAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ['username', 'email', 'role', 'service', 'actif', 'date_creation']
-    list_filter = ['role', 'service', 'actif', 'is_staff', 'is_superuser']
+    list_display = ['username', 'email', 'role', 'actif', 'date_creation']
+    list_filter = ['role', 'actif', 'is_staff', 'is_superuser']
     search_fields = ['username', 'email', 'first_name', 'last_name']
     
     def has_view_permission(self, request, obj=None):
@@ -73,13 +73,13 @@ class UserAdmin(BaseUserAdmin):
     
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Informations DGRAD', {
-            'fields': ('role', 'service', 'telephone', 'actif')
+            'fields': ('role', 'telephone', 'actif')
         }),
     )
     
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('Informations DGRAD', {
-            'fields': ('role', 'service', 'telephone', 'actif')
+            'fields': ('role', 'telephone', 'actif')
         }),
     )
 

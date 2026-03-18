@@ -187,11 +187,6 @@ class UserListView(SuperAdminRequiredMixin, ListView):
         if role_filter:
             queryset = queryset.filter(role=role_filter)
             
-        # Filtrage par service
-        service_filter = self.request.GET.get('service')
-        if service_filter:
-            queryset = queryset.filter(service_id=service_filter)
-            
         # Recherche
         search = self.request.GET.get('search')
         if search:
@@ -208,7 +203,6 @@ class UserListView(SuperAdminRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Gestion des Utilisateurs'
-        context['services'] = Service.objects.filter(actif=True)
         return context
 
 
@@ -248,13 +242,12 @@ class UserUpdateView(SuperAdminRequiredMixin, UpdateView):
     model = User
     template_name = 'accounts/user_form.html'
     success_url = reverse_lazy('accounts:user_list')
-    fields = ['username', 'email', 'first_name', 'last_name', 'role', 'service', 'is_active', 'is_superuser']
+    fields = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_superuser']
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Modifier un utilisateur'
         context['action'] = 'Modifier'
-        context['services'] = Service.objects.filter(actif=True)
         return context
     
     def form_valid(self, form):

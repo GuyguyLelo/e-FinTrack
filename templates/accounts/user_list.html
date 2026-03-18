@@ -19,7 +19,7 @@
             <div class="card mb-4">
                 <div class="card-body">
                     <form method="get" class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="role" class="form-label">Rôle</label>
                             <select name="role" id="role" class="form-select">
                                 <option value="">Tous les rôles</option>
@@ -31,18 +31,7 @@
                                 <option value="SUPER_ADMIN" {% if request.GET.role == 'SUPER_ADMIN' %}selected{% endif %}>Super Admin</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="service" class="form-label">Service</label>
-                            <select name="service" id="service" class="form-select">
-                                <option value="">Tous les services</option>
-                                {% for service in services %}
-                                <option value="{{ service.id }}" {% if request.GET.service|stringformat:"s" == service.id|stringformat:"s" %}selected{% endif %}>
-                                    {{ service.nom_service }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="search" class="form-label">Recherche</label>
                             <input type="text" name="search" id="search" class="form-control" 
                                    value="{{ request.GET.search }}" placeholder="Nom, prénom...">
@@ -72,7 +61,6 @@
                                     <th>Nom d'utilisateur</th>
                                     <th>Nom complet</th>
                                     <th>Rôle</th>
-                                    <th>Service</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
                                 </tr>
@@ -93,13 +81,6 @@
                                         <span class="badge bg-{{ user.role|default:'secondary' }}">
                                             {{ user.get_role_display|default:user.role }}
                                         </span>
-                                    </td>
-                                    <td>
-                                        {% if user.service %}
-                                            {{ user.service.nom_service }}
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if user.is_active %}
@@ -135,7 +116,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted">
+                                    <td colspan="5" class="text-center text-muted">
                                         Aucun utilisateur trouvé. 
                                         <a href="{% url 'accounts:user_create' %}">Ajouter un utilisateur</a>
                                     </td>
