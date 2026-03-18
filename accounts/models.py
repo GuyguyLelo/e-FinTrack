@@ -6,19 +6,62 @@ from django.db import models
 
 
 class Service(models.Model):
-    """Modèle pour les services de la DGRAD"""
+    """Modèle pour les services de la DGRAD avec structure hiérarchique"""
     nom_service = models.CharField(max_length=200, unique=True)
+    code_service = models.CharField(max_length=20, blank=True, null=True, verbose_name="Code service")
     description = models.TextField(blank=True)
     actif = models.BooleanField(default=True)
+    parent_service = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Service parent",
+        related_name='services_enfants'
+    )
     date_creation = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         verbose_name = "Service"
         verbose_name_plural = "Services"
-        ordering = ['nom_service']
+        ordering = ['code_service', 'nom_service']
     
     def __str__(self):
+        if self.code_service:
+            return f"{self.code_service} - {self.nom_service}"
         return self.nom_service
+    
+    @property
+    def has_children(self):
+        """Vérifier si le service a des services enfants"""
+        return self.services_enfants.exists()
+    
+    @property
+    def level(self):
+        """Calculer le niveau hiérarchique du service"""
+        level = 0
+        current = self.parent_service
+        while current:
+            level += 1
+            current = current.parent_service
+        return level
+    
+    def get_hierarchy_path(self):
+        """Obtenir le chemin hiérarchique complet du service"""
+        path = [self.nom_service]
+        current = self.parent_service
+        while current:
+            path.append(current.nom_service)
+            current = current.parent_service
+        return " > ".join(reversed(path))
+    
+    def get_all_children(self):
+        """Obtenir tous les services enfants (récursivement)"""
+        children = []
+        for child in self.services_enfants.all():
+            children.append(child)
+            children.extend(child.get_all_children())
+        return children
 
 
 class User(AbstractUser):

@@ -14,7 +14,7 @@ from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import JsonResponse
 from .models import User, Service
-from .forms import UserCreationForm
+from .forms import UserCreationForm, ServiceForm
 
 
 class LoginView(BaseLoginView):
@@ -113,8 +113,8 @@ class ServiceListView(AdminRequiredMixin, ListView):
 class ServiceCreateView(AdminRequiredMixin, CreateView):
     """Création d'un service - Admin uniquement"""
     model = Service
+    form_class = ServiceForm
     template_name = 'accounts/service_form.html'
-    fields = ['nom_service', 'description', 'actif']
     success_url = reverse_lazy('accounts:service_list')
     
     def get_context_data(self, **kwargs):
@@ -131,8 +131,8 @@ class ServiceCreateView(AdminRequiredMixin, CreateView):
 class ServiceUpdateView(AdminRequiredMixin, UpdateView):
     """Modification d'un service - Admin uniquement"""
     model = Service
+    form_class = ServiceForm
     template_name = 'accounts/service_form.html'
-    fields = ['nom_service', 'description', 'actif']
     success_url = reverse_lazy('accounts:service_list')
     
     def get_context_data(self, **kwargs):

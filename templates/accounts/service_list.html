@@ -74,7 +74,9 @@
                         <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
+                                    <th>Code</th>
                                     <th>Nom du Service</th>
+                                    <th>Hiérarchie</th>
                                     <th>Description</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
@@ -84,7 +86,24 @@
                                 {% for service in services %}
                                 <tr>
                                     <td>
+                                        {% if service.code_service %}
+                                            <span class="badge bg-secondary">{{ service.code_service }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                         <strong>{{ service.nom_service }}</strong>
+                                        {% if service.has_children %}
+                                            <i class="bi bi-diagram-2 text-primary" title="Contient des sous-services"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if service.parent_service %}
+                                            <small class="text-muted">{{ service.get_hierarchy_path }}</small>
+                                        {% else %}
+                                            <span class="badge bg-info">Racine</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if service.description %}
@@ -117,7 +136,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">
+                                    <td colspan="6" class="text-center text-muted">
                                         Aucun service trouvé. 
                                         <a href="{% url 'accounts:service_create' %}">Ajouter un service</a>
                                     </td>

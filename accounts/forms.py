@@ -50,3 +50,43 @@ class UserCreationForm(BaseUserCreationForm):
         if commit:
             user.save()
         return user
+
+
+class ServiceForm(forms.ModelForm):
+    """Formulaire pour la gestion des services avec structure hiérarchique"""
+    
+    class Meta:
+        model = Service
+        fields = ['code_service', 'nom_service', 'description', 'parent_service', 'actif']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'parent_service': forms.Select(attrs={'class': 'form-control'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Personnaliser les labels
+        self.fields['code_service'].label = "Code service"
+        self.fields['nom_service'].label = "Nom du service"
+        self.fields['description'].label = "Description"
+        self.fields['parent_service'].label = "Service parent"
+        self.fields['actif'].label = "Service actif"
+        
+        # Ajouter les classes Bootstrap
+        for field_name, field in self.fields.items():
+            if field_name != 'actif':
+                field.widget.attrs.update({'class': 'form-control'})
+        
+        # Filtrer les services parents pour éviter les références circulaires
+        if self.instance and self.instance.pk:
+            # Exclure le service lui-même et ses enfants des parents possibles
+            excluded_services = [self.instance.pk] + [child.pk for child in self.instance.get_all_children()]
+            self.fields['parent_service'].queryset = Service.objects.filter(
+                actif=True
+            ).exclude(pk__in=excluded_services)
+        else:
+            self.fields['parent_service'].queryset = Service.objects.filter(actif=True)
+        
+        # Ajouter une option vide pour le niveau racine
+        self.fields['parent_service'].empty_label = "-- Aucun (service racine) --"
