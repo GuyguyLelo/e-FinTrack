@@ -8,7 +8,6 @@ from django.db import models
 class Service(models.Model):
     """Modèle pour les services de la DGRAD avec structure hiérarchique"""
     nom_service = models.CharField(max_length=200, unique=True)
-    code_service = models.CharField(max_length=20, blank=True, null=True, verbose_name="Code service")
     description = models.TextField(blank=True)
     actif = models.BooleanField(default=True)
     parent_service = models.ForeignKey(
@@ -24,11 +23,9 @@ class Service(models.Model):
     class Meta:
         verbose_name = "Service"
         verbose_name_plural = "Services"
-        ordering = ['code_service', 'nom_service']
+        ordering = ['nom_service']
     
     def __str__(self):
-        if self.code_service:
-            return f"{self.code_service} - {self.nom_service}"
         return self.nom_service
     
     @property

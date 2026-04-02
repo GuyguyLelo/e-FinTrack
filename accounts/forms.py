@@ -54,7 +54,7 @@ class ServiceForm(forms.ModelForm):
     
     class Meta:
         model = Service
-        fields = ['code_service', 'nom_service', 'description', 'parent_service', 'actif']
+        fields = ['nom_service', 'description', 'parent_service', 'actif']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
             'parent_service': forms.Select(attrs={'class': 'form-control'}),
@@ -64,7 +64,6 @@ class ServiceForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # Personnaliser les labels
-        self.fields['code_service'].label = "Code service"
         self.fields['nom_service'].label = "Nom du service"
         self.fields['description'].label = "Description"
         self.fields['parent_service'].label = "Service parent"
