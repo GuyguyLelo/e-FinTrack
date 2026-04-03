@@ -27,6 +27,45 @@
     color: #c2410c;
     margin-right: 0.5rem;
 }
+.depense-form-wrap .mode-selector {
+    background: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e2e8f0;
+}
+.depense-form-wrap .mode-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: #f1f5f9;
+    color: #64748b;
+    border-radius: 6px;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+.depense-form-wrap .mode-btn.active {
+    background: #c2410c;
+    color: white;
+}
+.depense-form-wrap .mode-btn:hover:not(.active) {
+    background: #e2e8f0;
+    color: #475569;
+}
+.depense-form-wrap .workflow-fields {
+    background: #f0f9ff;
+    border: 1px solid #0ea5e9;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.depense-form-wrap .workflow-fields .section-title {
+    color: #0369a1;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
 .depense-form-wrap .form-section {
     border-left: 3px solid #c2410c;
     background: #fff;
@@ -103,6 +142,17 @@
             <div class="form-header">
                 <h4><i class="bi bi-arrow-down-circle"></i> {% if object %}Modifier{% else %}Ajouter{% endif %} une dépense</h4>
             </div>
+            
+            <!-- Message contextuel selon le type d'utilisateur -->
+            {% if is_superadmin %}
+            <div class="alert alert-warning">
+                <i class="bi bi-shield-check"></i> <strong>Mode SuperAdmin</strong> : 
+                Vous avez accès à l'interface de paiement complète (workflow normal).
+            </div>
+            {% elif is_daf_user %}
+            {% else %}
+            {% endif %}
+            
                 <form method="post">
                     {% csrf_token %}
                     {% if form.non_field_errors %}

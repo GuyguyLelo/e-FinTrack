@@ -712,6 +712,58 @@ class DepenseFeuille(models.Model):
         verbose_name="Montant en $us"
     )
     observation = models.TextField(blank=True, verbose_name="Observation")
+    
+    # Champs pour la gestion des paiements (mode workflow)
+    # Peuvent être nuls pour permettre le mode direct (tableau_bord_feuille)
+    releve_depense = models.ForeignKey(
+        'ReleveDepense',
+        on_delete=models.PROTECT,
+        related_name='depense_feuilles',
+        verbose_name="Relevé de dépenses",
+        null=True,
+        blank=True,
+        help_text="Utilisé en mode workflow (Demande → Relevé → Paiement)"
+    )
+    demande = models.ForeignKey(
+        'DemandePaiement',
+        on_delete=models.PROTECT,
+        related_name='depense_feuilles',
+        verbose_name="Demande de paiement",
+        null=True,
+        blank=True,
+        help_text="Utilisé en mode workflow (Demande → Relevé → Paiement)"
+    )
+    paiement_par = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='depense_feuilles_payees',
+        limit_choices_to={'role__in': ['SUPER_ADMIN', 'ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR']},
+        verbose_name="Payé par",
+        null=True,
+        blank=True,
+        help_text="Utilisé en mode workflow pour identifier qui a effectué le paiement"
+    )
+    beneficiaire = models.CharField(
+        max_length=200,
+        verbose_name="Bénéficiaire",
+        null=True,
+        blank=True,
+        help_text="Utilisé en mode workflow pour spécifier le bénéficiaire du paiement"
+    )
+    date_paiement = models.DateTimeField(
+        verbose_name="Date de paiement",
+        null=True,
+        blank=True,
+        help_text="Utilisé en mode workflow pour enregistrer la date du paiement"
+    )
+    reference_paiement = models.CharField(
+        max_length=50,
+        verbose_name="Référence de paiement",
+        null=True,
+        blank=True,
+        help_text="Généré automatiquement en mode workflow"
+    )
+    
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
 
@@ -723,4 +775,69 @@ class DepenseFeuille(models.Model):
     def __str__(self):
         nat = f"{self.nature_economique}" if self.nature_economique else ""
         banq = self.banque.nom_banque if self.banque else ""
-        return f"{self.date} - {self.libelle_depenses[:50]} - {banq}" + (f" ({nat})" if nat else "")
+        base_str = f"{self.date} - {self.libelle_depenses[:50]} - {banq}"
+        
+        # Afficher différemment selon le mode
+        if self.is_mode_workflow:
+            return f"[PAYÉ] {base_str} - Ref: {self.reference_paiement or 'N/A'}"
+        else:
+            return f"[DIRECT] {base_str}" + (f" ({nat})" if nat else "")
+    
+    @property
+    def is_mode_workflow(self):
+        """Vérifie si cette dépense utilise le mode workflow"""
+        return self.demande is not None or self.releve_depense is not None
+    
+    @property
+    def is_mode_direct(self):
+        """Vérifie si cette dépense utilise le mode direct"""
+        return self.demande is None and self.releve_depense is None
+    
+    @property
+    def est_payee(self):
+        """Vérifie si la dépense est payée (toujours vrai pour DepenseFeuille)"""
+        return True  # DepenseFeuille représente toujours une dépense payée
+    
+    @property
+    def montant_total(self):
+        """Calcule le montant total dans la devise principale"""
+        return self.montant_fc + self.montant_usd
+    
+    def save(self, *args, **kwargs):
+        # Génération automatique de la référence si en mode workflow
+        if self.is_mode_workflow and not self.reference_paiement:
+            from django.utils import timezone
+            count = DepenseFeuille.objects.filter(reference_paiement__isnull=False).count() + 1
+            self.reference_paiement = f"DPF-{count:06d}"
+        
+        # Si en mode workflow et pas de date de paiement, utiliser la date actuelle
+        if self.is_mode_workflow and not self.date_paiement:
+            from django.utils import timezone
+            self.date_paiement = timezone.now()
+        
+        super().save(*args, **kwargs)
+        
+        # Mettre à jour la demande liée si en mode workflow
+        if self.demande:
+            self.demande.montant_deja_paye += (self.montant_fc if self.demande.devise == 'CDF' else self.montant_usd)
+            self.demande.save()
+    
+    def get_montant_in_devise(self, devise):
+        """Retourne le montant dans la devise spécifiée"""
+        if devise == 'CDF':
+            return self.montant_fc
+        elif devise == 'USD':
+            return self.montant_usd
+        return Decimal('0.00')
+    
+    def can_be_deleted_by(self, user):
+        """Vérifie si l'utilisateur peut supprimer cette dépense"""
+        if user.is_super_admin or user.is_admin:
+            return True
+        
+        # En mode workflow, seuls les rôles supérieurs peuvent supprimer
+        if self.is_mode_workflow():
+            return user.role in ['DG', 'DF']
+        
+        # En mode direct, plus de flexibilité
+        return user.role in ['DG', 'DF', 'CD_FINANCE']

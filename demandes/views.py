@@ -24,7 +24,7 @@ from .models import DemandePaiement, ReleveDepense, Depense, NomenclatureDepense
 from accounts.models import Service
 from banques.models import Banque, CompteBancaire
 from releves.models import ReleveBancaire
-from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, DepenseFeuilleForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
+from .forms import DemandePaiementForm, DemandePaiementValidationForm, ReleveDepenseForm, ReleveDepenseCreateForm, ReleveDepenseAutoForm, DepenseForm, DepenseFeuilleForm, DepenseFeuilleDirectForm, DepenseFeuilleWorkflowForm, NatureEconomiqueForm, ChequeBanqueForm, PaiementForm, PaiementMultipleForm
 from accounts.permissions import RoleRequiredMixin
 
 
@@ -2476,10 +2476,52 @@ class DepenseFeuilleListView(RoleRequiredMixin, ListView):
 
 class DepenseFeuilleCreateView(RoleRequiredMixin, CreateView):
     model = DepenseFeuille
-    form_class = DepenseFeuilleForm
+    form_class = DepenseFeuilleDirectForm  # Par défaut pour les DAF
     template_name = 'demandes/depense_feuille_form.html'
     success_url = reverse_lazy('demandes:depense_feuille_liste')
     permission_function = 'peut_saisir_demandes_recettes'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Rediriger les utilisateurs non-DAF vers l'interface de paiement classique"""
+        user = request.user
+        
+        # Si ce n'est pas un DAF et pas un SuperAdmin, rediriger vers l'interface de paiement
+        if not user.is_superuser and 'daf' not in user.username.lower():
+            from django.shortcuts import redirect
+            return redirect('demandes:paiement_create')
+        
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_class(self):
+        """Sélectionner le formulaire selon le type d'utilisateur"""
+        user = self.request.user
+        
+        # SuperAdmin et DAF utilisent le formulaire direct
+        return DepenseFeuilleDirectForm
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # Déterminer le mode selon l'utilisateur
+        is_daf_user = 'daf' in user.username.lower()
+        is_superadmin = user.is_superuser
+        
+        if is_superadmin:
+            context['mode'] = 'direct'
+            context['is_daf_user'] = False
+            context['is_superadmin'] = True
+        elif is_daf_user:
+            context['mode'] = 'direct'
+            context['is_daf_user'] = True
+            context['is_superadmin'] = False
+        else:
+            # Ce cas ne devrait pas arriver à cause de la redirection dans dispatch
+            context['mode'] = 'direct'
+            context['is_daf_user'] = False
+            context['is_superadmin'] = False
+        
+        return context
 
     def get_initial(self):
         """Pré-remplir le mois et l'année avec la période actuelle"""

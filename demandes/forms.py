@@ -530,7 +530,12 @@ class DepenseFeuilleForm(forms.ModelForm):
     """Formulaire correspondant à la feuille DEPENSES (MOIS, ANNEE, DATE, NATURE ECONOMIQUE, LIBELLE, BANQUE, MONTANT FC, MONTANT $us, OBSERVATION)."""
     class Meta:
         model = DepenseFeuille
-        fields = ['mois', 'annee', 'date', 'service_beneficiaire', 'nature_economique', 'libelle_depenses', 'banque', 'montant_fc', 'montant_usd', 'observation']
+        fields = [
+            'mois', 'annee', 'date', 'service_beneficiaire', 'nature_economique', 
+            'libelle_depenses', 'banque', 'montant_fc', 'montant_usd', 'observation',
+            # Champs optionnels pour mode workflow
+            'releve_depense', 'demande', 'paiement_par', 'beneficiaire', 'date_paiement'
+        ]
         widgets = {
             'mois': forms.Select(choices=MOIS_FEUILLE, attrs={'class': 'form-select'}),
             'annee': forms.NumberInput(attrs={'class': 'form-control', 'min': 2000, 'max': 2100}),
@@ -542,6 +547,12 @@ class DepenseFeuilleForm(forms.ModelForm):
             'montant_fc': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'class': 'form-control'}),
             'montant_usd': forms.NumberInput(attrs={'step': '0.01', 'min': '0', 'class': 'form-control'}),
             'observation': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            # Champs workflow
+            'releve_depense': forms.Select(attrs={'class': 'form-select'}),
+            'demande': forms.Select(attrs={'class': 'form-select'}),
+            'paiement_par': forms.Select(attrs={'class': 'form-select'}),
+            'beneficiaire': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_paiement': forms.DateTimeInput(format='%Y-%m-%d %H:%M', attrs={'type': 'datetime-local', 'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -553,6 +564,20 @@ class DepenseFeuilleForm(forms.ModelForm):
         self.fields['service_beneficiaire'].empty_label = "Sélectionner un service bénéficiaire"
         self.fields['banque'].queryset = Banque.objects.filter(active=True).order_by('nom_banque')
         self.fields['banque'].empty_label = "Sélectionner une banque"
+        
+        # Configuration des champs workflow (uniquement s'ils existent)
+        workflow_fields = ['releve_depense', 'demande', 'paiement_par', 'beneficiaire', 'date_paiement']
+        for field_name in workflow_fields:
+            if field_name in self.fields:
+                if field_name == 'releve_depense':
+                    self.fields[field_name].queryset = ReleveDepense.objects.all()
+                    self.fields[field_name].empty_label = "Sélectionner un relevé (optionnel)"
+                elif field_name == 'demande':
+                    self.fields[field_name].queryset = DemandePaiement.objects.all()
+                    self.fields[field_name].empty_label = "Sélectionner une demande (optionnel)"
+                
+                self.fields[field_name].required = False
+                self.fields[field_name].widget.attrs['class'] += ' workflow-field'
         
         # Rendre le champ annee en lecture seule
         self.fields['annee'].widget.attrs['readonly'] = True
@@ -573,6 +598,76 @@ class DepenseFeuilleForm(forms.ModelForm):
             self.fields['mois_display'].initial = mois_dict.get(mois_value, '')
         
         # Le champ date reste modifiable mais sera pré-rempli avec la période en cours
+
+    def clean(self):
+        cleaned_data = super().clean()
+        montant_fc = cleaned_data.get('montant_fc') or Decimal('0.00')
+        montant_usd = cleaned_data.get('montant_usd') or Decimal('0.00')
+        if montant_fc <= 0 and montant_usd <= 0:
+            raise forms.ValidationError('Renseignez au moins un montant (FC ou $us).')
+
+        # La date doit correspondre au mois et à l'année saisis
+        date_val = cleaned_data.get('date')
+        mois_val = cleaned_data.get('mois')
+        annee_val = cleaned_data.get('annee')
+        if date_val is not None and mois_val is not None and annee_val is not None:
+            if date_val.month != mois_val or date_val.year != annee_val:
+                raise forms.ValidationError('La date doit correspondre au mois et à l\'année saisis.')
+        
+        # Validation de la cohérence des champs workflow
+        releve = cleaned_data.get('releve_depense')
+        demande = cleaned_data.get('demande')
+        paiement_par = cleaned_data.get('paiement_par')
+        beneficiaire = cleaned_data.get('beneficiaire')
+        
+        # Si on utilise le mode workflow, il faut au moins une demande ou un relevé
+        if releve or demande:
+            if not paiement_par:
+                raise forms.ValidationError('En mode workflow, veuillez spécifier qui a effectué le paiement.')
+            if not beneficiaire:
+                raise forms.ValidationError('En mode workflow, veuillez spécifier le bénéficiaire du paiement.')
+
+
+class DepenseFeuilleWorkflowForm(DepenseFeuilleForm):
+    """Formulaire spécialisé pour le mode workflow (Demande → Relevé → Paiement)"""
+    
+    class Meta(DepenseFeuilleForm.Meta):
+        fields = [
+            'demande', 'releve_depense', 'paiement_par', 'beneficiaire', 'date_paiement',
+            'mois', 'annee', 'date', 'service_beneficiaire', 'nature_economique', 
+            'libelle_depenses', 'banque', 'montant_fc', 'montant_usd', 'observation'
+        ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Rendre les champs workflow obligatoires pour ce formulaire
+        workflow_fields = ['demande', 'paiement_par', 'beneficiaire']
+        for field_name in workflow_fields:
+            self.fields[field_name].required = True
+            self.fields[field_name].widget.attrs['class'] += ' required'
+        
+        # Rendre les champs de base obligatoires aussi
+        base_fields = ['libelle_depenses', 'banque', 'montant_fc', 'montant_usd']
+        for field_name in base_fields:
+            self.fields[field_name].required = True
+
+
+class DepenseFeuilleDirectForm(DepenseFeuilleForm):
+    """Formulaire spécialisé pour le mode direct (tableau_bord_feuille)"""
+    
+    class Meta(DepenseFeuilleForm.Meta):
+        fields = [
+            'mois', 'annee', 'date', 'service_beneficiaire', 'nature_economique', 
+            'libelle_depenses', 'banque', 'montant_fc', 'montant_usd', 'observation'
+        ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Cacher complètement les champs workflow pour le mode direct
+        workflow_fields = ['releve_depense', 'demande', 'paiement_par', 'beneficiaire', 'date_paiement']
+        for field_name in workflow_fields:
+            if field_name in self.fields:
+                del self.fields[field_name]
 
     def clean_annee(self):
         annee = self.cleaned_data.get('annee')
