@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Création de Rôle - Interface Simple</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="bi bi-shield-check me-2"></i>
+                            Créer un Nouveau Rôle
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <!-- Étape 1: Informations de base -->
+                            <div class="mb-4">
+                                <h5 class="text-primary">
+                                    <i class="bi bi-1-circle me-2"></i>
+                                    Informations du Rôle
+                                </h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.nom.id_for_label }}" class="form-label">
+                                                <i class="bi bi-tag me-1"></i> Nom du rôle *
+                                            </label>
+                                            {{ form.nom }}
+                                            <div class="form-text">
+                                                Ex: Gestionnaire Banques, Comptable, Directeur Financier
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.categorie.id_for_label }}" class="form-label">
+                                                <i class="bi bi-folder me-1"></i> Catégorie principale *
+                                            </label>
+                                            {{ form.categorie }}
+                                            <div class="form-text">
+                                                Domaine principal d'activité du rôle
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                                        <i class="bi bi-text-paragraph me-1"></i> Description *
+                                    </label>
+                                    {{ form.description }}
+                                    <div class="form-text">
+                                        Décrivez les responsabilités et le périmètre de ce rôle
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Étape 2: Apparence -->
+                            <div class="mb-4">
+                                <h5 class="text-primary">
+                                    <i class="bi bi-2-circle me-2"></i>
+                                    Apparence du Rôle
+                                </h5>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.icone.id_for_label }}" class="form-label">
+                                                <i class="bi bi-emoji-smile me-1"></i> Icône
+                                            </label>
+                                            {{ form.icone }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.couleur.id_for_label }}" class="form-label">
+                                                <i class="bi bi-palette me-1"></i> Couleur
+                                            </label>
+                                            {{ form.couleur }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ form.niveau_acces.id_for_label }}" class="form-label">
+                                                <i class="bi bi-shield me-1"></i> Niveau d'accès
+                                            </label>
+                                            {{ form.niveau_acces }}
+                                            <div class="form-text">
+                                                Plus le niveau est élevé, plus l'accès est important
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Étape 3: Permissions -->
+                            <div class="mb-4">
+                                <h5 class="text-primary">
+                                    <i class="bi bi-3-circle me-2"></i>
+                                    Permissions du Rôle
+                                </h5>
+                                <p class="text-muted">
+                                    Cochez les permissions que ce rôle doit avoir. Les permissions sont groupées par catégorie.
+                                </p>
+                                
+                                {% for categorie, permissions in permissions_by_category.items %}
+                                <div class="card mb-3">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">
+                                            <i class="{{ categorie.icone }} me-2"></i>
+                                            {{ categorie.nom }}
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            {% for perm in permissions %}
+                                            <div class="col-md-6 mb-2">
+                                                <div class="form-check">
+                                                    <input type="checkbox" 
+                                                           class="form-check-input" 
+                                                           id="perm_{{ perm.id }}"
+                                                           name="perm_{{ perm.id }}"
+                                                           {% if perm in role.permissions.all %}checked{% endif %}>
+                                                    <label class="form-check-label" for="perm_{{ perm.id }}">
+                                                        <span class="badge bg-secondary me-1">{{ perm.get_action_display }}</span>
+                                                        {{ perm.nom }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'rbac:role_list' %}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>
+                                    Annuler
+                                </a>
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary me-2" onclick="previewRole()">
+                                        <i class="bi bi-eye me-2"></i>
+                                        Aperçu
+                                    </button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        Créer le Rôle
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'aperçu -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-eye me-2"></i>
+                        Aperçu du Rôle
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="previewContent">
+                    <!-- Contenu généré par JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function previewRole() {
+            const nom = document.getElementById('{{ form.nom.id_for_label }}').value;
+            const description = document.getElementById('{{ form.description.id_for_label }}').value;
+            const couleur = document.getElementById('{{ form.couleur.id_for_label }}').value;
+            const icone = document.getElementById('{{ form.icone.id_for_label }}').value;
+            const niveau = document.getElementById('{{ form.niveau_acces.id_for_label }}').value;
+            
+            // Compter les permissions cochées
+            let permissionsCount = 0;
+            let permissionsByCategory = {};
+            
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                permissionsCount++;
+                const label = checkbox.nextElementSibling;
+                const category = checkbox.closest('.card-body').previousElementSibling.textContent.trim();
+                
+                if (!permissionsByCategory[category]) {
+                    permissionsByCategory[category] = [];
+                }
+                permissionsByCategory[category].push(label.textContent.trim());
+            });
+            
+            // Générer l'aperçu
+            let previewHTML = `
+                <div class="text-center mb-3">
+                    <div style="width: 60px; height: 60px; background-color: ${couleur}; 
+                                border-radius: 50%; display: inline-flex; align-items: center; 
+                                justify-content: center; margin-bottom: 10px;">
+                        <i class="${icone} text-white fs-3"></i>
+                    </div>
+                    <h5 style="color: ${couleur};">${nom || 'Nom du rôle'}</h5>
+                    <p class="text-muted">${description || 'Description du rôle'}</p>
+                    <span class="badge bg-info">Niveau ${niveau}</span>
+                </div>
+                
+                <h6>Permissions (${permissionsCount})</h6>
+                <div class="row">
+            `;
+            
+            for (const [category, perms] of Object.entries(permissionsByCategory)) {
+                previewHTML += `
+                    <div class="col-md-6 mb-2">
+                        <strong>${category}:</strong>
+                        <ul class="small mb-0">
+                            ${perms.map(perm => `<li>${perm}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            previewHTML += '</div>';
+            
+            document.getElementById('previewContent').innerHTML = previewHTML;
+            
+            // Afficher la modal
+            new bootstrap.Modal(document.getElementById('previewModal')).show();
+        }
+        
+        // Auto-cocher les permissions par catégorie
+        function toggleCategoryPermissions(categoryElement, checked) {
+            categoryElement.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+{% extends 'rbac/base_modeles.html' %}
+
+{% block title %}Détails du rôle - RBAC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-people me-2"></i>
+                    Détails du rôle : {{ role.nom }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Informations du rôle -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="text-success">Informations générales</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Nom :</strong></td>
+                                <td>{{ role.nom }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Code :</strong></td>
+                                <td><code>{{ role.code }}</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Description :</strong></td>
+                                <td>{{ role.description }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Niveau d'accès :</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ role.niveau_acces|yesno:'warning,info,primary,success,danger' }}">
+                                        Niveau {{ role.niveau_acces }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Statut :</strong></td>
+                                <td>
+                                    {% if role.est_actif %}
+                                    <span class="badge bg-success">Actif</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactif</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="text-success">Apparence</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Couleur :</strong></td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ role.couleur }};">
+                                        {{ role.couleur }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Icône :</strong></td>
+                                <td>
+                                    <i class="{{ role.icone }} me-1"></i>
+                                    {{ role.icone }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Date création :</strong></td>
+                                <td>{{ role.date_creation|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Permissions par modèle -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <h5 class="text-success">
+                            <i class="bi bi-key me-2"></i>
+                            Permissions par modèle ({{ total_permissions }} permissions sur {{ total_modeles }} modèles)
+                        </h5>
+                        
+                        {% if permissions_by_modele %}
+                            {% for modele, permissions in permissions_by_modele.items %}
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-diagram-3 me-2"></i>
+                                        {{ modele }}
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        {% for perm in permissions %}
+                                        <div class="col-md-6 mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-check-circle text-success me-2"></i>
+                                                <div>
+                                                    <div class="fw-bold">{{ perm.get_action_display }}</div>
+                                                    <small class="text-muted">{{ perm.description|truncatechars:50 }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">Aucune permission attribuée à ce rôle.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between">
+                            <a href="/rbac/modeles/roles/" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Retour à la liste
+                            </a>
+                            <div class="btn-group">
+                                <a href="/rbac/modeles/roles/{{ role.pk }}/modifier/" class="btn btn-warning">
+                                    <i class="bi bi-pencil me-2"></i>
+                                    Modifier
+                                </a>
+                                <a href="/rbac/modeles/roles/{{ role.pk }}/permissions/" class="btn btn-info">
+                                    <i class="bi bi-key me-2"></i>
+                                    Gérer les permissions
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

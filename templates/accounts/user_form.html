@@ -84,17 +84,17 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="{{ form.role.id_for_label }}" class="form-label">
+                                    <label for="{{ form.rbac_role.id_for_label }}" class="form-label">
                                         Rôle <span class="text-danger">*</span>
                                     </label>
-                                    {{ form.role }}
-                                    {% if form.role.errors %}
+                                    {{ form.rbac_role }}
+                                    {% if form.rbac_role.errors %}
                                         <div class="invalid-feedback d-block">
-                                            {{ form.role.errors.0 }}
+                                            {{ form.rbac_role.errors.0 }}
                                         </div>
                                     {% endif %}
                                     <div class="form-text">
-                                        Choisissez le rôle de l'utilisateur dans le système
+                                        Choisissez le rôle de l'utilisateur dans le système RBAC
                                     </div>
                                 </div>
                             </div>
@@ -135,34 +135,16 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <div class="form-check mt-2">
-                                        {{ form.is_active }}
-                                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        {{ form.actif }}
+                                        <label class="form-check-label" for="{{ form.actif.id_for_label }}">
                                             Utilisateur actif
                                         </label>
                                     </div>
-                                    {% if form.is_active.errors %}
+                                    {% if form.actif.errors %}
                                         <div class="invalid-feedback d-block">
-                                            {{ form.is_active.errors.0 }}
+                                            {{ form.actif.errors.0 }}
                                         </div>
                                     {% endif %}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-check mt-2">
-                                        {{ form.is_superuser }}
-                                        <label class="form-check-label" for="{{ form.is_superuser.id_for_label }}">
-                                            Super administrateur
-                                        </label>
-                                    </div>
-                                    {% if form.is_superuser.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.is_superuser.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">
-                                        Donne tous les accès dans l'admin Django
-                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Détails du rôle : {{ role.nom }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <span class="badge" style="background-color: {{ role.couleur }};">
+                        <i class="{{ role.icone }}"></i> {{ role.nom }}
+                    </span>
+                    - Détails
+                </h2>
+                <div>
+                    <a href="{% url 'rbac:role_liste' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                    {% if not role.est_systeme %}
+                        <a href="{% url 'rbac:role_modifier' role.pk %}" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Modifier
+                        </a>
+                        <a href="{% url 'rbac:role_permissions' role.pk %}" class="btn btn-info">
+                            <i class="bi bi-key"></i> Gérer les permissions
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-info-circle"></i> Informations générales</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Nom</th>
+                                    <td>{{ role.nom }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Code</th>
+                                    <td><code>{{ role.code }}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Description</th>
+                                    <td>{{ role.description|default:"Aucune description" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Couleur</th>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ role.couleur }};">{{ role.couleur }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Icône</th>
+                                    <td><i class="{{ role.icone }}"></i> {{ role.icone }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Statut</th>
+                                    <td>
+                                        {% if role.est_actif %}
+                                            <span class="badge bg-success">Actif</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactif</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Type</th>
+                                    <td>
+                                        {% if role.est_systeme %}
+                                            <span class="badge bg-warning">Système</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Personnalisé</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Date de création</th>
+                                    <td>{{ role.date_creation|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-shield-check"></i> Permissions ({{ role.permissions.count }})</h5>
+                            {% if role.permissions.all %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Permission</th>
+                                                <th>Module</th>
+                                                <th>Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for permission in role.permissions.all %}
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-info">{{ permission.nom }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ permission.module }}</span>
+                                                </td>
+                                                <td>{{ permission.description|truncatewords:8 }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Aucune permission attribuée à ce rôle.</p>
+                            {% endif %}
+                            
+                            {% if not role.est_systeme %}
+                                <div class="mt-3">
+                                    <a href="{% url 'rbac:role_permissions' role.pk %}" class="btn btn-primary">
+                                        <i class="bi bi-key"></i> Gérer les permissions
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

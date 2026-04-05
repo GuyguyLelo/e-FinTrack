@@ -1,0 +1,193 @@
+{% extends 'rbac/base_modeles.html' %}
+
+{% block title %}Tableau de bord - RBAC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>
+            <i class="bi bi-speedometer2 me-2"></i>
+            Tableau de bord - Système RBAC
+        </h2>
+        <p class="text-muted">Gestion des permissions basées sur les modèles Django</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Statistiques -->
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.total_permissions }}</h4>
+                        <p class="mb-0">Permissions totales</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-key fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.total_roles }}</h4>
+                        <p class="mb-0">Rôles totaux</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.total_modeles }}</h4>
+                        <p class="mb-0">Modèles utilisés</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-diagram-3 fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="mb-0">{{ stats.active_permissions }}</h4>
+                        <p class="mb-0">Permissions actives</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-check-circle fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Permissions par modèle -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-diagram-3 me-2"></i>
+                    Permissions par modèle (Top 10)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if permissions_by_modele %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Modèle Django</th>
+                                    <th>Nombre de permissions</th>
+                                    <th>Progression</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in permissions_by_modele %}
+                                <tr>
+                                    <td>
+                                        <code>{{ item.modele_django }}</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.count }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar" style="width: {{ item.percentage }}%;">
+                                                {{ item.count }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Aucune permission trouvée.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Actions rapides -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning me-2"></i>
+                    Actions rapides
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/rbac/modeles/permissions/creer/" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer une permission
+                    </a>
+                    <a href="/rbac/modeles/roles/creer/" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer un rôle
+                    </a>
+                    <a href="/rbac/modeles/permissions/" class="btn btn-outline-primary">
+                        <i class="bi bi-list me-2"></i>
+                        Voir toutes les permissions
+                    </a>
+                    <a href="/rbac/modeles/roles/" class="btn btn-outline-success">
+                        <i class="bi bi-people me-2"></i>
+                        Voir tous les rôles
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rôles récents -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Rôles récents
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_roles %}
+                    {% for role in recent_roles %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <div class="fw-bold">{{ role.nom }}</div>
+                            <small class="text-muted">{{ role.date_creation|date:"d/m/Y" }}</small>
+                        </div>
+                        <div>
+                            <span class="badge" style="background-color: {{ role.couleur }};">
+                                {{ role.permissions_modeles.count }} perms
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Aucun rôle récent.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

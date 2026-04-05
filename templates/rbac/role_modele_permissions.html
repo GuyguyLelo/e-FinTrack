@@ -1,0 +1,74 @@
+{% extends 'rbac/base_modeles.html' %}
+
+{% block title %}Gérer les permissions - RBAC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-key me-2"></i>
+                    Gérer les permissions du rôle : {{ role.nom }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        {% for modele, permissions in permissions_by_modele.items %}
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-diagram-3 me-2"></i>
+                                        {{ modele }}
+                                        <small class="text-muted">({{ permissions|length }} permissions)</small>
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    {% for perm in permissions %}
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" 
+                                               name="perm_{{ perm.id }}" id="perm_{{ perm.id }}"
+                                               {% if perm in role.permissions_modeles.all %}checked{% endif %}>
+                                        <label class="form-check-label" for="perm_{{ perm.id }}">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span>
+                                                    <i class="bi bi-{{ perm.action|yesno:'eye,plus,pencil,trash,check-circle' }} me-2"></i>
+                                                    {{ perm.get_action_display }}
+                                                </span>
+                                                <small class="text-muted">{{ perm.code }}</small>
+                                            </div>
+                                            <small class="text-muted d-block">{{ perm.description|truncatechars:60 }}</small>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="/rbac/modeles/roles/{{ role.pk }}/" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>
+                                    Annuler
+                                </a>
+                                <button type="submit" class="btn btn-info">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    Sauvegarder les permissions
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'etats',
     'tableau_bord_feuilles',
     'clotures',
+    'rbac',
 ]
 
 MIDDLEWARE = [

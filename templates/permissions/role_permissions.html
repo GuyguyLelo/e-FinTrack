@@ -1,0 +1,178 @@
+"""
+Template pour gérer les permissions d'un rôle
+-->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Permissions du rôle: {{ role.nom }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <span class="badge" style="background-color: {{ role.couleur }};">
+                        <i class="{{ role.icone }}"></i> {{ role.nom }}
+                    </span>
+                    - Gestion des permissions
+                </h2>
+                <a href="{% url 'rbac:role_liste' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Retour
+                </a>
+            </div>
+            
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+            
+            <div class="row">
+                <!-- Permissions actuelles -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5><i class="bi bi-check-circle"></i> Permissions actuelles ({{ role.permissions.count }})</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if role.permissions.all %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Permission</th>
+                                                <th>Module</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for permission in role.permissions.all %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ permission.nom }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ permission.description|truncatewords:8 }}</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ permission.module }}</span>
+                                                </td>
+                                                <td>
+                                                    <form method="post" action="{% url 'rbac:role_permission_retirer' role.pk permission.pk %}" 
+                                                          onsubmit="return confirm('Retirer cette permission du rôle ?')">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Aucune permission attribuée à ce rôle.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Permissions disponibles -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5><i class="bi bi-plus-circle"></i> Permissions disponibles ({{ permissions_disponibles.count }})</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if permissions_disponibles %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Permission</th>
+                                                <th>Module</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for permission in permissions_disponibles %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ permission.nom }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ permission.description|truncatewords:8 }}</small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">{{ permission.module }}</span>
+                                                </td>
+                                                <td>
+                                                    <form method="post" action="{% url 'rbac:role_permission_ajouter' role.pk permission.pk %}">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                                            <i class="bi bi-plus"></i>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="text-muted">Toutes les permissions sont déjà attribuées à ce rôle.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Informations du rôle -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-info-circle"></i> Informations du rôle</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>Nom:</strong> {{ role.nom }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Code:</strong> <code>{{ role.code }}</code>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Statut:</strong> 
+                                    {% if role.est_actif %}
+                                        <span class="badge bg-success">Actif</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactif</span>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Type:</strong> 
+                                    {% if role.est_systeme %}
+                                        <span class="badge bg-warning">Système</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Personnalisé</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if role.description %}
+                            <div class="mt-3">
+                                <strong>Description:</strong><br>
+                                {{ role.description }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

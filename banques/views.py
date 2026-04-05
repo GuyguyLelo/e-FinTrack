@@ -11,28 +11,51 @@ from .models import Banque, CompteBancaire
 from .forms import BanqueForm, CompteBancaireForm
 
 
-class BanqueListView(RoleRequiredMixin, ListView):
+class BanqueListView(LoginRequiredMixin, ListView):
     model = Banque
     template_name = 'banques/banque_liste.html'
     context_object_name = 'banques'
     paginate_by = 20
-    required_roles = ['SUPER_ADMIN']
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Vérifier les permissions RBAC
+        if not request.user.has_rbac_permission('voir_banques') and \
+           not request.user.has_rbac_permission('creer_banques') and \
+           not request.user.has_rbac_permission('modifier_banques'):
+            from django.contrib import messages
+            messages.error(request, "Vous n'avez pas les permissions nécessaires pour accéder à cette page.")
+            return redirect('/')
+        return super().dispatch(request, *args, **kwargs)
 
 
-class BanqueCreateView(RoleRequiredMixin, CreateView):
+class BanqueCreateView(LoginRequiredMixin, CreateView):
     model = Banque
     form_class = BanqueForm
     template_name = 'banques/banque_form.html'
     success_url = reverse_lazy('banques:liste')
-    required_roles = ['SUPER_ADMIN']
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Vérifier les permissions RBAC
+        if not request.user.has_rbac_permission('creer_banques'):
+            from django.contrib import messages
+            messages.error(request, "Vous n'avez pas les permissions nécessaires pour créer une banque.")
+            return redirect('banques:liste')
+        return super().dispatch(request, *args, **kwargs)
 
 
-class BanqueUpdateView(RoleRequiredMixin, UpdateView):
+class BanqueUpdateView(LoginRequiredMixin, UpdateView):
     model = Banque
     form_class = BanqueForm
     template_name = 'banques/banque_form.html'
     success_url = reverse_lazy('banques:liste')
-    required_roles = ['SUPER_ADMIN']
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Vérifier les permissions RBAC
+        if not request.user.has_rbac_permission('modifier_banques'):
+            from django.contrib import messages
+            messages.error(request, "Vous n'avez pas les permissions nécessaires pour modifier une banque.")
+            return redirect('banques:liste')
+        return super().dispatch(request, *args, **kwargs)
 
 
 class BanqueDetailView(RoleRequiredMixin, DetailView):

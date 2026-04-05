@@ -76,6 +76,14 @@ class User(AbstractUser):
     ]
     
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='OPERATEUR_SAISIE')
+    rbac_role = models.ForeignKey(
+        'rbac.Role',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Rôle RBAC",
+        related_name='users'
+    )
     telephone = models.CharField(max_length=20, blank=True)
     actif = models.BooleanField(default=True)
     date_creation = models.DateTimeField(auto_now_add=True)
@@ -117,6 +125,29 @@ class User(AbstractUser):
     def is_agent_payeur(self):
         return self.role == 'AGENT_PAYEUR'
     
+    def sync_rbac_role(self):
+        """Synchroniser automatiquement le rôle RBAC avec le rôle existant"""
+        try:
+            from rbac.models import Role
+            rbac_role = Role.objects.get(code=self.role)
+            self.rbac_role = rbac_role
+            self.save(update_fields=['rbac_role'])
+        except Role.DoesNotExist:
+            # Si le rôle RBAC n'existe pas, le créer
+            pass
+    
+    def get_rbac_permissions(self):
+        """Obtenir les permissions RBAC de l'utilisateur"""
+        if self.rbac_role:
+            return self.rbac_role.permissions.all()
+        return Permission.objects.none()
+    
+    def has_rbac_permission(self, permission_code):
+        """Vérifier si l'utilisateur a une permission RBAC spécifique"""
+        if self.rbac_role:
+            return self.rbac_role.permissions.filter(code=permission_code).exists()
+        return False
+    
     @property
     def is_comptable(self):
         """Rôles pouvant valider les recettes (CD Finance, DF, DG, Admin)."""
@@ -125,6 +156,11 @@ class User(AbstractUser):
     # Permissions d'accès
     def peut_voir_tableau_bord(self):
         """Vérifie si l'utilisateur peut voir le tableau de bord"""
+        # Utiliser le système RBAC si disponible
+        if self.rbac_role:
+            return self.rbac_role.a_permission('voir_tableau_bord')
+        
+        # Fallback avec les rôles legacy
         return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE']
     
     def peut_creer_entites_base(self):

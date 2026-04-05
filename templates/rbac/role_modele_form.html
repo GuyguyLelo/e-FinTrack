@@ -1,0 +1,135 @@
+{% extends 'rbac/base_modeles.html' %}
+
+{% block title %}Créer un rôle - RBAC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Créer un rôle
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Informations principales -->
+                    <div class="mb-4">
+                        <h5 class="text-success">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Informations du rôle
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.nom.id_for_label }}" class="form-label">
+                                        <i class="bi bi-tag me-1"></i>
+                                        Nom du rôle *
+                                    </label>
+                                    {{ form.nom }}
+                                    {% if form.nom.errors %}
+                                    <div class="text-danger">
+                                        {{ form.nom.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Nom compréhensible pour les utilisateurs
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.niveau_acces.id_for_label }}" class="form-label">
+                                        <i class="bi bi-shield me-1"></i>
+                                        Niveau d'accès *
+                                    </label>
+                                    {{ form.niveau_acces }}
+                                    {% if form.niveau_acces.errors %}
+                                    <div class="text-danger">
+                                        {{ form.niveau_acces.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Plus le niveau est élevé, plus l'accès est important
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="bi bi-text-paragraph me-1"></i>
+                                Description *
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">
+                                {{ form.description.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Décrivez le rôle et ses responsabilités
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Apparence -->
+                    <div class="mb-4">
+                        <h5 class="text-success">
+                            <i class="bi bi-palette me-2"></i>
+                            Apparence du rôle
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.couleur.id_for_label }}" class="form-label">
+                                        <i class="bi bi-palette me-1"></i>
+                                        Couleur
+                                    </label>
+                                    {{ form.couleur }}
+                                    {% if form.couleur.errors %}
+                                    <div class="text-danger">
+                                        {{ form.couleur.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.icone.id_for_label }}" class="form-label">
+                                        <i class="bi bi-emoji-smile me-1"></i>
+                                        Icône
+                                    </label>
+                                    {{ form.icone }}
+                                    {% if form.icone.errors %}
+                                    <div class="text-danger">
+                                        {{ form.icone.errors }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="/rbac/modeles/roles/" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Créer le rôle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

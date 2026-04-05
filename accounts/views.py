@@ -14,7 +14,7 @@ from django.contrib.auth.models import Group
 from django.db import transaction
 from django.http import JsonResponse
 from .models import User, Service
-from .forms import UserCreationForm, ServiceForm
+from .forms import UserCreationForm, ServiceForm, UserUpdateForm
 
 
 class LoginView(BaseLoginView):
@@ -43,6 +43,9 @@ class LoginView(BaseLoginView):
             elif user.role == 'ADMIN':
                 # Admin -> toujours redirigé vers les natures économiques
                 return redirect('/demandes/natures/')
+            elif user.role in ['OPS_DAF', 'Ts']:
+                # Opération DAF et rôle test -> page d'accueil
+                return redirect('/')
             else:
                 return redirect('/')
         
@@ -240,9 +243,9 @@ class UserCreateView(SuperAdminRequiredMixin, CreateView):
 class UserUpdateView(SuperAdminRequiredMixin, UpdateView):
     """Modification d'un utilisateur - SuperAdmin uniquement"""
     model = User
+    form_class = UserUpdateForm
     template_name = 'accounts/user_form.html'
     success_url = reverse_lazy('accounts:user_list')
-    fields = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'is_superuser']
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -250,8 +253,19 @@ class UserUpdateView(SuperAdminRequiredMixin, UpdateView):
         context['action'] = 'Modifier'
         return context
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Pré-remplir le rôle RBAC actuel
+        try:
+            user = self.get_object()
+            if user and user.rbac_role:
+                kwargs['initial'] = {'rbac_role': user.rbac_role}
+        except:
+            pass  # Si l'objet n'existe pas encore
+        return kwargs
+    
     def form_valid(self, form):
-        messages.success(self.request, 'Utilisateur modifié avec succès')
+        messages.success(self.request, f"Utilisateur '{form.instance.username}' modifié avec succès.")
         return super().form_valid(form)
 
 

@@ -1,3 +1,5 @@
+{% load rbac_tags %}
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -63,6 +65,17 @@
             text-decoration: none;
             display: block;
             margin-bottom: 0.25rem;
+        }
+
+        .nav-link.sub-menu {
+            padding-left: 2rem;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .nav-link.sub-menu:hover {
+            opacity: 1;
+            background-color: rgba(255,255,255,0.15);
         }
 
         .nav-link:hover {
@@ -350,8 +363,95 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <nav class="nav flex-column">
+                    <!-- Menu pour SuperAdmin (accès complet) -->
+                    {% if user.is_superuser %}
+                    <div class="menu-section">
+                        <div class="menu-title">� Tableau de bord</div>
+                        
+                        <a class="nav-link" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                            <i class="bi bi-speedometer2"></i> Tableau de bord
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">👥 Gestion des utilisateurs</div>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'rbac:role_liste' %}">
+                            <i class="bi bi-shield-check"></i> Gestion des Rôles
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'rbac:permission_liste' %}">
+                            <i class="bi bi-key"></i> Gestion des Permissions
+                        </a>
+                        
+                        <!-- Bouton unique vers le nouveau système RBAC -->
+                        <a class="nav-link" href="http://127.0.0.1:8000/rbac/modeles/dashboard/" 
+                           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                  color: white; margin-top: 10px; border-radius: 8px; 
+                                  font-weight: bold; text-align: center; padding: 12px;">
+                            <i class="bi bi-shield-check"></i> 🛡️ Système RBAC
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'accounts:service_list' %}">
+                            <i class="bi bi-building"></i> Gestion des Services
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="/admin/">
+                            <i class="bi bi-gear"></i> Admin Django
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">🔧 Gestion des services</div>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'demandes:nature_liste' %}">
+                            <i class="bi bi-diagram-3"></i> Natures Économiques
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'banques:liste' %}">
+                            <i class="bi bi-bank"></i> Gestion des Banques
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">💰 Opérations financières</div>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'demandes:depense_feuille_liste' %}">
+                            <i class="bi bi-journal-spreadsheet"></i> Gestion des Dépenses
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'recettes:liste' %}">
+                            <i class="bi bi-cash-stack"></i> Gestion des Recettes
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'demandes:liste' %}">
+                            <i class="bi bi-file-text"></i> Gestion des Demandes
+                        </a>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'releves:liste' %}">
+                            <i class="bi bi-clipboard-data"></i> Gestion des Relevés
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">📈 États et Rapports</div>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'etats:liste' %}">
+                            <i class="bi bi-file-earmark-bar-graph"></i> États
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">🔒 Clôtures</div>
+                        
+                        <a class="nav-link sub-menu" href="{% url 'clotures:cloture_list' %}">
+                            <i class="bi bi-calendar-check"></i> Gestion des Clôtures
+                        </a>
+                    </div>
+                    {% endif %}
+                    
                     <!-- Menu pour Admin (AdminDaf, AdminFinance, etc.) -->
-                    {% if user.is_authenticated and user.role == 'ADMIN' %}
+                    {% if user.is_authenticated and user.role == 'ADMIN' and not user.rbac_role %}
                     <div class="menu-section">
                         <div class="menu-title">Menu Administration</div>
                         
@@ -362,11 +462,16 @@
                         <a class="nav-link" href="{% url 'accounts:service_list' %}">
                             <i class="bi bi-building"></i> Gestion des Services
                         </a>
+                        
+                        <!-- Nouvelle gestion RBAC basée sur les modèles -->
+                        <a class="nav-link" href="/rbac/modeles/dashboard/" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-top: 10px; border-radius: 8px; font-weight: bold;">
+                            <i class="bi bi-shield-check"></i> 🛡️ Tableau de bord - Système RBAC
+                        </a>
                     </div>
                     {% endif %}
                     
                     <!-- Menu pour DirDaf et DivDaf (uniquement tableau de bord et clôtures) -->
-                    {% if user.role == 'DG' or user.role == 'DF' or user.role == 'CD_FINANCE' %}
+                    {% if user.role == 'DG' or user.role == 'DF' or user.role == 'CD_FINANCE' and not user.rbac_role %}
                     <div class="menu-section">
                         <div class="menu-title">Menu Direction</div>
                         
@@ -374,14 +479,14 @@
                             <i class="bi bi-speedometer2"></i> Tableau de bord
                         </a>
                         
-                        <a class="nav-link" href="/clotures/">
+                        <a class="nav-link" href="{% url 'clotures:cloture_list' %}">
                             <i class="bi bi-calendar-check"></i> Clôtures
                         </a>
                     </div>
                     {% endif %}
                     
                     <!-- Menu pour OpsDaf (dépenses, recettes et états) -->
-                    {% if user.role == 'OPERATEUR_SAISIE' %}
+                    {% if user.role == 'OPERATEUR_SAISIE' and not user.rbac_role %}
                     <div class="menu-section">
                         <div class="menu-title">Menu Opérations</div>
                         
@@ -403,8 +508,57 @@
                     </div>
                     {% endif %}
                     
+                    <!-- Menu basé sur les permissions RBAC -->
+                    {% if user.is_authenticated and user.rbac_role %}
+                    <div class="menu-section">
+                        <div class="menu-title">Menu {% get_user_menu_title user %}</div>
+                        
+                        <!-- Tableau de bord -->
+                        {% if user|has_rbac_permission:'voir_tableau_bord' %}
+                        <a class="nav-link" href="/">
+                            <i class="bi bi-speedometer2"></i> Tableau de bord
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Banques -->
+                        {% if user|can_access_module:'banques' %}
+                        <a class="nav-link" href="{% url 'banques:liste' %}">
+                            <i class="bi bi-bank"></i> Banques
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Clôtures -->
+                        {% if user|can_access_module:'clotures' %}
+                        <a class="nav-link" href="{% url 'clotures:cloture_list' %}">
+                            <i class="bi bi-calendar-check"></i> Clôtures
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Demandes -->
+                        {% if user|can_access_module:'demandes' %}
+                        <a class="nav-link" href="{% url 'demandes:liste' %}">
+                            <i class="bi bi-file-earmark-text"></i> Demandes
+                        </a>
+                        {% endif %}
+                        
+                        <!-- Recettes -->
+                        {% if user|can_access_module:'recettes' %}
+                        <a class="nav-link" href="{% url 'recettes:liste' %}">
+                            <i class="bi bi-cash-stack"></i> Recettes
+                        </a>
+                        {% endif %}
+                        
+                        <!-- États -->
+                        {% if user|can_access_module:'etats' %}
+                        <a class="nav-link" href="{% url 'etats:liste' %}">
+                            <i class="bi bi-file-text"></i> États
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
                     <!-- Menu pour SuperAdmin (tout sauf restrictions) -->
-                    {% if user.is_super_admin or user.is_superuser %}
+                    {% if user.is_superuser %}
                     <div class="menu-section">
                         <div class="menu-title">Menu SuperAdmin</div>
                         
@@ -412,7 +566,7 @@
                             <i class="bi bi-speedometer2"></i> Tableau de bord
                         </a>
                         
-                        <a class="nav-link" href="/clotures/">
+                        <a class="nav-link" href="{% url 'clotures:cloture_list' %}">
                             <i class="bi bi-calendar-check"></i> Clôtures
                         </a>
                         
@@ -481,42 +635,15 @@
     <!-- Chart.js -->
     <script src="{% static 'js/chart.umd.min.js' %}"></script>
     
-    <!-- Script de redirection basé sur les permissions -->
+    <!-- Script simplifié temporairement -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            {% if user.is_authenticated %}
-            var username = "{{ user.username }}";
-            var currentPath = "{{ request.path }}";
-            var userRole = "{{ user.role }}";
-            var isSuperAdmin = "{{ user.is_super_admin }}" === "True";
-            
-            // Redirection automatique selon les permissions
-            {% if not user.peut_voir_tableau_bord and currentPath == "/" %}
-            if (currentPath === "/") {
-                if (userRole === 'ADMIN') {
-                    window.location.href = "{% url 'demandes:nature_liste' %}";
-                }
+        // Mettre en évidence le lien actif
+        var links = document.querySelectorAll('.sidebar .nav-link');
+        links.forEach(function(link) {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
             }
-            {% endif %}
-            
-            // Mettre en évidence le lien actif
-            var links = document.querySelectorAll('.sidebar .nav-link');
-            links.forEach(function(link) {
-                if (link.getAttribute('href') === currentPath) {
-                    link.classList.add('active');
-                }
-            });
-            
-            // Cacher dynamiquement les menus non accessibles
-            {% if user.role == 'ADMIN' %}
-            // Admin voit les natures économiques ET les services
-            // Ne rien cacher - laisser tous les liens visibles
-            {% endif %}
-            
-            {% endif %}
         });
-        
-        // Fonction pour basculer la sidebar sur mobile
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
             if (sidebar) {

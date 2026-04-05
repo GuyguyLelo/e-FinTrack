@@ -1,0 +1,208 @@
+{% extends 'rbac/base_modeles.html' %}
+
+{% block title %}Créer une permission - RBAC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    {% if permission %}Modifier{% else %}Créer{% endif %} une permission
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Informations principales -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Informations de la permission
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.nom.id_for_label }}" class="form-label">
+                                        <i class="bi bi-tag me-1"></i>
+                                        Nom de la permission *
+                                    </label>
+                                    {{ form.nom }}
+                                    {% if form.nom.errors %}
+                                    <div class="text-danger">
+                                        {{ form.nom.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Nom compréhensible pour les utilisateurs
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.action.id_for_label }}" class="form-label">
+                                        <i class="bi bi-lightning me-1"></i>
+                                        Action *
+                                    </label>
+                                    {{ form.action }}
+                                    {% if form.action.errors %}
+                                    <div class="text-danger">
+                                        {{ form.action.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Type d'action autorisée
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="bi bi-text-paragraph me-1"></i>
+                                Description *
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                            <div class="text-danger">
+                                {{ form.description.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Description détaillée de ce que permet cette permission
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Modèle Django -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="bi bi-diagram-3 me-2"></i>
+                            Modèle Django
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.app_label.id_for_label }}" class="form-label">
+                                        <i class="bi bi-folder me-1"></i>
+                                        Application Django *
+                                    </label>
+                                    {{ form.app_label }}
+                                    {% if form.app_label.errors %}
+                                    <div class="text-danger">
+                                        {{ form.app_label.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        L'application Django contenant le modèle
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.modele_django.id_for_label }}" class="form-label">
+                                        <i class="bi bi-box me-1"></i>
+                                        Modèle Django *
+                                    </label>
+                                    {{ form.modele_django }}
+                                    {% if form.modele_django.errors %}
+                                    <div class="text-danger">
+                                        {{ form.modele_django.errors }}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        Le modèle Django exact (ex: DepenseFeuille)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Aperçu -->
+                    <div class="mb-4">
+                        <h5 class="text-primary">
+                            <i class="bi bi-eye me-2"></i>
+                            Aperçu automatique
+                        </h5>
+                        <div class="alert alert-info">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Code technique généré :</strong>
+                                    <code id="code_preview">...</code>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>URL Pattern généré :</strong>
+                                    <code id="url_preview">...</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="/rbac/modeles/permissions/" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>
+                            {% if permission %}Modifier{% else %}Créer{% endif %} la permission
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Aperçu en temps réel
+document.addEventListener('DOMContentLoaded', function() {
+    const modeleField = document.getElementById('{{ form.modele_django.id_for_label }}');
+    const actionField = document.getElementById('{{ form.action.id_for_label }}');
+    const appField = document.getElementById('{{ form.app_label.id_for_label }}');
+    const codePreview = document.getElementById('code_preview');
+    const urlPreview = document.getElementById('url_preview');
+    
+    function updatePreview() {
+        const modele = modeleField.value || '...';
+        const action = actionField.value || '...';
+        const app = appField.value || '...';
+        
+        // Générer le code
+        if (modele && action) {
+            codePreview.textContent = `${action}_${modele.toLowerCase()}`;
+        } else {
+            codePreview.textContent = '...';
+        }
+        
+        // Générer l'URL pattern
+        if (modele && action && app) {
+            const urlPatterns = {
+                'liste': `/${app}/${modele.toLowerCase()}/`,
+                'creer': `/${app}/${modele.toLowerCase()}/creer/`,
+                'modifier': `/${app}/${modele.toLowerCase()}/<int:pk>/modifier/`,
+                'supprimer': `/${app}/${modele.toLowerCase()}/<int:pk>/supprimer/`,
+                'valider': `/${app}/${modele.toLowerCase()}/<int:pk>/valider/`,
+            };
+            
+            urlPreview.textContent = urlPatterns[action] || '...';
+        } else {
+            urlPreview.textContent = '...';
+        }
+    }
+    
+    // Écouter les changements
+    modeleField.addEventListener('change', updatePreview);
+    actionField.addEventListener('change', updatePreview);
+    appField.addEventListener('change', updatePreview);
+    
+    // Initialiser
+    updatePreview();
+});
+</script>
+{% endblock %}
