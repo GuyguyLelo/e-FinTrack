@@ -32,23 +32,40 @@ class LoginView(BaseLoginView):
         password = form.cleaned_data.get('password')
         user = authenticate(username=username, password=password)
         
+        print(f"DEBUG: User authenticated: {user is not None}")
         if user is not None and user.is_active:
             login(self.request, user)
+            print(f"DEBUG: User logged in: {user.username}")
+            print(f"DEBUG: User role: {user.role}")
+            print(f"DEBUG: User has rbac_role: {hasattr(user, 'rbac_role')}")
             
-            # Redirection selon le rôle
-            if user.role == 'SUPER_ADMIN':
+            # Redirection intelligente selon les permissions RBAC
+            if hasattr(user, 'rbac_role_modele') and user.rbac_role_modele:
+                # Utilisateur avec rôle RBAC (nouveau système basé sur les modèles)
+                # Vérifier si l'utilisateur a la permission de voir le tableau de bord
+                if hasattr(user, 'has_permission_modele') and user.has_permission_modele('Dashboard', 'voir'):
+                    return redirect('/tableau-bord-feuilles/')  # Ancien dashboard pour ceux qui ont la permission
+                else:
+                    return redirect('/dashboard/')  # Dashboard intelligent pour les autres
+            elif hasattr(user, 'rbac_role') and user.rbac_role:
+                # Utilisateur avec rôle RBAC (ancien système)
+                if hasattr(user, 'has_rbac_permission') and user.has_rbac_permission('voir_tableau_bord'):
+                    return redirect('/tableau-bord-feuilles/')
+                else:
+                    return redirect('/dashboard/')
+            elif user.role == 'SUPER_ADMIN':
                 return redirect('/tableau-bord-feuilles/')
             elif user.role == 'DG' or user.role == 'CD_FINANCE':
                 return redirect('/tableau-bord-feuilles/')
             elif user.role == 'ADMIN':
-                # Admin -> toujours redirigé vers les natures économiques
                 return redirect('/demandes/natures/')
             elif user.role in ['OPS_DAF', 'Ts']:
-                # Opération DAF et rôle test -> page d'accueil
                 return redirect('/')
             else:
-                return redirect('/')
+                # Fallback pour tous les autres cas
+                return redirect('/dashboard/')
         
+        print("DEBUG: Authentication failed, calling parent")
         return super().form_valid(form)
 
 

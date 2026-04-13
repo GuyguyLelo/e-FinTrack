@@ -114,7 +114,7 @@ class RoleModeleCreateView(LoginRequiredMixin, CreateView):
     model = RoleModele
     form_class = RoleModeleForm
     template_name = 'rbac/role_modele_form.html'
-    success_url = reverse_lazy('rbac:role_modele_list')
+    success_url = '/rbac/modeles/roles/'
     
     def form_valid(self, form):
         messages.success(self.request, f"Rôle '{form.instance.nom}' créé avec succès.")
@@ -126,7 +126,7 @@ class RoleModeleUpdateView(LoginRequiredMixin, UpdateView):
     model = RoleModele
     form_class = RoleModeleForm
     template_name = 'rbac/role_modele_form.html'
-    success_url = reverse_lazy('rbac:role_modele_list')
+    success_url = '/rbac/modeles/roles/'
     
     def form_valid(self, form):
         messages.success(self.request, f"Rôle '{form.instance.nom}' modifié avec succès.")
@@ -183,7 +183,7 @@ class RoleModelePermissionsView(LoginRequiredMixin, DetailView):
         if form.is_valid():
             form.save()
             messages.success(request, f"Permissions du rôle '{self.object.nom}' mises à jour.")
-            return redirect('rbac:role_modele_detail', pk=self.object.pk)
+            return redirect(f'/rbac/modeles/roles/{self.object.pk}/')
         
         context = self.get_context_data(**kwargs)
         context['form'] = form

@@ -69,9 +69,24 @@
                                 <tr>
                                     <td><strong>Rôle:</strong></td>
                                     <td>
-                                        <span class="badge bg-{{ user_obj.role|default:'secondary' }}">
-                                            {{ user_obj.get_role_display|default:user_obj.role }}
-                                        </span>
+                                        {% if user_obj.rbac_role_modele %}
+                                            <span class="badge bg-primary">
+                                                {{ user_obj.rbac_role_modele.nom }}
+                                            </span>
+                                            {% if user_obj.rbac_role_modele.couleur %}
+                                                <span class="badge" style="background-color: {{ user_obj.rbac_role_modele.couleur }};">
+                                                    {{ user_obj.rbac_role_modele.code }}
+                                                </span>
+                                            {% endif %}
+                                        {% elif user_obj.rbac_role %}
+                                            <span class="badge bg-info">
+                                                {{ user_obj.rbac_role.nom }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-{{ user_obj.role|default:'secondary' }}">
+                                                {{ user_obj.get_role_display|default:user_obj.role }}
+                                            </span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 <tr>

@@ -2402,7 +2402,7 @@ class DepenseFeuilleListView(RoleRequiredMixin, ListView):
     template_name = 'demandes/depense_feuille_liste.html'
     context_object_name = 'lignes'
     paginate_by = 15
-    permission_function = 'peut_voir_menu_depenses'
+    permission_function = 'peut_voir_menu_depenses_daf'
 
     def get_queryset(self):
         qs = DepenseFeuille.objects.select_related('nature_economique', 'service_beneficiaire', 'banque').order_by('-date', '-date_creation')

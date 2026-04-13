@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Accueil - e-FinTrack{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Message de bienvenue -->
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h2 class="text-primary">
+                        <i class="bi bi-shield-check me-2"></i>
+                        Bienvenue {{ user.get_full_name|default:user.username }} !
+                    </h2>
+                    <p class="text-muted">
+                        Vous êtes connecté avec le rôle : <strong>{{ user.rbac_role.nom|default:"Non défini" }}</strong>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Modules accessibles -->
+            {% if user_modules %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-grid me-2"></i>
+                        Vos modules accessibles
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% if 'banques' in user_modules %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-bank text-primary" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Banques</h5>
+                                    <p class="text-muted">Gestion des comptes bancaires</p>
+                                    <a href="{% url 'banques:liste' %}" class="btn btn-primary">
+                                        <i class="bi bi-arrow-right me-1"></i> Accéder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if 'demandes' in user_modules %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-file-earmark-text text-success" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Demandes</h5>
+                                    <p class="text-muted">Gestion des demandes de paiement</p>
+                                    <a href="{% url 'demandes:liste' %}" class="btn btn-success">
+                                        <i class="bi bi-arrow-right me-1"></i> Accéder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if 'recettes' in user_modules %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-info">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-cash-stack text-info" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Recettes</h5>
+                                    <p class="text-muted">Gestion des recettes</p>
+                                    <a href="{% url 'recettes:liste' %}" class="btn btn-info">
+                                        <i class="bi bi-arrow-right me-1"></i> Accéder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if 'etats' in user_modules %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-file-text text-warning" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">États</h5>
+                                    <p class="text-muted">Génération d'états financiers</p>
+                                    <a href="{% url 'tableau_bord_feuilles:etats_depenses' %}" class="btn btn-warning">
+                                        <i class="bi bi-arrow-right me-1"></i> Accéder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if 'clotures' in user_modules %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-danger">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-calendar-check text-danger" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Clôtures</h5>
+                                    <p class="text-muted">Gestion des clôtures mensuelles</p>
+                                    <a href="{% url 'clotures:cloture_list' %}" class="btn btn-danger">
+                                        <i class="bi bi-arrow-right me-1"></i> Accéder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if 'releves' in user_modules %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-clipboard-data text-secondary" style="font-size: 2rem;"></i>
+                                    <h5 class="mt-2">Relevés</h5>
+                                    <p class="text-muted">Gestion des relevés bancaires</p>
+                                    <a href="{% url 'releves:liste' %}" class="btn btn-secondary">
+                                        <i class="bi bi-arrow-right me-1"></i> Accéder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Permissions détaillées -->
+            {% if user_permissions %}
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-key me-2"></i>
+                        Vos permissions détaillées
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for permission in user_permissions %}
+                        <div class="col-md-6 mb-2">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <div>
+                                    <div class="fw-bold">{{ permission.nom }}</div>
+                                    <small class="text-muted">{{ permission.description|truncatechars:80 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Message si aucun module -->
+            {% if not user_modules %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-info-circle text-warning" style="font-size: 3rem;"></i>
+                    <h4 class="mt-3">Aucun module accessible</h4>
+                    <p class="text-muted">
+                        Vous n'avez actuellement accès à aucun module. 
+                        Veuillez contacter votre administrateur pour obtenir les permissions nécessaires.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

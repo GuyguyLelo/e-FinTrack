@@ -147,10 +147,15 @@ class UserPermissionMixin:
     
     def has_permission_modele(self, modele_django, action):
         """Vérifie si l'utilisateur a une permission sur un modèle"""
-        if not hasattr(self, 'rbac_role') or not self.rbac_role:
-            return False
+        # Priorité au nouveau système RBAC (basé sur les modèles)
+        if hasattr(self, 'rbac_role_modele') and self.rbac_role_modele:
+            return self.rbac_role_modele.a_permission_modele(modele_django, action)
         
-        return self.rbac_role.a_permission_modele(modele_django, action)
+        # Fallback vers l'ancien système RBAC
+        if hasattr(self, 'rbac_role') and self.rbac_role:
+            return self.rbac_role.a_permission_modele(modele_django, action)
+        
+        return False
     
     def can_view_modele(self, modele_django):
         """Peut voir la liste du modèle"""

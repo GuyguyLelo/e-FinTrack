@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
 import logging
+
 from accounts.permissions import RoleRequiredMixin
 
 from banques.models import Banque, CompteBancaire
@@ -18,14 +19,21 @@ from releves.models import ReleveBancaire, MouvementBancaire
 logger = logging.getLogger(__name__)
 
 
-class DashboardView(RoleRequiredMixin, TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     """Tableau de bord principal avec statistiques consolidées"""
     template_name = 'rapports/dashboard.html'
-    permission_function = 'peut_voir_tableau_bord'
     
     def dispatch(self, request, *args, **kwargs):
         """Gérer la requête avec gestion d'erreur pour éviter les problèmes de session"""
         try:
+            # Vérifier si l'utilisateur a la permission de voir le tableau de bord
+            if hasattr(request.user, 'rbac_role') and request.user.rbac_role:
+                if hasattr(request.user, 'has_rbac_permission'):
+                    if not request.user.has_rbac_permission('voir_tableau_bord'):
+                        # Utilisateur RBAC sans permission tableau de bord -> rediriger vers l'accueil
+                        from django.shortcuts import redirect
+                        return redirect('/home/')
+            
             return super().dispatch(request, *args, **kwargs)
         except Exception as e:
             # Vérifier si c'est une erreur de session interrompue
@@ -59,8 +67,7 @@ class DashboardView(RoleRequiredMixin, TemplateView):
             try:
                 return redirect(reverse('accounts:login'))
             except Exception:
-                from django.http import HttpResponseRedirect
-                return HttpResponseRedirect('/accounts/login/')
+                return redirect('/accounts/login/')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -68,282 +75,198 @@ class DashboardView(RoleRequiredMixin, TemplateView):
         try:
             # Période par défaut : mois en cours
             now = timezone.now()
-            mois_courant = now.month
-            annee_courante = now.year
+            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = now.replace(hour=23, minute=59, second=59, microsecond=999999)
             
-            # Statistiques globales
-            context['total_banques'] = Banque.objects.filter(active=True).count()
-            context['total_comptes'] = CompteBancaire.objects.filter(actif=True).count()
+            context.update({
+                'start_date': start_date,
+                'end_date': end_date,
+                'period_display': f"{start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}"
+            })
             
-            # Solde consolidé par devise : calculé à partir des soldes actuels des comptes bancaires
-            comptes_usd = CompteBancaire.objects.filter(devise='USD', actif=True)
-            comptes_cdf = CompteBancaire.objects.filter(devise='CDF', actif=True)
+            # Statistiques générales
+            stats = self.get_general_stats(start_date, end_date)
+            context.update(stats)
             
-            solde_usd = sum(c.solde_courant for c in comptes_usd) or Decimal('0.00')
-            solde_cdf = sum(c.solde_courant for c in comptes_cdf) or Decimal('0.00')
+            # Données pour graphiques
+            chart_data = self.get_chart_data(start_date, end_date)
+            context.update(chart_data)
             
-            context['solde_consolide_usd'] = float(solde_usd)  # Convertir en float pour le template
-            context['solde_consolide_cdf'] = float(solde_cdf)  # Convertir en float pour le template
-            
-            # Demandes de paiement
-            context['total_demandes'] = DemandePaiement.objects.count()
-            context['demandes_en_attente'] = DemandePaiement.objects.filter(statut='EN_ATTENTE').count()
-            context['demandes_validees'] = DemandePaiement.objects.filter(statut__in=['VALIDEE_DG', 'VALIDEE_DF']).count()
-            context['demandes_payees'] = DemandePaiement.objects.filter(statut='PAYEE').count()
-            
-            # Recettes du mois
-            recettes_mois_usd = Recette.objects.filter(
-                valide=True,
-                montant_usd__gt=0,
-                date_encaissement__year=annee_courante,
-                date_encaissement__month=mois_courant
-            ).aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
-            
-            recettes_mois_cdf = Recette.objects.filter(
-                valide=True,
-                montant_cdf__gt=0,
-                date_encaissement__year=annee_courante,
-                date_encaissement__month=mois_courant
-            ).aggregate(total=Sum('montant_cdf'))['total'] or Decimal('0.00')
-            
-            context['recettes_mois_usd'] = float(recettes_mois_usd)  # Convertir en float
-            context['recettes_mois_cdf'] = float(recettes_mois_cdf)  # Convertir en float
-            
-            # Dépenses du mois (uniquement les dépenses validées via les relevés)
-            depenses_mois = Depense.objects.filter(
-                annee=annee_courante,
-                mois=mois_courant
-            )
-            
-            depenses_mois_usd = depenses_mois.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
-            depenses_mois_cdf = depenses_mois.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
-            
-            context['depenses_mois_usd'] = float(depenses_mois_usd)  # Convertir en float
-            context['depenses_mois_cdf'] = float(depenses_mois_cdf)  # Convertir en float
-            
-            # Relevés bancaires
-            context['releves_valides'] = ReleveBancaire.objects.filter(valide=True).count()
-            context['releves_en_attente'] = ReleveBancaire.objects.filter(valide=False).count()
-            
-            # Graphiques - Données pour les 12 derniers mois
-            mois_list = []
-            recettes_usd_list = []
-            recettes_cdf_list = []
-            depenses_usd_list = []
-            depenses_cdf_list = []
-            
-            for i in range(11, -1, -1):
-                date = now - timedelta(days=30 * i)
-                mois_annee = date.strftime('%Y-%m')
-                mois_nom = date.strftime('%b %Y')
-                mois_list.append(mois_nom)
-                
-                # Recettes
-                rec_usd = Recette.objects.filter(
-                    valide=True,
-                    montant_usd__gt=0,
-                    date_encaissement__year=date.year,
-                    date_encaissement__month=date.month
-                ).aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
-                
-                rec_cdf = Recette.objects.filter(
-                    valide=True,
-                    montant_cdf__gt=0,
-                    date_encaissement__year=date.year,
-                    date_encaissement__month=date.month
-                ).aggregate(total=Sum('montant_cdf'))['total'] or Decimal('0.00')
-                
-                recettes_usd_list.append(float(rec_usd))
-                recettes_cdf_list.append(float(rec_cdf))
-                
-                # Dépenses (uniquement les dépenses validées via les relevés)
-                dep_usd = Depense.objects.filter(
-                    annee=date.year,
-                    mois=date.month,
-                    montant_usd__gt=0
-                ).aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
-                
-                dep_cdf = Depense.objects.filter(
-                    annee=date.year,
-                    mois=date.month,
-                    montant_fc__gt=0
-                ).aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
-                
-                depenses_usd_list.append(float(dep_usd))
-                depenses_cdf_list.append(float(dep_cdf))
-            
-            import json
-            context['mois_labels'] = json.dumps(mois_list)
-            context['recettes_usd_data'] = json.dumps(recettes_usd_list)
-            context['recettes_cdf_data'] = json.dumps(recettes_cdf_list)
-            context['depenses_usd_data'] = json.dumps(depenses_usd_list)
-            context['depenses_cdf_data'] = json.dumps(depenses_cdf_list)
-            
-            # Solde par banque
-            banques_data = []
-            for banque in Banque.objects.filter(active=True):
-                comptes = banque.comptes.filter(actif=True)
-                solde_usd = sum(c.solde_courant for c in comptes.filter(devise='USD'))
-                solde_cdf = sum(c.solde_courant for c in comptes.filter(devise='CDF'))
-                
-                # Ajouter toutes les banques actives, même avec solde nul pour le graphique
-                banques_data.append({
-                    'nom': banque.nom_banque,
-                    'solde_usd': float(solde_usd),
-                    'solde_cdf': float(solde_cdf),
-                })
-            
-            # Filtrer pour le tableau (uniquement les banques avec solde > 0)
-            banques_avec_solde = [b for b in banques_data if b['solde_usd'] > 0 or b['solde_cdf'] > 0]
-            
-            import json
-            context['banques_data'] = json.dumps(banques_data)  # Pour le graphique
-            context['banques_avec_solde'] = banques_avec_solde  # Pour le tableau
-            
-            # Recettes récentes (10 dernières)
-            context['recettes_recentes'] = Recette.objects.select_related(
-                'banque', 'compte_bancaire', 'enregistre_par', 'valide_par'
-            ).order_by('-date_encaissement', '-date_creation')[:10]
-            
-            # Dépenses récentes (10 dernières)
-            context['depenses_recentes'] = Depense.objects.select_related(
-                'banque', 'nomenclature'
-            ).order_by('-date_depense', '-annee', '-mois')[:10]
+            # Dernières activités
+            recent_activities = self.get_recent_activities()
+            context['recent_activities'] = recent_activities
             
         except Exception as e:
-            # Logger l'erreur mais continuer avec des valeurs par défaut
-            logger.error(f"Erreur lors du chargement des données du dashboard: {str(e)}", exc_info=True)
-            # Valeurs par défaut pour éviter une erreur dans le template
-            context.setdefault('total_banques', 0)
-            context.setdefault('total_comptes', 0)
-            context.setdefault('solde_consolide_usd', 0.0)
-            context.setdefault('solde_consolide_cdf', 0.0)
-            context.setdefault('total_demandes', 0)
-            context.setdefault('demandes_en_attente', 0)
-            context.setdefault('demandes_validees', 0)
-            context.setdefault('demandes_payees', 0)
-            context.setdefault('recettes_mois_usd', 0.0)
-            context.setdefault('recettes_mois_cdf', 0.0)
-            context.setdefault('depenses_mois_usd', 0.0)
-            context.setdefault('depenses_mois_cdf', 0.0)
-            context.setdefault('releves_valides', 0)
-            context.setdefault('releves_en_attente', 0)
-            context.setdefault('rapprochements_valides', 0)
-            context.setdefault('rapprochements_en_attente', 0)
-            import json
-            context.setdefault('mois_labels', json.dumps([]))
-            context.setdefault('recettes_usd_data', json.dumps([]))
-            context.setdefault('recettes_cdf_data', json.dumps([]))
-            context.setdefault('depenses_usd_data', json.dumps([]))
-            context.setdefault('depenses_cdf_data', json.dumps([]))
-            context.setdefault('banques_data', json.dumps([]))
-            context.setdefault('recettes_recentes', [])
-            context.setdefault('depenses_recentes', [])
+            logger.error(f"Erreur lors de la préparation des données du dashboard: {str(e)}", exc_info=True)
+            context['error'] = "Une erreur est survenue lors du chargement des données"
         
         return context
+    
+    def get_general_stats(self, start_date, end_date):
+        """Obtenir les statistiques générales"""
+        try:
+            # Statistiques des banques
+            banques_count = Banque.objects.count()
+            comptes_count = CompteBancaire.objects.count()
+            
+            # Statistiques des dépenses
+            depenses_count = Depense.objects.filter(
+                date_creation__range=(start_date, end_date)
+            ).count()
+            
+            depenses_total = Depense.objects.filter(
+                date_creation__range=(start_date, end_date)
+            ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+            
+            # Statistiques des recettes
+            recettes_count = Recette.objects.filter(
+                date_creation__range=(start_date, end_date)
+            ).count()
+            
+            recettes_total = Recette.objects.filter(
+                date_creation__range=(start_date, end_date)
+            ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+            
+            # Statistiques des demandes
+            demandes_count = DemandePaiement.objects.filter(
+                date_creation__range=(start_date, end_date)
+            ).count()
+            
+            demandes_total = DemandePaiement.objects.filter(
+                date_creation__range=(start_date, end_date)
+            ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+            
+            return {
+                'banques_count': banques_count,
+                'comptes_count': comptes_count,
+                'depenses_count': depenses_count,
+                'depenses_total': depenses_total,
+                'recettes_count': recettes_count,
+                'recettes_total': recettes_total,
+                'demandes_count': demandes_count,
+                'demandes_total': demandes_total,
+                'solde_net': recettes_total - depenses_total,
+            }
+        except Exception as e:
+            logger.error(f"Erreur lors du calcul des statistiques générales: {str(e)}", exc_info=True)
+            return {}
+    
+    def get_chart_data(self, start_date, end_date):
+        """Préparer les données pour les graphiques"""
+        try:
+            # Données mensuelles pour les 6 derniers mois
+            chart_data = []
+            for i in range(6):
+                month_start = (start_date - timedelta(days=30*i)).replace(day=1)
+                month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+                
+                month_depenses = Depense.objects.filter(
+                    date_creation__range=(month_start, month_end)
+                ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+                
+                month_recettes = Recette.objects.filter(
+                    date_creation__range=(month_start, month_end)
+                ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+                
+                chart_data.append({
+                    'month': month_start.strftime('%b %Y'),
+                    'depenses': float(month_depenses),
+                    'recettes': float(month_recettes),
+                    'solde': float(month_recettes - month_depenses)
+                })
+            
+            return {
+                'chart_data': list(reversed(chart_data)),
+                'chart_labels': [item['month'] for item in chart_data]
+            }
+        except Exception as e:
+            logger.error(f"Erreur lors de la préparation des données de graphique: {str(e)}", exc_info=True)
+            return {'chart_data': [], 'chart_labels': []}
+    
+    def get_recent_activities(self):
+        """Obtenir les dernières activités"""
+        try:
+            activities = []
+            
+            # Dernières dépenses
+            recent_depenses = Depense.objects.order_by('-date_creation')[:5]
+            for depense in recent_depenses:
+                activities.append({
+                    'type': 'depense',
+                    'description': f"Dépense: {depense.description[:50]}",
+                    'amount': depense.montant,
+                    'date': depense.date_creation,
+                    'icon': 'bi-cash-stack',
+                    'color': 'danger'
+                })
+            
+            # Dernières recettes
+            recent_recettes = Recette.objects.order_by('-date_creation')[:5]
+            for recette in recent_recettes:
+                activities.append({
+                    'type': 'recette',
+                    'description': f"Recette: {recette.description[:50]}",
+                    'amount': recette.montant,
+                    'date': recette.date_creation,
+                    'icon': 'bi-cash',
+                    'color': 'success'
+                })
+            
+            # Dernières demandes
+            recent_demandes = DemandePaiement.objects.order_by('-date_creation')[:5]
+            for demande in recent_demandes:
+                activities.append({
+                    'type': 'demande',
+                    'description': f"Demande: {demande.description[:50]}",
+                    'amount': demande.montant,
+                    'date': demande.date_creation,
+                    'icon': 'bi-file-earmark-text',
+                    'color': 'info'
+                })
+            
+            # Trier par date
+            activities.sort(key=lambda x: x['date'], reverse=True)
+            
+            return activities[:10]  # Limiter à 10 activités
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des activités récentes: {str(e)}", exc_info=True)
+            return []
 
 
-class RapportConsolideView(LoginRequiredMixin, TemplateView):
-    """Rapport consolidé détaillé"""
-    template_name = 'rapports/rapport_consolide.html'
+class HomeView(LoginRequiredMixin, TemplateView):
+    """Page d'accueil pour les utilisateurs RBAC sans tableau de bord"""
+    template_name = 'rapports/home_rbac.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
         
-        # Filtrer par période si fournie
-        annee = self.request.GET.get('annee', timezone.now().year)
-        mois = self.request.GET.get('mois')
+        # Ajouter les informations sur l'utilisateur
+        context['user_permissions'] = []
+        context['user_modules'] = []
         
-        try:
-            annee = int(annee)
-            if mois:
-                mois = int(mois)
-        except (ValueError, TypeError):
-            annee = timezone.now().year
-            mois = None
-        
-        context['annee'] = annee
-        context['mois'] = mois
-        
-        # Recettes
-        recettes_qs = Recette.objects.filter(valide=True, date_encaissement__year=annee)
-        if mois:
-            recettes_qs = recettes_qs.filter(date_encaissement__month=mois)
-        
-        context['total_recettes_usd'] = recettes_qs.aggregate(
-            total=Sum('montant_usd')
-        )['total'] or Decimal('0.00')
-        
-        context['total_recettes_cdf'] = recettes_qs.aggregate(
-            total=Sum('montant_cdf')
-        )['total'] or Decimal('0.00')
-        
-        # Dépenses (uniquement les demandes de paiement validées)
-        depenses_qs = DemandePaiement.objects.filter(
-            statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE'],
-            date_soumission__year=annee
-        )
-        if mois:
-            depenses_qs = depenses_qs.filter(date_soumission__month=mois)
-        
-        context['total_depenses_usd'] = depenses_qs.filter(
-            devise='USD'
-        ).aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
-        
-        context['total_depenses_cdf'] = depenses_qs.filter(
-            devise='CDF'
-        ).aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
-        
-        # Évolution des 12 derniers mois
-        evolution_data = []
-        for i in range(12):
-            date_mois = timezone.now() - timedelta(days=30*i)
-            mois_evol = date_mois.month
-            annee_evol = date_mois.year
+        # Vérifier les permissions et modules accessibles
+        if hasattr(user, 'rbac_role') and user.rbac_role:
+            # Modules accessibles selon les permissions
+            if hasattr(user, 'can_access_module'):
+                modules = ['banques', 'demandes', 'recettes', 'etats', 'clotures', 'releves']
+                for module in modules:
+                    if user.can_access_module(module):
+                        context['user_modules'].append(module)
             
-            recettes_mois = Recette.objects.filter(
-                valide=True,
-                date_encaissement__year=annee_evol,
-                date_encaissement__month=mois_evol
-            )
-            
-            depenses_mois = DemandePaiement.objects.filter(
-                statut__in=['VALIDEE_DG', 'VALIDEE_DF', 'PAYEE'],
-                date_soumission__year=annee_evol,
-                date_soumission__month=mois_evol
-            )
-            
-            evolution_data.append({
-                'mois': date_mois.strftime('%Y-%m'),
-                'libelle': date_mois.strftime('%b %Y'),
-                'recettes_usd': recettes_mois.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00'),
-                'recettes_cdf': recettes_mois.aggregate(total=Sum('montant_cdf'))['total'] or Decimal('0.00'),
-                'depenses_usd': depenses_mois.filter(devise='USD').aggregate(total=Sum('montant'))['total'] or Decimal('0.00'),
-                'depenses_cdf': depenses_mois.filter(devise='CDF').aggregate(total=Sum('montant'))['total'] or Decimal('0.00'),
-            })
-        
-        context['evolution_data'] = evolution_data
-        
-        # Détails par banque
-        banques_details = []
-        for banque in Banque.objects.filter(active=True):
-            comptes = banque.comptes.filter(actif=True)
-            recettes_banque = recettes_qs.filter(banque=banque)
-            
-            # Pour les dépenses, on utilise les demandes validées (sans lien direct avec banque)
-            # On affiche les totaux généraux pour toutes les banques
-            depenses_usd_total = depenses_qs.filter(devise='USD').aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
-            depenses_cdf_total = depenses_qs.filter(devise='CDF').aggregate(total=Sum('montant'))['total'] or Decimal('0.00')
-            
-            banques_details.append({
-                'banque': banque,
-                'recettes_usd': sum(r.montant_usd for r in recettes_banque),
-                'recettes_cdf': sum(r.montant_cdf for r in recettes_banque),
-                'depenses_usd': depenses_usd_total / len(Banque.objects.filter(active=True)) if len(Banque.objects.filter(active=True)) > 0 else Decimal('0.00'),
-                'depenses_cdf': depenses_cdf_total / len(Banque.objects.filter(active=True)) if len(Banque.objects.filter(active=True)) > 0 else Decimal('0.00'),
-            })
-        
-        context['banques_details'] = banques_details
+            # Permissions détaillées
+            if hasattr(user, 'get_all_permissions'):
+                context['user_permissions'] = user.get_all_permissions()
         
         return context
 
+
+class RapportConsolideView(RoleRequiredMixin, TemplateView):
+    """Vue pour les rapports consolidés"""
+    template_name = 'rapports/rapport_consolide.html'
+    permission_function = 'peut_voir_rapports'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Ajouter la logique pour les rapports consolidés ici
+        return context

@@ -1,8 +1,9 @@
 """
-Modèles pour la gestion des utilisateurs et rôles
+Modèles pour l'application accounts
 """
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from rbac.models_modele import UserPermissionMixin
 
 
 class Service(models.Model):
@@ -61,7 +62,7 @@ class Service(models.Model):
         return children
 
 
-class User(AbstractUser):
+class User(AbstractUser, UserPermissionMixin):
     """
     Modèle utilisateur personnalisé avec rôles DGRAD
     """
@@ -69,13 +70,18 @@ class User(AbstractUser):
         ('SUPER_ADMIN', 'Super Admin'),
         ('ADMIN', 'Admin'),
         ('DG', 'Directeur Général'),
+        ('DIRECTEUR', 'Directeur'),
         ('DF', 'Directeur Financier'),
         ('CD_FINANCE', 'Chef de Division Finance'),
         ('OPERATEUR_SAISIE', 'Opérateur de Saisie'),
         ('AGENT_PAYEUR', 'Agent Payeur'),
+        ('OpsDaf', 'Opérateur DAF'),
+        ('DirDaf', 'Direction DAF'),
+        ('DivDaf', 'Division DAF'),
+        ('AdminDaf', 'Admin DAF'),
     ]
     
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='OPERATEUR_SAISIE')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='OPERATEUR_SAISIE')
     rbac_role = models.ForeignKey(
         'rbac.Role',
         on_delete=models.SET_NULL,
@@ -83,6 +89,14 @@ class User(AbstractUser):
         blank=True,
         verbose_name="Rôle RBAC",
         related_name='users'
+    )
+    rbac_role_modele = models.ForeignKey(
+        'rbac.RoleModele',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Rôle RBAC (basé sur modèles)",
+        related_name='users_modele'
     )
     telephone = models.CharField(max_length=20, blank=True)
     actif = models.BooleanField(default=True)
@@ -153,83 +167,118 @@ class User(AbstractUser):
         """Rôles pouvant valider les recettes (CD Finance, DF, DG, Admin)."""
         return self.role in ['SUPER_ADMIN', 'ADMIN', 'DG', 'DF', 'CD_FINANCE']
     
-    # Permissions d'accès
+    # Permissions d'accès - Configurées pour correspondre au template
     def peut_voir_tableau_bord(self):
-        """Vérifie si l'utilisateur peut voir le tableau de bord"""
-        # Utiliser le système RBAC si disponible
-        if self.rbac_role:
-            return self.rbac_role.a_permission('voir_tableau_bord')
-        
-        # Fallback avec les rôles legacy
+        """Vérifie si l'utilisateur peut voir le tableau de bord standard"""
         return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE']
     
-    def peut_creer_entites_base(self):
-        """Vérifie si l'utilisateur peut créer les entités de base (banques, comptes, utilisateurs, services, nature économique)"""
+    def peut_acceder_tableau_bord_feuilles(self):
+        """Vérifie si l'utilisateur peut accéder au tableau de bord feuilles (DAF)"""
+        return self.role in ['SUPER_ADMIN', 'OpsDaf', 'DirDaf', 'DivDaf', 'AdminDaf', 'DG', 'DF', 'CD_FINANCE']
+    
+    def peut_voir_menu_depenses_daf(self):
+        """Vérifie si l'utilisateur peut voir le menu gestion dépenses DAF"""
+        return self.role in ['SUPER_ADMIN', 'OpsDaf']
+    
+    def peut_voir_menu_recettes_daf(self):
+        """Vérifie si l'utilisateur peut voir le menu gestion recettes DAF"""
+        return self.role in ['SUPER_ADMIN', 'OpsDaf']
+    
+    def peut_voir_menu_etats_daf(self):
+        """Vérifie si l'utilisateur peut voir le menu états DAF"""
+        return self.role in ['SUPER_ADMIN', 'OpsDaf', 'CD_FINANCE']
+    
+    def peut_voir_menu_clotures(self):
+        """Vérifie si l'utilisateur peut voir le menu clôtures"""
+        return self.role in ['SUPER_ADMIN', 'DirDaf', 'DivDaf']
+    
+    def peut_gerer_natures_services_daf(self):
+        """Vérifie si l'utilisateur peut gérer les natures et services DAF"""
+        return self.role in ['SUPER_ADMIN', 'AdminDaf']
+    
+    def peut_gerer_natures_services_admin(self):
+        """Vérifie si l'utilisateur peut gérer les natures et services (ADMIN)"""
         return self.role in ['SUPER_ADMIN', 'ADMIN']
     
-    def peut_voir_tout_sans_modification(self):
-        """Vérifie si l'utilisateur peut tout voir sans modification"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF']
+    def peut_gerer_utilisateurs(self):
+        """Vérifie si l'utilisateur peut gérer les utilisateurs"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
     
-    def peut_valider_demandes(self):
-        """Vérifie si l'utilisateur peut valider les demandes"""
+    def peut_voir_menu_demandes_admin(self):
+        """Vérifie si l'utilisateur peut voir le menu demandes (ADMIN)"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
+    
+    def peut_voir_menu_recettes_admin(self):
+        """Vérifie si l'utilisateur peut voir le menu recettes (ADMIN)"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
+    
+    def peut_voir_menu_paiements_admin(self):
+        """Vérifie si l'utilisateur peut voir le menu paiements (ADMIN)"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN']
+    
+    def peut_voir_menu_demandes_dg(self):
+        """Vérifie si l'utilisateur peut voir le menu demandes (DG)"""
         return self.role in ['SUPER_ADMIN', 'DG']
     
-    def peut_valider_depense(self):
-        """Vérifie si l'utilisateur peut valider les dépenses dans les relevés"""
+    def peut_voir_menu_paiements_dg(self):
+        """Vérifie si l'utilisateur peut voir le menu paiements (DG)"""
         return self.role in ['SUPER_ADMIN', 'DG']
     
-    def peut_effectuer_paiements(self):
-        """Vérifie si l'utilisateur peut effectuer les paiements"""
+    def peut_valider_demandes_dg(self):
+        """Vérifie si l'utilisateur peut valider les demandes (DG)"""
+        return self.role in ['SUPER_ADMIN', 'DG']
+    
+    def peut_voir_menu_demandes_df(self):
+        """Vérifie si l'utilisateur peut voir le menu demandes (DF)"""
+        return self.role in ['SUPER_ADMIN', 'DF']
+    
+    def peut_voir_menu_recettes_df(self):
+        """Vérifie si l'utilisateur peut voir le menu recettes (DF)"""
+        return self.role in ['SUPER_ADMIN', 'DF']
+    
+    def peut_voir_menu_paiements_df(self):
+        """Vérifie si l'utilisateur peut voir le menu paiements (DF)"""
+        return self.role in ['SUPER_ADMIN', 'DF']
+    
+    def peut_voir_menu_demandes_cdf(self):
+        """Vérifie si l'utilisateur peut voir le menu demandes (CD_FINANCE)"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_voir_menu_recettes_cdf(self):
+        """Vérifie si l'utilisateur peut voir le menu recettes (CD_FINANCE)"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_voir_menu_paiements_cdf(self):
+        """Vérifie si l'utilisateur peut voir le menu paiements (CD_FINANCE)"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_creer_releves_cdf(self):
+        """Vérifie si l'utilisateur peut créer des relevés (CD_FINANCE)"""
+        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
+    
+    def peut_voir_menu_depenses_operateur(self):
+        """Vérifie si l'utilisateur peut voir le menu dépenses (OPERATEUR_SAISIE)"""
+        return self.role in ['SUPER_ADMIN', 'OPERATEUR_SAISIE']
+    
+    def peut_voir_menu_recettes_operateur(self):
+        """Vérifie si l'utilisateur peut voir le menu recettes (OPERATEUR_SAISIE)"""
+        return self.role in ['SUPER_ADMIN', 'OPERATEUR_SAISIE']
+    
+    def peut_voir_menu_paiements_agent(self):
+        """Vérifie si l'utilisateur peut voir le menu paiements (AGENT_PAYEUR)"""
+        return self.role in ['SUPER_ADMIN', 'AGENT_PAYEUR']
+    
+    def peut_valider_paiements_agent(self):
+        """Vérifie si l'utilisateur peut valider les paiements (AGENT_PAYEUR)"""
         return self.role in ['SUPER_ADMIN', 'AGENT_PAYEUR']
     
     def peut_voir_paiements(self):
-        """Vérifie si l'utilisateur peut voir les paiements"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR']
-    
-    def peut_creer_releves(self):
-        """Vérifie si l'utilisateur peut créer des relevés"""
-        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
-    
-    def peut_consulter_depenses(self):
-        """Vérifie si l'utilisateur peut consulter les dépenses"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'OPERATEUR_SAISIE']
-    
-    def peut_voir_menu_depenses(self):
-        """Vérifie si l'utilisateur peut voir le menu Dépenses (opérateur, CD Finance, DG, DF)"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'OPERATEUR_SAISIE']
-    
-    def peut_creer_etats(self):
-        """Vérifie si l'utilisateur peut créer des états"""
-        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
-    
-    def peut_saisir_demandes_recettes(self):
-        """Vérifie si l'utilisateur peut saisir des demandes et recettes"""
-        return self.role in ['SUPER_ADMIN', 'OPERATEUR_SAISIE', 'ADMIN', 'DG', 'CD_FINANCE']
+        """Vérifie si l'utilisateur peut voir le menu paiements (tous les rôles concernés)"""
+        return self.role in ['SUPER_ADMIN', 'ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR']
     
     def peut_acceder_admin_django(self):
         """Vérifie si l'utilisateur peut accéder à l'administration Django"""
         return self.role in ['SUPER_ADMIN', 'ADMIN']
-    
-    def peut_voir_menu_demandes(self):
-        """Vérifie si l'utilisateur peut voir le menu demandes"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR', 'OPERATEUR_SAISIE']
-    
-    def peut_voir_menu_paiements(self):
-        """Vérifie si l'utilisateur peut voir le menu paiements"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'DF', 'CD_FINANCE', 'AGENT_PAYEUR']
-    
-    def peut_voir_menu_recettes(self):
-        """Vérifie si l'utilisateur peut voir le menu recettes"""
-        return self.role in ['SUPER_ADMIN', 'DG', 'CD_FINANCE', 'OPERATEUR_SAISIE']
-    
-    def peut_voir_menu_etats(self):
-        """Vérifie si l'utilisateur peut voir le menu états"""
-        return self.role in ['SUPER_ADMIN', 'CD_FINANCE']
-    
-    def peut_voir_menu_banques(self):
-        """Vérifie si l'utilisateur peut voir le menu banques"""
-        return self.role in ['SUPER_ADMIN']
     
     def peut_voir_uniquement_tableau_bord_feuille(self):
         """Vérifie si l'utilisateur ne peut voir que le tableau de bord feuille"""

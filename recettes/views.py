@@ -20,7 +20,7 @@ class RecetteListView(RoleRequiredMixin, ListView):
     template_name = 'recettes/recette_liste.html'
     context_object_name = 'recettes'
     paginate_by = 15
-    permission_function = 'peut_voir_menu_recettes'
+    permission_function = 'peut_voir_menu_recettes_daf'
     
     def get_queryset(self):
         queryset = Recette.objects.select_related('banque', 'compte_bancaire', 'enregistre_par', 'valide_par')
@@ -195,7 +195,7 @@ class RecetteFeuilleListView(RoleRequiredMixin, ListView):
     template_name = 'recettes/recette_feuille_liste.html'
     context_object_name = 'lignes'
     paginate_by = 15
-    permission_function = 'peut_voir_menu_recettes'
+    permission_function = 'peut_voir_menu_recettes_daf'
 
     def get_queryset(self):
         qs = RecetteFeuille.objects.select_related('banque').order_by('-date', '-date_creation')
