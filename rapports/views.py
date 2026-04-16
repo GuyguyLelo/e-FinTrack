@@ -31,8 +31,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 if hasattr(request.user, 'has_rbac_permission'):
                     if not request.user.has_rbac_permission('voir_tableau_bord'):
                         # Utilisateur RBAC sans permission tableau de bord -> rediriger vers l'accueil
-                        from django.shortcuts import redirect
-                        return redirect('/home/')
+                        # Éviter la boucle de redirection : ne pas rediriger si déjà sur /
+                        if request.path != '/':
+                            from django.shortcuts import redirect
+                            return redirect('/')
             
             return super().dispatch(request, *args, **kwargs)
         except Exception as e:
@@ -103,37 +105,69 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
     
     def get_general_stats(self, start_date, end_date):
-        """Obtenir les statistiques générales"""
+        """Obtenir les statistiques générales synchronisées avec le tableau de bord DAF"""
         try:
-            # Statistiques des banques
+            from demandes.models import DepenseFeuille
+            from recettes.models import RecetteFeuille
+            from clotures.models import ClotureMensuelle
+            from django.utils.timezone import now
+            
+            # Période actuelle (similaire au tableau de bord DAF)
+            today = now()
+            current_year = today.year
+            current_month = today.month
+            
+            # Récupérer la période actuelle
+            try:
+                periode_actuelle = ClotureMensuelle.get_periode_actuelle()
+                periode_actuelle.calculer_soldes()
+                periode_actuelle.refresh_from_db()
+            except:
+                periode_actuelle = ClotureMensuelle.objects.create(
+                    mois=current_month,
+                    annee=current_year,
+                    statut='OUVERT',
+                    solde_ouverture_fc=0,
+                    solde_ouverture_usd=0
+                )
+            
+            # Statistiques des banques (identiques au DAF)
             banques_count = Banque.objects.count()
             comptes_count = CompteBancaire.objects.count()
             
-            # Statistiques des dépenses
-            depenses_count = Depense.objects.filter(
-                date_creation__range=(start_date, end_date)
-            ).count()
+            # Statistiques des dépenses (utilisant DepenseFeuille comme DAF)
+            depenses = DepenseFeuille.objects.filter(
+                mois=periode_actuelle.mois,
+                annee=periode_actuelle.annee
+            )
+            depenses_count = depenses.count()
             
-            depenses_total = Depense.objects.filter(
-                date_creation__range=(start_date, end_date)
-            ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+            total_depenses_cdf = depenses.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+            total_depenses_usd = depenses.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+            depenses_total = total_depenses_cdf  # Pour compatibilité
             
-            # Statistiques des recettes
-            recettes_count = Recette.objects.filter(
-                date_creation__range=(start_date, end_date)
-            ).count()
+            # Statistiques des recettes (utilisant RecetteFeuille comme DAF)
+            recettes = RecetteFeuille.objects.filter(
+                mois=periode_actuelle.mois,
+                annee=periode_actuelle.annee
+            )
+            recettes_count = recettes.count()
             
-            recettes_total = Recette.objects.filter(
-                date_creation__range=(start_date, end_date)
-            ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+            total_recettes_cdf = recettes.aggregate(total=Sum('montant_fc'))['total'] or Decimal('0.00')
+            total_recettes_usd = recettes.aggregate(total=Sum('montant_usd'))['total'] or Decimal('0.00')
+            recettes_total = total_recettes_cdf  # Pour compatibilité
             
-            # Statistiques des demandes
+            # Solde net (identique au DAF)
+            solde_cdf = total_recettes_cdf - total_depenses_cdf
+            solde_usd = total_recettes_usd - total_depenses_usd
+            
+            # Statistiques des demandes (garder l'original)
             demandes_count = DemandePaiement.objects.filter(
-                date_creation__range=(start_date, end_date)
+                date_demande__range=(start_date, end_date)
             ).count()
             
             demandes_total = DemandePaiement.objects.filter(
-                date_creation__range=(start_date, end_date)
+                date_demande__range=(start_date, end_date)
             ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
             
             return {
@@ -141,10 +175,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'comptes_count': comptes_count,
                 'depenses_count': depenses_count,
                 'depenses_total': depenses_total,
+                'total_depenses_cdf': total_depenses_cdf,
+                'total_depenses_usd': total_depenses_usd,
                 'recettes_count': recettes_count,
                 'recettes_total': recettes_total,
+                'total_recettes_cdf': total_recettes_cdf,
+                'total_recettes_usd': total_recettes_usd,
+                'solde_cdf': solde_cdf,
+                'solde_usd': solde_usd,
                 'demandes_count': demandes_count,
                 'demandes_total': demandes_total,
+                'periode_actuelle': periode_actuelle,
                 'solde_net': recettes_total - depenses_total,
             }
         except Exception as e:
@@ -152,31 +193,43 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             return {}
     
     def get_chart_data(self, start_date, end_date):
-        """Préparer les données pour les graphiques"""
+        """Préparer les données pour les graphiques synchronisées avec le tableau de bord DAF"""
         try:
-            # Données mensuelles pour les 6 derniers mois
+            from demandes.models import DepenseFeuille
+            from recettes.models import RecetteFeuille
+            from clotures.models import ClotureMensuelle
+            from django.utils.timezone import now
+            
+            # Période actuelle (similaire au DAF)
+            today = now()
+            current_year = today.year
+            
+            # Données mensuelles pour l'année actuelle (similaire au DAF)
             chart_data = []
-            for i in range(6):
-                month_start = (start_date - timedelta(days=30*i)).replace(day=1)
-                month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            
+            for mois in range(1, 13):
+                month_depenses = DepenseFeuille.objects.filter(
+                    annee=current_year,
+                    mois=mois
+                ).aggregate(total_fc=Sum('montant_fc'), total_usd=Sum('montant_usd'))
                 
-                month_depenses = Depense.objects.filter(
-                    date_creation__range=(month_start, month_end)
-                ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+                month_recettes = RecetteFeuille.objects.filter(
+                    annee=current_year,
+                    mois=mois
+                ).aggregate(total_fc=Sum('montant_fc'), total_usd=Sum('montant_usd'))
                 
-                month_recettes = Recette.objects.filter(
-                    date_creation__range=(month_start, month_end)
-                ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+                depenses_total = (month_depenses['total_fc'] or Decimal('0.00')) + (month_depenses['total_usd'] or Decimal('0.00'))
+                recettes_total = (month_recettes['total_fc'] or Decimal('0.00')) + (month_recettes['total_usd'] or Decimal('0.00'))
                 
                 chart_data.append({
-                    'month': month_start.strftime('%b %Y'),
-                    'depenses': float(month_depenses),
-                    'recettes': float(month_recettes),
-                    'solde': float(month_recettes - month_depenses)
+                    'month': f"{today.replace(day=1, month=mois).strftime('%b')} {current_year}",
+                    'depenses': float(depenses_total),
+                    'recettes': float(recettes_total),
+                    'solde': float(recettes_total - depenses_total)
                 })
             
             return {
-                'chart_data': list(reversed(chart_data)),
+                'chart_data': chart_data,
                 'chart_labels': [item['month'] for item in chart_data]
             }
         except Exception as e:
@@ -184,50 +237,80 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             return {'chart_data': [], 'chart_labels': []}
     
     def get_recent_activities(self):
-        """Obtenir les dernières activités"""
+        """Obtenir les dernières activités synchronisées avec le tableau de bord DAF"""
         try:
+            from demandes.models import DepenseFeuille
+            from recettes.models import RecetteFeuille
+            from clotures.models import ClotureMensuelle
+            from django.utils.timezone import now
+            
+            # Période actuelle
+            today = now()
+            current_year = today.year
+            current_month = today.month
+            
+            # Récupérer la période actuelle
+            try:
+                periode_actuelle = ClotureMensuelle.get_periode_actuelle()
+            except:
+                periode_actuelle = ClotureMensuelle.objects.create(
+                    mois=current_month,
+                    annee=current_year,
+                    statut='OUVERT',
+                    solde_ouverture_fc=0,
+                    solde_ouverture_usd=0
+                )
+            
+            # Activités des feuilles DAF (similaire au tableau de bord DAF)
+            recent_depenses_feuilles = DepenseFeuille.objects.filter(
+                mois=periode_actuelle.mois,
+                annee=periode_actuelle.annee
+            ).order_by('-date_creation')[:5]
+            
+            recent_recettes_feuilles = RecetteFeuille.objects.filter(
+                mois=periode_actuelle.mois,
+                annee=periode_actuelle.annee
+            ).order_by('-date_creation')[:5]
+            
+            # Garder aussi les demandes de paiement pour le système WICKFLOW
+            recent_demandes = DemandePaiement.objects.order_by('-date_demande')[:3]
+            
             activities = []
             
-            # Dernières dépenses
-            recent_depenses = Depense.objects.order_by('-date_creation')[:5]
-            for depense in recent_depenses:
+            # Ajouter les activités des feuilles de dépenses
+            for depense in recent_depenses_feuilles:
+                total_montant = (depense.montant_fc or Decimal('0.00')) + (depense.montant_usd or Decimal('0.00'))
                 activities.append({
-                    'type': 'depense',
-                    'description': f"Dépense: {depense.description[:50]}",
-                    'amount': depense.montant,
-                    'date': depense.date_creation,
-                    'icon': 'bi-cash-stack',
-                    'color': 'danger'
+                    'type': 'depense_feuille',
+                    'description': f"Dépense feuille: {depense.libelle_depenses or 'Sans libellé'}",
+                    'date': depense.date_creation.strftime('%d/%m/%Y %H:%M'),
+                    'montant': float(total_montant),
+                    'banque': depense.banque.nom_banque if depense.banque else 'Non spécifiée'
                 })
             
-            # Dernières recettes
-            recent_recettes = Recette.objects.order_by('-date_creation')[:5]
-            for recette in recent_recettes:
+            # Ajouter les activités des feuilles de recettes
+            for recette in recent_recettes_feuilles:
+                total_montant = (recette.montant_fc or Decimal('0.00')) + (recette.montant_usd or Decimal('0.00'))
                 activities.append({
-                    'type': 'recette',
-                    'description': f"Recette: {recette.description[:50]}",
-                    'amount': recette.montant,
-                    'date': recette.date_creation,
-                    'icon': 'bi-cash',
-                    'color': 'success'
+                    'type': 'recette_feuille',
+                    'description': f"Recette feuille: {recette.description or 'Sans description'}",
+                    'date': recette.date_creation.strftime('%d/%m/%Y %H:%M'),
+                    'montant': float(total_montant),
+                    'banque': recette.banque.nom_banque if recette.banque else 'Non spécifiée'
                 })
             
-            # Dernières demandes
-            recent_demandes = DemandePaiement.objects.order_by('-date_creation')[:5]
+            # Ajouter quelques demandes de paiement pour le contexte WICKFLOW
             for demande in recent_demandes:
                 activities.append({
                     'type': 'demande',
-                    'description': f"Demande: {demande.description[:50]}",
-                    'amount': demande.montant,
-                    'date': demande.date_creation,
-                    'icon': 'bi-file-earmark-text',
-                    'color': 'info'
+                    'description': f"Demande de paiement: {demande.description}",
+                    'date': demande.date_demande.strftime('%d/%m/%Y %H:%M'),
+                    'montant': float(demande.montant),
+                    'statut': demande.statut
                 })
             
-            # Trier par date
-            activities.sort(key=lambda x: x['date'], reverse=True)
-            
-            return activities[:10]  # Limiter à 10 activités
+            return sorted(activities, key=lambda x: x['date'], reverse=True)[:10]
+        
         except Exception as e:
             logger.error(f"Erreur lors de la récupération des activités récentes: {str(e)}", exc_info=True)
             return []

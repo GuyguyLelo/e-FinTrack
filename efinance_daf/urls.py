@@ -10,9 +10,8 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('rapports.urls')),  # Dashboard à la racine
-    # Redirection directe du SuperAdmin vers tableau-bord-feuilles
-    path('dashboard/', lambda request: redirect('/tableau-bord-feuilles/' if request.user.is_superuser else '/')),
-    path('home/', include('rapports.urls')),  # Page d'accueil RBAC
+    # Redirection directe du SuperAdmin vers tableau-bord WICKFLOW (racine)
+    path('dashboard/', lambda request: redirect('/')),
     path('accounts/', include('accounts.urls')),
     path('banques/', include('banques.urls')),
     path('demandes/', include('demandes.urls')),

@@ -1,5 +1,5 @@
 """
-Middleware pour la gestion des accès selon les rôles
+Middleware pour la gestion des accès selon les rôles (RBAC en dur)
 """
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -8,8 +8,7 @@ from django.http import HttpResponseForbidden
 
 class AdminAccessMiddleware:
     """
-    Middleware pour rediriger l'admin simple vers l'administration Django
-    et bloquer l'accès aux interfaces utilisateur
+    Middleware pour rediriger selon les rôles avec conditions en dur
     """
     
     def __init__(self, get_response):
@@ -19,67 +18,37 @@ class AdminAccessMiddleware:
         user = request.user
         
         if user.is_authenticated:
-            # PRIORITÉ AU SYSTÈME RBAC
-            # Si l'utilisateur a un rôle RBAC, ignorer le middleware legacy
-            if hasattr(user, 'rbac_role_modele') and user.rbac_role_modele:
-                # Laisser passer les utilisateurs RBAC - gérés par la vue de connexion
-                return self.get_response(request)
-            
-            # Redirection prioritaire pour les admins vers les natures économiques
-            if user.role == 'ADMIN' and request.path == '/':
-                return redirect('/demandes/natures/')  # Redirection immédiate pour les admins
-        
-        if user.is_authenticated:
-            # Redirection pour ADMIN : accès admin Django + natures économiques + services
-            if user.role == 'ADMIN':
-                # Rediriger les admins directement vers les natures économiques
-                if request.path == '/':
-                    return redirect('/demandes/natures/')  # Page par défaut pour les admins
-                # Laisser l'admin naviguer librement sur les autres pages
-                pass
-            
-            # Redirection pour DG et CD_FINANCE : PAS d'accès au tableau-bord-feuilles (seulement WICKFLOW)
-            elif user.role in ['DG', 'CD_FINANCE']:
+            # USERS DE DAF
+            if user.role == 'OpsDaf':
+                # Opérateur de saisie du DAF : accès aux dépenses/recettes/états feuilles
                 allowed_urls = [
-                    '/demandes/',
-                    '/recettes/',
-                    '/paiements/',
-                    '/accounts/logout/',
-                    '/static/',
-                    '/media/',
-                ]
-                
-                # Vérifier si l'URL est autorisée
-                if not any(request.path.startswith(url) for url in allowed_urls):
-                    return redirect('/demandes/')
-            
-            # Redirection pour OPERATEUR_SAISIE : accès recettes/dépenses/états (pas tableau de bord)
-            elif user.role == 'OPERATEUR_SAISIE':
-                allowed_urls = [
-                    '/recettes/feuille/',
                     '/demandes/depenses/feuille/',
-                    '/tableau-bord-feuilles/etats-depenses/',
-                    '/tableau-bord-feuilles/etats-recettes/',
-                    '/tableau-bord-feuilles/rapports/',
-                    '/tableau-bord-feuilles/api/',
-                    '/tableau-bord-feuilles/preview-etats/',
-                    '/tableau-bord-feuilles/generer-etats/',
+                    '/recettes/feuille/',
+                    '/tableau-bord-feuilles/etats-',
                     '/accounts/logout/',
                     '/static/',
                     '/media/',
                 ]
                 
-                # Si l'URL n'est pas autorisée et n'est pas déjà une redirection, rediriger vers les recettes
                 if not any(request.path.startswith(url) for url in allowed_urls):
-                    # Éviter la boucle de redirection
-                    if request.path not in ['/recettes/feuille/', '/']:
-                        return redirect('/recettes/feuille/')
+                    return redirect('/demandes/depenses/feuille/')
             
-            # Redirection pour les rôles DAF : accès au tableau-bord-feuilles
-            elif user.role in ['OpsDaf', 'DirDaf', 'DivDaf', 'AdminDaf']:
+            elif user.role in ['DirDaf', 'DivDaf']:
+                # Direction DAF : accès au tableau de bord feuilles et clôtures
                 allowed_urls = [
                     '/tableau-bord-feuilles/',
                     '/clotures/',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                if not any(request.path.startswith(url) for url in allowed_urls):
+                    return redirect('/tableau-bord-feuilles/')
+            
+            elif user.role == 'AdminDaf':
+                # Administration DAF : accès aux natures et services
+                allowed_urls = [
                     '/demandes/natures/',
                     '/accounts/services/',
                     '/accounts/logout/',
@@ -87,39 +56,121 @@ class AdminAccessMiddleware:
                     '/media/',
                 ]
                 
-                # Pour OpsDaf, autoriser aussi les dépenses/recettes feuilles
-                if user.role == 'OpsDaf':
-                    allowed_urls.extend([
-                        '/demandes/depenses/feuille/',
-                        '/recettes/feuille/',
-                        '/tableau-bord-feuilles/etats-depenses/',
-                        '/tableau-bord-feuilles/etats-recettes/',
-                    ])
-                
-                # Si l'URL n'est pas autorisée, rediriger vers le tableau de bord DAF
                 if not any(request.path.startswith(url) for url in allowed_urls):
-                    return redirect('/tableau-bord-feuilles/')
+                    return redirect('/demandes/natures/')
             
-            # Bloquer l'accès au tableau de bord pour les rôles non autorisés
-            elif request.path == '/' and not (user.peut_voir_tableau_bord() or user.peut_ajouter_nature_economique()):
-                # Rediriger vers une page appropriée selon le rôle
-                if user.role == 'ADMIN':
-                    return redirect('/demandes/natures/')  # Rediriger vers les natures économiques
-                elif user.role == 'OPERATEUR_SAISIE':
-                    return redirect('/demandes/')  # Rediriger vers les demandes
-                elif user.role == 'AGENT_PAYEUR':
-                    return redirect('/demandes/paiements/')  # Rediriger vers les paiements
+            # USERS NORMALS (WICKFLOW)
+            elif user.role == 'ADMIN':
+                # Administrateur : tout voir sans modification
+                allowed_urls = [
+                    '/demandes/',
+                    '/recettes/',
+                    '/accounts/users/',
+                    '/accounts/services/',
+                    '/demandes/natures/',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                if not any(request.path.startswith(url) for url in allowed_urls):
+                    return redirect('/demandes/')
+            
+            elif user.role == 'DG':
+                # Directeur Général : voir tableau bord, demandes, paiements, valider demandes
+                allowed_urls = [
+                    '/',  # Tableau de bord WICKFLOW (racine)
+                    '/demandes/',
+                    '/recettes/',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                # Éviter la boucle de redirection : ne pas rediriger si déjà sur /
+                if not any(request.path.startswith(url) for url in allowed_urls) and request.path != '/':
+                    return redirect('/')
+            
+            elif user.role == 'DF':
+                # Directeur Financier : tout voir sans modification
+                allowed_urls = [
+                    '/',  # Tableau de bord WICKFLOW (racine)
+                    '/demandes/',
+                    '/recettes/',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                # Éviter la boucle de redirection : ne pas rediriger si déjà sur /
+                if not any(request.path.startswith(url) for url in allowed_urls) and request.path != '/':
+                    return redirect('/')
+            
+            elif user.role == 'CD_FINANCE':
+                # Chef Division Finance : tout voir, créer relevés, consulter dépenses, créer états
+                allowed_urls = [
+                    '/',  # Tableau de bord WICKFLOW (racine)
+                    '/demandes/',
+                    '/recettes/',
+                    '/releves/creer/',
+                    '/tableau-bord-feuilles/etats-',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                # Éviter la boucle de redirection : ne pas rediriger si déjà sur /
+                if not any(request.path.startswith(url) for url in allowed_urls) and request.path != '/':
+                    return redirect('/')
+            
+            elif user.role == 'OPERATEUR_SAISIE':
+                # Opérateur de Saisie : saisir demandes et recettes (pas tableau bord)
+                allowed_urls = [
+                    '/demandes/depenses/feuille/',
+                    '/recettes/feuille/',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                if not any(request.path.startswith(url) for url in allowed_urls):
+                    return redirect('/demandes/depenses/feuille/')
+            
+            elif user.role == 'AGENT_PAYEUR':
+                # Agent Payeur : effectuer les paiements
+                allowed_urls = [
+                    '/demandes/paiements/',
+                    '/accounts/logout/',
+                    '/static/',
+                    '/media/',
+                ]
+                
+                if not any(request.path.startswith(url) for url in allowed_urls):
+                    return redirect('/demandes/paiements/')
+            
+            # SuperAdmin : accès complet
+            elif user.is_superuser:
+                # Le SuperAdmin peut accéder à tout
+                pass
+            
+            # Bloquer l'accès au tableau-bord-feuille pour les non-DAF
+            if request.path.startswith('/tableau-bord-feuilles/') and user.role not in ['OpsDaf', 'DirDaf', 'DivDaf', 'AdminDaf', 'SUPER_ADMIN']:
+                if user.is_superuser:
+                    pass  # SuperAdmin a accès
                 else:
-                    # Pour les autres rôles, rediriger vers l'admin Django s'ils y ont accès
-                    if user.peut_acceder_admin_django():
-                        return redirect('/admin/')
+                    # Rediriger vers le tableau de bord approprié
+                    if user.role in ['DG', 'DF', 'CD_FINANCE']:
+                        # Éviter la boucle de redirection : ne pas rediriger si déjà sur /
+                        if request.path != '/':
+                            return redirect('/')
+                    elif user.role == 'ADMIN':
+                        return redirect('/demandes/')
+                    elif user.role == 'OPERATEUR_SAISIE':
+                        return redirect('/demandes/depenses/feuille/')
+                    elif user.role == 'AGENT_PAYEUR':
+                        return redirect('/demandes/paiements/')
                     else:
                         return redirect('/accounts/login/')
-            # Pour les admins, permettre l'accès libre aux pages autorisées
-            elif user.role == 'ADMIN' and request.path.startswith('/tableau-bord-feuilles/'):
-                # Les admins peuvent voir le tableau de bord même sans permission spéciale
-                # Ne pas rediriger - laisser passer
-                pass
         
         response = self.get_response(request)
         return response

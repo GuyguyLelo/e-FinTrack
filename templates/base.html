@@ -198,17 +198,7 @@
             
             <!-- Sidebar -->
             <div class="col-md-2 sidebar">
-                {% if user.peut_acceder_admin_django and not user.peut_voir_tableau_bord %}
-                <!-- Admin simple : seulement accès à l'admin Django -->
-                <nav class="nav flex-column">
-                    {% if user.peut_acceder_admin_django %}
-                    <hr style="border-color: rgba(255,255,255,0.2);">
-                    <a class="nav-link" href="/admin/">
-                        <i class="bi bi-gear"></i> Administration Django
-                    </a>
-                    {% endif %}
-                </nav>
-                {% else %}
+                {% if user.is_authenticated %}
                 <!-- Autres rôles : menu selon rôle connecté -->
                 <nav class="nav flex-column">
                     <!-- USERS DE DAF -->
@@ -219,19 +209,15 @@
                         <div class="menu-title">Menu Opérateur DAF</div>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'depense_feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:depense_feuille_liste' %}">
-                            <i class="bi bi-journal-spreadsheet"></i> Gestion Dépenses
+                            <i class="bi bi-journal-spreadsheet"></i> Dépenses Feuille
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'recettes' and 'feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'recettes:feuille_liste' %}">
-                            <i class="bi bi-cash-stack"></i> Gestion Recettes
+                            <i class="bi bi-cash-stack"></i> Recettes Feuille
                         </a>
                         
-                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and request.resolver_match.url_name == 'etats_depenses' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
-                            <i class="bi bi-file-text"></i> États Dépenses
-                        </a>
-                        
-                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and request.resolver_match.url_name == 'etats_recettes' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:etats_recettes' %}">
-                            <i class="bi bi-file-text"></i> États Recettes
+                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and 'etats' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
+                            <i class="bi bi-file-text"></i> États Feuilles
                         </a>
                     </div>
                     {% endif %}
@@ -241,11 +227,9 @@
                     <div class="menu-section">
                         <div class="menu-title">Menu Direction DAF</div>
                         
-                        {% if user.peut_acceder_tableau_bord_feuilles %}
                         <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
-                            <i class="bi bi-speedometer2"></i> Tableau de Bord
+                            <i class="bi bi-speedometer2"></i> Tableau de Bord Feuille
                         </a>
-                        {% endif %}
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'clotures' %}active{% endif %}" href="{% url 'clotures:cloture_list' %}">
                             <i class="bi bi-calendar-check"></i> Clôtures
@@ -263,7 +247,7 @@
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'service_list' %}active{% endif %}" href="{% url 'accounts:service_list' %}">
-                            <i class="bi bi-building"></i> Gestion des Services
+                            <i class="bi bi-building"></i> Services
                         </a>
                     </div>
                     {% endif %}
@@ -274,18 +258,6 @@
                     {% if user.is_authenticated and user.role == 'ADMIN' %}
                     <div class="menu-section">
                         <div class="menu-title">Menu Administrateur</div>
-                        
-                        <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'nature_liste' %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
-                            <i class="bi bi-diagram-3"></i> Natures Économiques
-                        </a>
-                        
-                        <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'service_list' %}active{% endif %}" href="{% url 'accounts:service_list' %}">
-                            <i class="bi bi-building"></i> Gestion des Services
-                        </a>
-                        
-                        <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'user_list' %}active{% endif %}" href="{% url 'accounts:user_list' %}">
-                            <i class="bi bi-people"></i> Gestion des Utilisateurs
-                        </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Demandes
@@ -298,6 +270,18 @@
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'paiement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:paiement_liste' %}">
                             <i class="bi bi-credit-card"></i> Paiements
                         </a>
+                        
+                        <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'user_list' %}active{% endif %}" href="{% url 'accounts:user_list' %}">
+                            <i class="bi bi-people"></i> Utilisateurs
+                        </a>
+                        
+                        <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'nature_liste' %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
+                            <i class="bi bi-diagram-3"></i> Natures Économiques
+                        </a>
+                        
+                        <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'service_list' %}active{% endif %}" href="{% url 'accounts:service_list' %}">
+                            <i class="bi bi-building"></i> Services
+                        </a>
                     </div>
                     {% endif %}
                     
@@ -306,11 +290,9 @@
                     <div class="menu-section">
                         <div class="menu-title">Menu Directeur Général</div>
                         
-                        {% if user.peut_voir_tableau_bord %}
-                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:dashboard' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de Bord
                         </a>
-                        {% endif %}
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Demandes
@@ -331,11 +313,9 @@
                     <div class="menu-section">
                         <div class="menu-title">Menu Directeur Financier</div>
                         
-                        {% if user.peut_voir_tableau_bord %}
-                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:dashboard' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de Bord
                         </a>
-                        {% endif %}
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Demandes
@@ -356,11 +336,9 @@
                     <div class="menu-section">
                         <div class="menu-title">Menu Chef Division Finance</div>
                         
-                        {% if user.peut_voir_tableau_bord %}
-                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
+                        <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:dashboard' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de Bord
                         </a>
-                        {% endif %}
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Demandes
@@ -414,13 +392,12 @@
                     </div>
                     {% endif %}
                     
-                    <!-- Menu pour SuperAdmin (uniquement son menu propre) -->
+                    <!-- Menu pour SuperAdmin (tous les menus) -->
                     {% if user.is_superuser %}
                     <div class="menu-section">
                         <div class="menu-title">Menu SuperAdmin</div>
                         
                         <!-- Menu DAF -->
-                        <div class="menu-subtitle">Menu DAF</div>
                         <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:tableau_bord_feuilles' %}">
                             <i class="bi bi-speedometer2"></i> Tableau de Bord DAF
                         </a>
@@ -430,19 +407,15 @@
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and 'depense_feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'demandes:depense_feuille_liste' %}">
-                            <i class="bi bi-journal-spreadsheet"></i> Gestion Dépenses DAF
+                            <i class="bi bi-journal-spreadsheet"></i> Dépenses Feuille
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'recettes' and 'feuille' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'recettes:feuille_liste' %}">
-                            <i class="bi bi-cash-stack"></i> Gestion Recettes DAF
+                            <i class="bi bi-cash-stack"></i> Recettes Feuille
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and request.resolver_match.url_name == 'etats_depenses' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:etats_depenses' %}">
-                            <i class="bi bi-file-text"></i> États Dépenses DAF
-                        </a>
-                        
-                        <a class="nav-link {% if request.resolver_match.app_name == 'tableau_bord_feuilles' and request.resolver_match.url_name == 'etats_recettes' %}active{% endif %}" href="{% url 'tableau_bord_feuilles:etats_recettes' %}">
-                            <i class="bi bi-file-text"></i> États Recettes DAF
+                            <i class="bi bi-file-text"></i> États Feuilles
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'nature_liste' %}active{% endif %}" href="{% url 'demandes:nature_liste' %}">
@@ -450,11 +423,14 @@
                         </a>
                         
                         <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'service_list' %}active{% endif %}" href="{% url 'accounts:service_list' %}">
-                            <i class="bi bi-building"></i> Gestion des Services
+                            <i class="bi bi-building"></i> Services
                         </a>
                         
                         <!-- Menu WICKFLOW -->
-                        <div class="menu-subtitle">Menu WICKFLOW</div>
+                        <a class="nav-link {% if request.resolver_match.app_name == 'rapports' %}active{% endif %}" href="{% url 'rapports:dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Tableau de Bord WICKFLOW
+                        </a>
+                        
                         <a class="nav-link {% if request.resolver_match.app_name == 'demandes' and request.resolver_match.url_name == 'depenses_liste' %}active{% endif %}" href="{% url 'demandes:depenses_liste' %}">
                             <i class="bi bi-journal-spreadsheet"></i> Demandes
                         </a>
@@ -476,20 +452,28 @@
                         </a>
                         
                         <!-- Administration -->
-                        <div class="menu-subtitle">Administration</div>
                         <a class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name == 'user_list' %}active{% endif %}" href="{% url 'accounts:user_list' %}">
                             <i class="bi bi-people"></i> Gestion des Utilisateurs
                         </a>
                         
                         <a class="nav-link" href="/admin/">
-                            <i class="bi bi-gear"></i> Admin Django
+                            <i class="bi bi-gear"></i> Administration Django
                         </a>
                     </div>
                     {% endif %}
                 </nav>
+                {% else %}
+                <!-- Non connecté -->
+                <nav class="nav flex-column">
+                    <div class="menu-section">
+                        <div class="menu-title">Menu Public</div>
+                        <a class="nav-link" href="{% url 'accounts:login' %}">
+                            <i class="bi bi-box-arrow-in-right"></i> Connexion
+                        </a>
+                    </div>
+                </nav>
                 {% endif %}
             </div>
-            {% endif %}
             
             <!-- Main Content -->
             <div class="{% if user.is_authenticated %}col-md-10{% else %}col-12{% endif %} main-content">
@@ -507,6 +491,7 @@
                 
                 {% block content %}{% endblock %}
             </div>
+            {% endif %}
         </div>
     </div>
 
